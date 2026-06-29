@@ -1,5 +1,9 @@
 # RRQ GitOps Infrastructure
 
+<!-- [![GitOps CI](https://github.com/Joel-Ajayi/rrq-gitops/actions/workflows/gitops-ci.yaml/badge.svg)](https://github.com/Joel-Ajayi/rrq-gitops/actions/workflows/gitops-ci.yaml) -->
+[![Argo CD](https://img.shields.io/badge/managed_by-Argo_CD-blue?logo=argo)](https://argoproj.github.io/cd/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 This repository is the single source of truth for the **Infrastructure as Code (IaC)** and **Declarative GitOps** state of the RRQ (River Rust Queue) payment processing core.
 
 It strictly decouples the platform infrastructure and deployment lifecycle from the application code (which lives in the [`river-rust-queue`](../river-rust-queue) repository), allowing operations and development to scale independently.
