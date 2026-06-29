@@ -1,4 +1,2 @@
-.github
-
 # Plaintext secrets — NEVER commit. Use `make seal` to produce the sealed version.
 secret.plain.yaml
