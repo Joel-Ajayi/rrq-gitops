@@ -1,0 +1,9 @@
+# Prod: run migrations as an Argo CD PreSync hook (before new pods roll).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-migrate
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation

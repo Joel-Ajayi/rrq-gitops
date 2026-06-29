@@ -1,0 +1,10 @@
+# Dev overlay (kind). Reduces replicas and resources for local development.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rrq
+resources:
+  - ../../base
+  - ../../base/migrations # Creates local databases on first boot
+  - secret.yaml          # dev-only plaintext rrq-secrets
+patches:
+  - path: patches/reduce-replicas.yaml

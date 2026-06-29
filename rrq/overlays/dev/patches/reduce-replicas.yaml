@@ -1,0 +1,98 @@
+# Dev overlay: reduce replicas for laptop-sized clusters.
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: merchants-db
+  namespace: rrq
+spec:
+  instances: 1
+  resources:
+    requests: { cpu: "100m", memory: 256Mi }
+    limits: { cpu: "500m", memory: 512Mi }
+  storage:
+    size: 2Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-a
+  namespace: rrq
+spec:
+  instances: 1
+  resources:
+    requests: { cpu: "100m", memory: 256Mi }
+    limits: { cpu: "500m", memory: 512Mi }
+  storage:
+    size: 2Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-b
+  namespace: rrq
+spec:
+  instances: 1
+  resources:
+    requests: { cpu: "100m", memory: 256Mi }
+    limits: { cpu: "500m", memory: 512Mi }
+  storage:
+    size: 2Gi
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: rrq
+  labels:
+    strimzi.io/cluster: rrq
+spec:
+  replicas: 1
+  resources:
+    requests: { cpu: "100m", memory: 512Mi }
+    limits: { cpu: "500m", memory: 1Gi }
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 5Gi
+        deleteClaim: true
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: rrq
+  namespace: rrq
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: jobs
+  namespace: rrq
+  labels:
+    strimzi.io/cluster: rrq
+spec:
+  replicas: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notify
+  namespace: rrq
+  labels:
+    strimzi.io/cluster: rrq
+spec:
+  replicas: 1

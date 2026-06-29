@@ -1,0 +1,26 @@
+# Let's Encrypt issuer (cert-manager). Solves ACME HTTP-01 through Kong.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: yotstack@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account # Stores your CA account credentials
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: kong
+
+#  [1. ClusterIssuer]  ◄─────── Tells cert-manager where the CA is
+#          │
+#          ▼
+#  [2. Certificate]   ◄─────── Asks cert-manager to fetch a cert for a domain
+#          │
+#          ▼ (Auto-creates)
+#  [3. Secret]      ◄─────── Holds the raw public and private keys
+#          │
+#          ▼ (Mounted by)
+#  [4. Ingress]      ◄─────── Tells Kong to use the Secret to decrypt traffic

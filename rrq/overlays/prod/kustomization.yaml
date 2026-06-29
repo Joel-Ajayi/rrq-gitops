@@ -1,0 +1,15 @@
+# Prod overlay (delivered by Argo CD). Base is already prod-shaped (HA backends);
+# this adds secrets, the cert-manager issuer, TLS, scale-up, and the migration hook.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rrq
+resources:
+  - ../../base
+  - ../../base/migrations # run as a PreSync hook (see patches/migrate-hook.yaml)
+  - issuer.yaml
+  # Generated via `make seal`
+  - patches/secret.sealed.yaml
+patches:
+  - path: patches/scale-up.yaml
+  - path: patches/ingress-tls.yaml
+  - path: patches/migrate-hook.yaml

@@ -1,0 +1,25 @@
+# Local dev cluster. Mirrors production topology at laptop resource sizes.
+# Used by `make cluster-up` / `make dev`.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: rrq
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    # Kong edge is exposed on host :8080 / :8443 via NodePort 30080 / 30443.
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 30443
+        hostPort: 8443
+        protocol: TCP
+  # Two workers so ≥2-replica services and cross-node anti-affinity are real.
+  - role: worker
+  - role: worker
+  - role: worker

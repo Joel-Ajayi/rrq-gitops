@@ -1,0 +1,31 @@
+# Prod: terminate TLS at Kong with a cert-manager-issued certificate.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rrq-edge
+  namespace: rrq
+  annotations:
+    #  Ingress Shim:automatically triggers cert-manager to create your Secret!
+    # Instead of creating a seperate Certificate resource,
+    # you can just annotate your Ingress and let cert-manager handle the rest.
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts: [rrq.yotstack.tech]
+      secretName: rrq-edge-tls-secret
+  rules:
+    - host: rrq.yotstack.tech
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port: { number: 8080 }
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-dashboard
+                port: { number: 8081 }
