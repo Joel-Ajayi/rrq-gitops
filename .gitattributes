@@ -1,2 +1,3 @@
 [Mm]akefile linguist-detectable=false
 *.mk linguist-detectable=false
+*.yaml linguist-detectable=true
