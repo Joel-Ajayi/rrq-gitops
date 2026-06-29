@@ -1,0 +1,2 @@
+[Mm]akefile linguist-detectable=false
+*.mk linguist-detectable=false
