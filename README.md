@@ -6,7 +6,7 @@
 
 This repository is the single source of truth for the **Infrastructure as Code (IaC)** and **Declarative GitOps** state of the RRQ (River Rust Queue) payment processing core.
 
-It strictly decouples the platform infrastructure and deployment lifecycle from the application code (which lives in the [`river-rust-queue`](../river-rust-queue) repository), allowing operations and development to scale independently.
+It strictly decouples the platform infrastructure and deployment lifecycle from the application code (which lives in the [`river-rust-queue`](https://github.com/Joel-Ajayi/river-rust-queue) repository), allowing operations and development to scale independently.
 
 ---
 
@@ -53,6 +53,7 @@ For the local inner-loop, we run a hybrid model: you use this repository to boot
 
 1. **Bootstrap the Platform:**
    ```bash
+   git clone https://github.com/Joel-Ajayi/rrq-gitops.git
    cd rrq-gitops
    make bootstrap-dev
    ```
@@ -60,7 +61,8 @@ For the local inner-loop, we run a hybrid model: you use this repository to boot
 
 2. **Run the Application:**
    ```bash
-   cd ../river-rust-queue
+   git clone https://github.com/Joel-Ajayi/river-rust-queue.git
+   cd river-rust-queue
    make dev
    ```
    Skaffold will build your Go images, apply database migrations, and hot-load the microservices into the cluster dynamically.
