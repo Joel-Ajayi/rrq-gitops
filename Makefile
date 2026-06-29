@@ -4,7 +4,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
 CLUSTER        ?= rrq
-KIND_NODE_IMAGE ?= kindest/node:v1.31.4
+KIND_NODE_IMAGE ?= kindest/node:v1.36.1
 ARGOCD_VERSION  ?= 7.7.5
 
 .PHONY: help

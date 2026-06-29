@@ -19,6 +19,12 @@ spec:
             - -c
             - |
               set -e
+              echo "Waiting for PostgreSQL databases to accept connections..."
+              until nc -z merchants-db-rw.rrq 5432 && nc -z shard-a-rw.rrq 5432 && nc -z shard-b-rw.rrq 5432; do
+                echo "Databases not ready yet, waiting..."
+                sleep 2
+              done
+              echo "Databases are up, running migrations!"
               migrate -path /migrations/global -database "$MERCHANTS_URI?sslmode=require" up
               migrate -path /migrations/shard  -database "$SHARD_A_URI?sslmode=require"  up
               migrate -path /migrations/shard  -database "$SHARD_B_URI?sslmode=require"  up

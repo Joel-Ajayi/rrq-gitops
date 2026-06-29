@@ -11,7 +11,7 @@ metadata:
     rrq.dev/shard-id: shard-b
 spec:
   instances: 1
-  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.0
   primaryUpdateStrategy: unsupervised
   bootstrap:
     initdb:
