@@ -1,10 +1,15 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: platform-collector
   namespace: observability
 spec:
   mode: deployment
+  ports:
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
   config:
     receivers:
       otlp:

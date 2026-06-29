@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector-bridge
+  namespace: observability
+spec:
+  selector:
+    matchLabels:
+      # The OTel Operator generates a Service with this label format: <name>-collector
+      app.kubernetes.io/name: platform-collector-collector
+  endpoints:
+    - port: prometheus
+      interval: 15s
+      path: /metrics
+

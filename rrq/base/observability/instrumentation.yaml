@@ -5,9 +5,12 @@ metadata:
   namespace: rrq
 spec:
   exporter:
+    # Where the injected agent should send its collected traces and metrics
     endpoint: http://platform-collector-collector.observability.svc.cluster.local:4317
   propagators:
+    # How trace IDs are injected into HTTP headers to track requests across services
     - tracecontext
     - baggage
   go:
-    image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:latest
+    # The actual eBPF auto-instrumentation image that attaches to our Go binaries
+    image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:v0.24.0

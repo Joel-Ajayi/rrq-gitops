@@ -4,8 +4,9 @@ metadata:
   name: rrq-dashboard
   namespace: observability
   labels:
-    grafana_dashboard: "1"
+    grafana_dashboard: "1" # The Grafana sidecar automatically detects this label and imports the dashboard
 data:
+  # The raw JSON definition of our RRQ dashboard layout (panels, queries, etc.)
   rrq-dashboard.json: |-
     {
       "title": "RRQ Dashboard",
