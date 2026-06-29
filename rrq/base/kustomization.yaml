@@ -1,0 +1,14 @@
+# Shared base; overlays patch per-env. Stateful topology identical in both.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rrq
+resources:
+  - namespace.yaml
+  - config/configmap.yaml
+  # rrq-secrets is per-env: dev = plaintext (overlays/dev/secret.yaml),
+  # prod = SealedSecret (overlays/prod).
+  - postgres
+  - kafka
+  - services
+  - ingress          # Kong edge routing
+  - observability    # Metrics and Tracing

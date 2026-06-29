@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-dashboard.json: |-
+    {
+      "title": "RRQ Dashboard",
+      "panels": []
+    }

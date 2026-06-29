@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rrq
+# One file per service (Deployment/Service + its HPA or KEDA ScaledObject).
+# To add a service, drop a <name>.yaml here and list it below. See README.md.
+resources:
+- api-gateway.yaml
+- outbox-relay.yaml
+- ledger-worker.yaml
+- webhook-worker.yaml
+- fraud-worker.yaml
+- recon-worker.yaml
+- admin-dashboard.yaml
+
+commonAnnotations:
+  instrumentation.opentelemetry.io/inject-go: "true"

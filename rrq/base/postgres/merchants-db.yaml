@@ -1,0 +1,26 @@
+# Global control-plane DB: the `merchants` table + shard routing directory.
+# CloudNativePG runs primary + standby; Services: merchants-db-rw/-ro/-r.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: merchants-db
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+    rrq.dev/role: control-plane
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: merchants
+      owner: rrq_app                 # CNPG generates the Secret `merchants-db-app`
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "250m", memory: 512Mi }
+    limits:   { cpu: "1",    memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "200"

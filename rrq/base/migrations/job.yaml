@@ -1,0 +1,34 @@
+# Runs once per `make dev` (and as an Argo CD PreSync hook in prod): global migrations
+# on the control-plane DB, shard migrations on every shard. URIs come from CNPG secrets.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-migrate
+  namespace: rrq
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: rrq/migrate:dev
+          # Each shard reuses the same shard/ migration set; merchants gets global/.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              migrate -path /migrations/global -database "$MERCHANTS_URI?sslmode=require" up
+              migrate -path /migrations/shard  -database "$SHARD_A_URI?sslmode=require"  up
+              migrate -path /migrations/shard  -database "$SHARD_B_URI?sslmode=require"  up
+          env:
+            - name: MERCHANTS_URI
+              valueFrom:
+                secretKeyRef: { name: merchants-db-app, key: uri }
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef: { name: shard-a-app, key: uri }
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef: { name: shard-b-app, key: uri }

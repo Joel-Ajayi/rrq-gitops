@@ -1,0 +1,13 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: platform-autoinstrumentation
+  namespace: rrq
+spec:
+  exporter:
+    endpoint: http://platform-collector-collector.observability.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  go:
+    image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:latest

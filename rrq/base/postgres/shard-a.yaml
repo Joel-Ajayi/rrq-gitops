@@ -1,0 +1,27 @@
+# Ledger shard A: data for merchants with shard_id='shard-a'.
+# Intra-shard transfers post both legs here in one transaction.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-a
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+    rrq.dev/role: ledger-shard
+    rrq.dev/shard-id: shard-a
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: rrq
+      owner: rrq_app                 # CNPG generates the Secret `shard-a-app`
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "250m", memory: 512Mi }
+    limits:   { cpu: "1",    memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "200"

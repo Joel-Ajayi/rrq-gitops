@@ -1,0 +1,27 @@
+# `jobs`: job.requested (ledger + fraud workers). `notify`: transfer.* keyed by
+# merchant_id for per-merchant order. xshard.* topics come in Phase 2.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: jobs
+  namespace: rrq
+  labels:
+    strimzi.io/cluster: rrq
+spec:
+  partitions: 16
+  replicas: 1
+  config:
+    retention.ms: "604800000"   # 7 days
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notify
+  namespace: rrq
+  labels:
+    strimzi.io/cluster: rrq
+spec:
+  partitions: 16
+  replicas: 1
+  config:
+    retention.ms: "604800000"   # 7 days

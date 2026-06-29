@@ -1,0 +1,32 @@
+# Non-secret configuration shared by every RRQ service. Secrets (DB passwords,
+# JWT signing key, HMAC keys) live in a Secret / SealedSecret, not here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-config
+  namespace: rrq
+data:
+  # --- Global control-plane database: merchants + the shard routing directory ---
+  pg_merchants_host: "merchants-db-rw.rrq.svc.cluster.local"
+  pg_merchants_port: "5432"
+  pg_merchants_db: "merchants"
+
+  # --- Ledger shards. The gateway resolves merchant_id -> shard_id from
+  #     merchants.shard_id, then dials the matching host below. ---
+  pg_shard_port: "5432"
+  pg_shard_db: "rrq"
+  shard_a_host: "shard-a-rw.rrq.svc.cluster.local"
+  shard_b_host: "shard-b-rw.rrq.svc.cluster.local"
+
+  # --- Messaging ---
+  kafka_brokers: "rrq-kafka-bootstrap.rrq.svc.cluster.local:9092"
+  kafka_topic_jobs: "jobs"
+  kafka_topic_notify: "notify"
+
+  # --- Ephemeral, non-correctness-critical state ---
+  redis_data_host: "redis-master.rrq.svc.cluster.local"
+  redis_data_port: "6379"
+
+  # --- Behaviour ---
+  log_level: "info"
+  trace_sample_rate: "1.0"

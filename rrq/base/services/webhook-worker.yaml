@@ -1,0 +1,81 @@
+# Webhook worker: consumes `notify` and delivers signed webhooks to merchants.
+# One consumer per partition preserves per-merchant order (I5).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+  labels:
+    app.kubernetes.io/name: webhook-worker
+    app.kubernetes.io/part-of: rrq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webhook-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webhook-worker
+        app.kubernetes.io/part-of: rrq
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: webhook-worker
+          image: rrq/webhook-worker:dev
+          imagePullPolicy: Never
+          ports:
+            - name: metrics
+              containerPort: 9090
+          envFrom:
+            - configMapRef: { name: rrq-config }
+            - secretRef: { name: rrq-secrets }
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom: { secretKeyRef: { name: merchants-db-app, key: uri } }
+            - name: SHARD_A_URI
+              valueFrom: { secretKeyRef: { name: shard-a-app, key: uri } }
+            - name: SHARD_B_URI
+              valueFrom: { secretKeyRef: { name: shard-b-app, key: uri } }
+          lifecycle:
+            preStop:
+              exec: { command: ["sleep", "5"] }
+          resources:
+            requests: { cpu: "50m",  memory: 96Mi }
+            limits:   { cpu: "300m", memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-worker-metrics
+  namespace: rrq
+  labels:
+    app.kubernetes.io/name: webhook-worker
+    app.kubernetes.io/part-of: rrq
+spec:
+  selector:
+    app.kubernetes.io/name: webhook-worker
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+---
+# Scale on `notify` lag.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  scaleTargetRef:
+    name: webhook-worker
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
+        consumerGroup: webhook-worker
+        topic: notify
+        lagThreshold: "100"
+        offsetResetPolicy: earliest

@@ -1,0 +1,70 @@
+# Admin dashboard: ops UI + read APIs (DLQ replay, lag, freeze/unfreeze).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-dashboard
+  namespace: rrq
+  labels:
+    app.kubernetes.io/name: admin-dashboard
+    app.kubernetes.io/part-of: rrq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: admin-dashboard
+        app.kubernetes.io/part-of: rrq
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: admin-dashboard
+          image: rrq/admin-dashboard:dev
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8081
+            - name: metrics
+              containerPort: 9090
+          envFrom:
+            - configMapRef: { name: rrq-config }
+            - secretRef: { name: rrq-secrets }
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom: { secretKeyRef: { name: merchants-db-app, key: uri } }
+            - name: SHARD_A_URI
+              valueFrom: { secretKeyRef: { name: shard-a-app, key: uri } }
+            - name: SHARD_B_URI
+              valueFrom: { secretKeyRef: { name: shard-b-app, key: uri } }
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: { cpu: "50m",  memory: 96Mi }
+            limits:   { cpu: "300m", memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-dashboard
+  namespace: rrq
+  labels:
+    app.kubernetes.io/name: admin-dashboard
+    app.kubernetes.io/part-of: rrq
+spec:
+  selector:
+    app.kubernetes.io/name: admin-dashboard
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+    - name: metrics
+      port: 9090
+      targetPort: metrics
