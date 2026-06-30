@@ -1,0 +1,19 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rrq-rate-limit
+  namespace: rrq
+plugin: rate-limiting
+config:
+  minute: 500
+  limit_by: ip
+  policy: local
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rrq-jwt
+  namespace: rrq
+plugin: jwt
+config:
+  key_claim_name: iss
