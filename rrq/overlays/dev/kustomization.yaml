@@ -5,6 +5,24 @@ namespace: rrq
 resources:
   - ../../base
   - ../../base/migrations # Creates local databases on first boot
-  - secret.yaml          # dev-only plaintext rrq-secrets
+  - secret.yaml # dev-only plaintext rrq-secrets
+images:
+  - name: rrq/api-gateway
+    newName: rrq/api-gateway-go
+  - name: rrq/outbox-relay
+    newName: rrq/outbox-relay-go
+  - name: rrq/ledger-worker
+    newName: rrq/ledger-worker-go
+  - name: rrq/webhook-worker
+    newName: rrq/webhook-worker-go
+  - name: rrq/fraud-worker
+    newName: rrq/fraud-worker-go
+  - name: rrq/recon-worker
+    newName: rrq/recon-worker-go
+  - name: rrq/admin-dashboard
+    newName: rrq/admin-dashboard
+  - name: rrq/migrate
+    newName: rrq/migrate
 patches:
   - path: patches/reduce-replicas.yaml
+  - path: patches/instrumentation.yaml

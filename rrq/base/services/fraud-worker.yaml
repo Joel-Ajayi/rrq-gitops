@@ -1,12 +1,9 @@
-# Fraud worker: consumes `jobs` as a separate group, runs velocity checks in
-# Redis, freezes wallets on anomaly. Detective control, off the money path.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fraud-worker
   namespace: rrq
   labels:
-
     app.kubernetes.io/name: fraud-worker
     app.kubernetes.io/part-of: rrq
 spec:
@@ -22,25 +19,62 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-        - name: fraud-worker
-          image: rrq/fraud-worker:dev
-          imagePullPolicy: Never
-          ports:
-            - name: metrics
-              containerPort: 9090
-          envFrom:
-            - configMapRef: { name: rrq-config }
-            - secretRef: { name: rrq-secrets }
-          env:
-            - name: MERCHANTS_DB_URI
-              valueFrom: { secretKeyRef: { name: merchants-db-app, key: uri } }
-            - name: SHARD_A_URI
-              valueFrom: { secretKeyRef: { name: shard-a-app, key: uri } }
-            - name: SHARD_B_URI
-              valueFrom: { secretKeyRef: { name: shard-b-app, key: uri } }
-          resources:
-            requests: { cpu: "50m", memory: 96Mi }
-            limits: { cpu: "300m", memory: 192Mi }
+      - name: fraud-worker
+        image: rrq/fraud-worker:dev
+        imagePullPolicy: Never
+        ports:
+        - name: metrics
+          containerPort: 9090
+        envFrom:
+        - configMapRef:
+            name: rrq-config
+        - secretRef:
+            name: rrq-secrets
+        env:
+        - name: MERCHANTS_DB_URI
+          valueFrom:
+            secretKeyRef:
+              name: merchants-db-app
+              key: uri
+        - name: SHARD_A_URI
+          valueFrom:
+            secretKeyRef:
+              name: shard-a-app
+              key: uri
+        - name: SHARD_B_URI
+          valueFrom:
+            secretKeyRef:
+              name: shard-b-app
+              key: uri
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 300m
+            memory: 192Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - fraud-worker
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
 ---
 apiVersion: v1
 kind: Service
@@ -54,11 +88,10 @@ spec:
   selector:
     app.kubernetes.io/name: fraud-worker
   ports:
-    - name: metrics
-      port: 9090
-      targetPort: metrics
+  - name: metrics
+    port: 9090
+    targetPort: metrics
 ---
-# Scale on `jobs` lag (separate consumer group from the ledger worker).
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -70,10 +103,21 @@ spec:
   minReplicaCount: 1
   maxReplicaCount: 5
   triggers:
-    - type: kafka
-      metadata:
-        bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
-        consumerGroup: fraud-worker
-        topic: jobs
-        lagThreshold: "200"
-        offsetResetPolicy: earliest
+  - type: kafka
+    metadata:
+      bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
+      consumerGroup: fraud-worker
+      topic: jobs
+      lagThreshold: '200'
+      offsetResetPolicy: earliest
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fraud-worker

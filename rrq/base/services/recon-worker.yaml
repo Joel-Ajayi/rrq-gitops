@@ -1,5 +1,3 @@
-# Reconciliation: a CronJob, not a Deployment. Verifies conservation per shard
-# and projection drift, alerts on divergence, never auto-corrects.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -9,7 +7,7 @@ metadata:
     app.kubernetes.io/name: recon-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  schedule: "*/15 * * * *" # every 15 minutes
+  schedule: '*/15 * * * *'
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
@@ -24,20 +22,44 @@ spec:
         spec:
           restartPolicy: Never
           containers:
-            - name: recon-worker
-              image: rrq/recon-worker:dev
-              imagePullPolicy: Never
-              envFrom:
-                - configMapRef: { name: rrq-config }
-                - secretRef: { name: rrq-secrets }
-              env:
-                - name: MERCHANTS_DB_URI
-                  valueFrom:
-                    { secretKeyRef: { name: merchants-db-app, key: uri } }
-                - name: SHARD_A_URI
-                  valueFrom: { secretKeyRef: { name: shard-a-app, key: uri } }
-                - name: SHARD_B_URI
-                  valueFrom: { secretKeyRef: { name: shard-b-app, key: uri } }
-              resources:
-                requests: { cpu: "100m", memory: 128Mi }
-                limits: { cpu: "500m", memory: 256Mi }
+          - name: recon-worker
+            image: rrq/recon-worker:dev
+            imagePullPolicy: Never
+            envFrom:
+            - configMapRef:
+                name: rrq-config
+            - secretRef:
+                name: rrq-secrets
+            env:
+            - name: MERCHANTS_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: merchants-db-app
+                  key: uri
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-a-app
+                  key: uri
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-b-app
+                  key: uri
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000

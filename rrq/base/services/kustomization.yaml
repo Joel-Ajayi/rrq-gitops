@@ -11,6 +11,4 @@ resources:
 - fraud-worker.yaml
 - recon-worker.yaml
 - admin-dashboard.yaml
-
-commonAnnotations:
-  instrumentation.opentelemetry.io/inject-go: "true"
+- network-policies.yaml

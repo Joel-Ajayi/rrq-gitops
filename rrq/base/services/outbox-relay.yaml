@@ -1,5 +1,3 @@
-# Outbox relay: tails the events table and publishes unpublished rows to Kafka.
-# Leader-elected (Postgres advisory lock), so extra replicas are warm standbys.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,29 +19,68 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-        - name: outbox-relay
-          image: rrq/outbox-relay:dev
-          imagePullPolicy: Never
-          ports:
-            - name: metrics
-              containerPort: 9090
-          envFrom:
-            - configMapRef: { name: rrq-config }
-            - secretRef: { name: rrq-secrets }
-          env:
-            - name: MERCHANTS_DB_URI
-              valueFrom: { secretKeyRef: { name: merchants-db-app, key: uri } }
-            - name: SHARD_A_URI
-              valueFrom: { secretKeyRef: { name: shard-a-app, key: uri } }
-            - name: SHARD_B_URI
-              valueFrom: { secretKeyRef: { name: shard-b-app, key: uri } }
-          # Drain in-flight publishes before exit.
-          lifecycle:
-            preStop:
-              exec: { command: ["sleep", "5"] }
-          resources:
-            requests: { cpu: "50m",  memory: 64Mi }
-            limits:   { cpu: "250m", memory: 128Mi }
+      - name: outbox-relay
+        image: rrq/outbox-relay:dev
+        imagePullPolicy: Never
+        ports:
+        - name: metrics
+          containerPort: 9090
+        envFrom:
+        - configMapRef:
+            name: rrq-config
+        - secretRef:
+            name: rrq-secrets
+        env:
+        - name: MERCHANTS_DB_URI
+          valueFrom:
+            secretKeyRef:
+              name: merchants-db-app
+              key: uri
+        - name: SHARD_A_URI
+          valueFrom:
+            secretKeyRef:
+              name: shard-a-app
+              key: uri
+        - name: SHARD_B_URI
+          valueFrom:
+            secretKeyRef:
+              name: shard-b-app
+              key: uri
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sleep
+              - '5'
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - outbox-relay
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
 ---
 apiVersion: v1
 kind: Service
@@ -57,6 +94,17 @@ spec:
   selector:
     app.kubernetes.io/name: outbox-relay
   ports:
-    - name: metrics
-      port: 9090
-      targetPort: metrics
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: outbox-relay

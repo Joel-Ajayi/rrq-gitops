@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: api-gateway
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: outbox-relay
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: ledger-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: webhook-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: fraud-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recon-worker
+  namespace: rrq
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: recon-worker
+              imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-dashboard
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: admin-dashboard
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-migrate
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          imagePullPolicy: IfNotPresent

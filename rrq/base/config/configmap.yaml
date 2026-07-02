@@ -30,3 +30,4 @@ data:
   # --- Behaviour ---
   log_level: "info"
   trace_sample_rate: "1.0"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://platform-collector-collector.observability.svc.cluster.local:4317"

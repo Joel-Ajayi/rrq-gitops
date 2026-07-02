@@ -9,7 +9,28 @@ resources:
   - issuer.yaml
   # Generated via `make seal`
   - patches/secret.sealed.yaml
+images:
+  - name: rrq/api-gateway
+    newName: ghcr.io/Joel-Ajayi/api-gateway-go
+  - name: rrq/outbox-relay
+    newName: ghcr.io/Joel-Ajayi/outbox-relay-go
+  - name: rrq/ledger-worker
+    newName: ghcr.io/Joel-Ajayi/ledger-worker-go
+  - name: rrq/webhook-worker
+    newName: ghcr.io/Joel-Ajayi/webhook-worker-go
+  - name: rrq/fraud-worker
+    newName: ghcr.io/Joel-Ajayi/fraud-worker-go
+  - name: rrq/recon-worker
+    newName: ghcr.io/Joel-Ajayi/recon-worker-go
+  - name: rrq/admin-dashboard
+    newName: ghcr.io/Joel-Ajayi/admin-dashboard
+  - name: rrq/migrate
+    newName: ghcr.io/Joel-Ajayi/migrate
 patches:
   - path: patches/scale-up.yaml
   - path: patches/ingress-tls.yaml
   - path: patches/migrate-hook.yaml
+  - path: patches/image-pull-policy.yaml
+  - path: patches/instrumentation.yaml
+
+# CI promotes the selected prod images by updating the image tags only.
