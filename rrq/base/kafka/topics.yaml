@@ -11,7 +11,7 @@ spec:
   partitions: 16
   replicas: 1
   config:
-    retention.ms: "604800000"   # 7 days
+    retention.ms: "604800000" # 7 days
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -24,4 +24,4 @@ spec:
   partitions: 16
   replicas: 1
   config:
-    retention.ms: "604800000"   # 7 days
+    retention.ms: "604800000" # 7 days

@@ -39,10 +39,13 @@ metadata:
 spec:
   kafka:
     config:
-      offsets.topic.replication.factor: 3
-      transaction.state.log.replication.factor: 3
+      offsets.topic.replication.factor: 3 # Controls the replication factor of the internal __consumer_offsets topic
+      transaction.state.log.replication.factor: 3 # Controls the replication factor of the internal __transaction_state topic
+      # Defines the minimum number of In-Sync Replicas (ISR) required for the transaction state manager to accept incoming write requests
       transaction.state.log.min.isr: 2
+      # Controls the default replication factor for user-created topics in Kafka
       default.replication.factor: 3
+      #  Sets the minimum number of replicas that must acknowledge a write for it to be considered successful when a producer uses acks=all
       min.insync.replicas: 2
 ---
 apiVersion: kafka.strimzi.io/v1beta2

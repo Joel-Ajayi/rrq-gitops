@@ -1,5 +1,5 @@
 # Strimzi-managed Kafka, KRaft mode (no ZooKeeper).
-# NodePool = the pods; Kafka = the cluster. Bootstrap: rrq-kafka-bootstrap.
+# KafkaNodePool = the pods; Kafka = the cluster. Bootstrap: rrq-kafka-bootstrap.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
@@ -8,7 +8,7 @@ metadata:
   labels:
     strimzi.io/cluster: rrq
 spec:
-  replicas: 1
+  replicas: 1 #Number of Brokers
   roles:
     - controller
     - broker
