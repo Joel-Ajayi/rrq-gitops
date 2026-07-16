@@ -5,6 +5,7 @@ resources:
   - instrumentation.yaml
   - grafana.yaml
   - servicemonitor.yaml
+  - prometheusrule.yaml
 
 
 #   [ RRQ NAMESPACE ]                               [ OBSERVABILITY NAMESPACE ]

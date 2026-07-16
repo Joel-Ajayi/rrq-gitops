@@ -1,0 +1,159 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rrq-critical-alerts
+  namespace: observability
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: rrq.startup.failures
+      rules:
+        - alert: ServiceCrashLoopBackOff
+          # Pod stuck in crash loop — immediate investigation needed
+          expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="rrq"} > 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            description: "The pod {{ $labels.pod }} has failed to initialize and is crashing. Check logs for log.Panic events."
+            runbook_url: "https://wiki.rrq.local/runbooks/crash-loop-backoff"
+
+    - name: rrq.runtime.failures
+      rules:
+        - alert: CircuitBreakerOpen
+          # CB stuck open — downstream dependency unreachable, traffic failing fast
+          expr: rrq_circuit_breaker_state == 2
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Circuit Breaker {{ $labels.circuit_breaker }} is OPEN"
+            description: "The circuit breaker in {{ $labels.service_name }} ({{ $labels.pod }}) is stuck OPEN, failing fast. Traffic is not reaching the dependency."
+            runbook_url: "https://wiki.rrq.local/runbooks/circuit-breaker-open"
+
+        - alert: CircuitBreakerHalfOpenFailure
+          # CB cannot recover — half-open probes keep failing, dependency structurally broken
+          expr: rate(rrq_circuit_breaker_half_open_failure[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Circuit Breaker {{ $labels.circuit_breaker }} Cannot Recover"
+            description: "The circuit breaker in {{ $labels.service_name }} ({{ $labels.pod }}) repeatedly failed its half-open probe. Immediate escalation to infrastructure team required."
+            runbook_url: "https://wiki.rrq.local/runbooks/circuit-breaker-half-open-failure"
+
+        - alert: HighInfrastructureErrorRate
+          # Transient DB/Redis errors spiking — underlying degradation detected
+          expr: rate(rrq_infrastructure_errors_total[5m]) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Transient Error Rate in {{ $labels.component }} ({{ $labels.service_name }})"
+            description: "The rate of transient infrastructure errors (DB/Redis) in component {{ $labels.component }} on pod {{ $labels.pod }} is excessively high, indicating underlying degradation."
+            runbook_url: "https://wiki.rrq.local/runbooks/high-infra-error-rate"
+
+        - alert: OutboxRelayStalled
+          # Events stuck in outbox — poison pill or Kafka rejection, risk of WAL exhaustion
+          expr: rrq_outbox_lag_seconds > 60
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay {{ $labels.shard }} Stalled"
+            description: "Messages are accumulating in the outbox events table ({{ $labels.shard }}) due to a poison pill or Kafka cluster rejection. Risk of database WAL exhaustion."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stalled"
+
+        - alert: HighIdempotencyConflicts
+          # Client spamming duplicate idempotency keys — possible integration bug
+          expr: rate(rrq_idempotency_conflicts_total[5m]) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Rate of Business Conflicts (Idempotency Key Clashes)"
+            description: "Sudden spike in unique constraint violations for idempotency keys. A downstream client may be spamming the same transaction identifier."
+            runbook_url: "https://wiki.rrq.local/runbooks/high-idempotency-conflicts"
+
+    - name: rrq.ledger.worker
+      rules:
+        - alert: LedgerWorkerDLQSpike
+          # DLQ ingestion > 10/min — poison pills or systemic business rule failures
+          expr: rate(rrq_dlq_ingestion_rate{service="ledger-worker"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ledger Worker DLQ ingestion rate > 10/min"
+            description: "Check DLQ for poison messages or systemic business rule failures. Runbook: https://wiki.rrq.local/runbooks/ledger-dlq-spike"
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-dlq-spike"
+
+        - alert: LedgerWorkerDLQWriteFailure
+          # DLQ write failed — process may crash, check Postgres connectivity immediately
+          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service="ledger-worker"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ledger Worker failed to write to DLQ - process may crash"
+            description: "DLQ store infrastructure error. Check Postgres connectivity for shard. Process will Fatal on next occurrence."
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-dlq-write-failure"
+
+#        - alert: LedgerWorkerConsumerLag
+#          # TODO: Enable this alert once kafka-exporter is deployed to expose kafka_consumer_group_lag
+#          # Consumer lag > 10k — worker falling behind, check backoff cycles or CB open
+#          expr: kafka_consumer_group_lag{group="ledger-workers"} > 10000
+#          for: 5m
+#          labels:
+#            severity: warning
+#          annotations:
+#            summary: "Ledger Worker consumer lag > 10k"
+#            description: "Worker not keeping up. Check for repeated backoff cycles (rrq_infrastructure_errors_total) or CB open state (rrq_circuit_breaker_state=2)."
+#            runbook_url: "https://wiki.rrq.local/runbooks/ledger-consumer-lag"
+
+        - alert: LedgerWorkerCBOpen
+          # Shard CB open — database pool unhealthy, check infra errors for that shard
+          expr: rrq_circuit_breaker_state{service="ledger-worker",circuit_breaker=~"shard-.*"} == 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ledger Worker shard CB Open"
+            description: "Circuit breaker for shard {{ $labels.circuit_breaker }} is Open. Database pool likely unhealthy. Check rrq_infrastructure_errors_total for that shard."
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-cb-open"
+
+        - alert: LedgerWorkerPanicRate
+          # Panic caught and routed to DLQ — check logs for stack trace
+          expr: rate(rrq_outbox_panics_total{service="ledger-worker"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ledger Worker panic recovered"
+            description: "Panic caught and routed to DLQ. Check logs for stack trace."
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-panic-recovery"
+
+        - alert: LedgerWorkerProcessingLatencyHigh
+          # p99 processing > 10s — slow queries or lock contention
+          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service="ledger-worker"}[5m])) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ledger Worker p99 processing latency > 10s"
+            description: "Message processing taking too long. Check for slow queries or lock contention."
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-high-latency"
+
+        - alert: LedgerWorkerBackoffSpike
+          # Backoff time > 5min/5min — persistent infrastructure failures
+          expr: rate(rrq_consumer_backoff_duration_seconds_sum{service="ledger-worker"}[5m]) > 300
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ledger Worker excessive backoff time > 5min/5min"
+            description: "Consumer spending excessive time in backoff. Indicates persistent infrastructure failures."
+            runbook_url: "https://wiki.rrq.local/runbooks/ledger-backoff-spike"

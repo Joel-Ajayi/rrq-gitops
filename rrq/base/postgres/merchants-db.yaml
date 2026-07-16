@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: rrq
     rrq.dev/role: control-plane
 spec:
-  instances: 1
+  instances: 3
   imageName: ghcr.io/cloudnative-pg/postgresql:17.0
   primaryUpdateStrategy: unsupervised
   bootstrap:

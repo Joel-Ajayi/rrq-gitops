@@ -6,35 +6,49 @@ metadata:
   name: rrq-migrate
   namespace: rrq
 spec:
-  backoffLimit: 3
+  backoffLimit: 10
   template:
     spec:
       restartPolicy: Never
       containers:
-        - name: migrate
+        - name: migrate-merchants
           image: rrq/migrate:dev
-          # Each shard reuses the same shard/ migration set; merchants gets global/.
           command:
             - /bin/sh
             - -c
             - |
-              set -e
-              echo "Waiting for PostgreSQL databases to accept connections..."
-              until nc -z merchants-db-rw.rrq 5432 && nc -z shard-a-rw.rrq 5432 && nc -z shard-b-rw.rrq 5432; do
-                echo "Databases not ready yet, waiting..."
-                sleep 2
-              done
-              echo "Databases are up, running migrations!"
+              echo "Waiting for merchants DB..."
+              until nc -z merchants-db-rw.rrq 5432; do sleep 2; done
               migrate -path /migrations/global -database "$MERCHANTS_URI?sslmode=require" up
-              migrate -path /migrations/shard  -database "$SHARD_A_URI?sslmode=require"  up
-              migrate -path /migrations/shard  -database "$SHARD_B_URI?sslmode=require"  up
           env:
             - name: MERCHANTS_URI
               valueFrom:
                 secretKeyRef: { name: merchants-db-app, key: uri }
+        
+        - name: migrate-shard-a
+          image: rrq/migrate:dev
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Shard A DB..."
+              until nc -z shard-a-rw.rrq 5432; do sleep 2; done
+              migrate -path /migrations/shard -database "$SHARD_A_URI?sslmode=require" up
+          env:
             - name: SHARD_A_URI
               valueFrom:
                 secretKeyRef: { name: shard-a-app, key: uri }
+                
+        - name: migrate-shard-b
+          image: rrq/migrate:dev
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Shard B DB..."
+              until nc -z shard-b-rw.rrq 5432; do sleep 2; done
+              migrate -path /migrations/shard -database "$SHARD_B_URI?sslmode=require" up
+          env:
             - name: SHARD_B_URI
               valueFrom:
                 secretKeyRef: { name: shard-b-app, key: uri }

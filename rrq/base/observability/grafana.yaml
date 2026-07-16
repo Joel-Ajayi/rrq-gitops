@@ -10,5 +10,52 @@ data:
   rrq-dashboard.json: |-
     {
       "title": "RRQ Dashboard",
-      "panels": []
+      "version": 1,
+      "refresh": "5s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Circuit Breaker State",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "rrq_circuit_breaker_state",
+              "legendFormat": "{{circuit_breaker}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Ingestion Rate",
+          "gridPos": { "h": 8, "w": 18, "x": 6, "y": 0 },
+          "targets": [
+            {
+              "expr": "rate(rrq_dlq_ingestion_rate[1m])",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Outbox Lag",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "rrq_outbox_lag_seconds",
+              "legendFormat": "{{shard}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Infrastructure Error Rate",
+          "gridPos": { "h": 8, "w": 18, "x": 6, "y": 8 },
+          "targets": [
+            {
+              "expr": "rate(rrq_infrastructure_errors_total[1m])",
+              "legendFormat": "{{component}} - {{service}}"
+            }
+          ]
+        }
+      ]
     }

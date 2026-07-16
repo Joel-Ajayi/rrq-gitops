@@ -10,7 +10,7 @@ metadata:
     rrq.dev/role: ledger-shard
     rrq.dev/shard-id: shard-b
 spec:
-  instances: 1
+  instances: 3
   imageName: ghcr.io/cloudnative-pg/postgresql:17.0
   primaryUpdateStrategy: unsupervised
   bootstrap:

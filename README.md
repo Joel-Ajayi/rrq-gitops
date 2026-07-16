@@ -26,6 +26,34 @@ We strictly adhere to the GitOps operating model:
 
 This repository uses the **"App of Apps"** pattern for Argo CD and leverages **Kustomize** to manage environment overlays cleanly.
 
+```mermaid
+graph TD
+    subgraph "rrq-gitops Repository"
+        Apps["apps/ <br> (App of Apps)"]
+        Base["rrq/base/ <br> (Common Infrastructure)"]
+        Dev["rrq/overlays/dev/ <br> (Dev Configurations)"]
+        Prod["rrq/overlays/prod/ <br> (Prod Configurations)"]
+        
+        Apps -->|Defines Environments| Dev
+        Apps -->|Defines Environments| Prod
+        Dev -.->|Inherits| Base
+        Prod -.->|Inherits| Base
+    end
+
+    subgraph "Dev Cluster"
+        ArgoDev["Argo CD"]
+        ArgoDev -->|Syncs| DevNS["rrq Namespace (Dev)"]
+    end
+    
+    subgraph "Prod Cluster"
+        ArgoProd["Argo CD"]
+        ArgoProd -->|Syncs| ProdNS["rrq Namespace (Prod)"]
+    end
+
+    ArgoDev -->|Pulls| Dev
+    ArgoProd -->|Pulls| Prod
+```
+
 ### Directory Structure
 
 | Path                 | Purpose                                                                                                 |
