@@ -22,9 +22,6 @@ spec:
       - name: outbox-relay
         image: rrq/outbox-relay:dev
         imagePullPolicy: Never
-        ports:
-        - name: metrics
-          containerPort: 9090
         envFrom:
         - configMapRef:
             name: rrq-config
@@ -82,22 +79,6 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: outbox-relay-metrics
-  namespace: rrq
-  labels:
-    app.kubernetes.io/name: outbox-relay
-    app.kubernetes.io/part-of: rrq
-spec:
-  selector:
-    app.kubernetes.io/name: outbox-relay
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: metrics
----
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -108,3 +89,31 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: outbox-relay
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  scaleTargetRef:
+    name: outbox-relay
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  pollingInterval: 15
+  cooldownPeriod: 300
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      metricName: rrq_outbox_lag_seconds
+      query: 'sum(rrq_outbox_lag_seconds) by (shard_id)'
+      threshold: '5'
+      activateThreshold: '1'
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      metricName: rrq_circuit_breaker_state
+      query: 'sum(rrq_circuit_breaker_state{name="kafka-egress",state="2"})'
+      threshold: '1'
+      activateThreshold: '0'

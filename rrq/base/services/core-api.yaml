@@ -1,31 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
   labels:
-    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/name: core-api
     app.kubernetes.io/part-of: rrq
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: api-gateway
+      app.kubernetes.io/name: core-api
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: api-gateway
+        app.kubernetes.io/name: core-api
         app.kubernetes.io/part-of: rrq
     spec:
       containers:
-        - name: api-gateway
-          image: rrq/api-gateway:dev
+        - name: core-api
+          image: rrq/core-api:dev
           imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 8080
-            - name: metrics
-              containerPort: 9090
           envFrom:
             - configMapRef:
                 name: rrq-config
@@ -82,7 +80,7 @@ spec:
                     - key: app.kubernetes.io/name
                       operator: In
                       values:
-                        - api-gateway
+                        - core-api
                 topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
@@ -92,33 +90,30 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
   labels:
-    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/name: core-api
     app.kubernetes.io/part-of: rrq
 spec:
   selector:
-    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/name: core-api
   ports:
     - name: http
       port: 8080
       targetPort: http
-    - name: metrics
-      port: 9090
-      targetPort: metrics
 ---
 # controls scaling based on LOAD
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: api-gateway
+    name: core-api
   minReplicas: 1
   maxReplicas: 8
   metrics:
@@ -133,10 +128,10 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: api-gateway
+      app.kubernetes.io/name: core-api

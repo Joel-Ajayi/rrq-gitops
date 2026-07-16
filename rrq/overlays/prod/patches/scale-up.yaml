@@ -15,10 +15,18 @@ metadata:
 spec:
   replicas: 2
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-sync-worker
+  namespace: rrq
+spec:
+  replicas: 2
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
 spec:
   minReplicas: 2

@@ -19,64 +19,64 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: ledger-worker
-        image: rrq/ledger-worker:dev
-        imagePullPolicy: Never
-        ports:
-        - name: metrics
-          containerPort: 9090
-        envFrom:
-        - configMapRef:
-            name: rrq-config
-        - secretRef:
-            name: rrq-secrets
-        env:
-        - name: MERCHANTS_DB_URI
-          valueFrom:
-            secretKeyRef:
-              name: merchants-db-app
-              key: uri
-        - name: SHARD_A_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-a-app
-              key: uri
-        - name: SHARD_B_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-b-app
-              key: uri
-        lifecycle:
-          preStop:
-            exec:
-              command:
-              - sleep
-              - '5'
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 256Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+        - name: ledger-worker
+          image: rrq/ledger-worker:dev
+          imagePullPolicy: Never
+          ports:
+            - name: metrics
+              containerPort: 9090
+          envFrom:
+            - configMapRef:
+                name: rrq-config
+            - secretRef:
+                name: rrq-secrets
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: merchants-db-app
+                  key: uri
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-a-app
+                  key: uri
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-b-app
+                  key: uri
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "5"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                  - ledger-worker
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - ledger-worker
+                topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -94,9 +94,9 @@ spec:
   selector:
     app.kubernetes.io/name: ledger-worker
   ports:
-  - name: metrics
-    port: 9090
-    targetPort: metrics
+    - name: metrics
+      port: 9090
+      targetPort: metrics
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
@@ -109,13 +109,57 @@ spec:
   minReplicaCount: 1
   maxReplicaCount: 10
   triggers:
-  - type: kafka
-    metadata:
-      bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
-      consumerGroup: ledger-worker
-      topic: jobs
-      lagThreshold: '100'
-      offsetResetPolicy: earliest
+    - type: kafka
+      metadata:
+        bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
+        consumerGroup: ledger-worker
+        topic: jobs
+        lagThreshold: "100"
+        offsetResetPolicy: earliest
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        metricName: rrq_circuit_breaker_state
+        query: 'sum(rrq_circuit_breaker_state{service="ledger-worker",circuit_breaker=~"shard-.*"} == 2)'
+        threshold: "1"
+        activateThreshold: "0"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ledger-worker-backoff
+  namespace: rrq
+spec:
+  scaleTargetRef:
+    name: ledger-worker
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        metricName: rrq_consumer_backoff_duration_seconds_sum
+        query: 'rate(rrq_consumer_backoff_duration_seconds_sum{service="ledger-worker"}[5m])'
+        threshold: "60"
+        activateThreshold: "10"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ledger-worker-scaler
+  namespace: rrq
+spec:
+  scaleTargetRef:
+    name: ledger-worker
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+        consumerGroup: ledger-workers
+        topic: jobs
+        lagThreshold: "100"
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-gateway
+  name: core-api
   namespace: rrq
 spec:
   template:
@@ -72,6 +72,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: admin-dashboard
+  namespace: rrq
+spec:
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-sync-worker
   namespace: rrq
 spec:
   template:
