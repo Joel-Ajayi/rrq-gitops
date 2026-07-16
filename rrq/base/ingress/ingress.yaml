@@ -1,9 +1,8 @@
-# Edge routing via Kong. `/v1` → gateway, `/admin` → dashboard.
-# Prod overlay adds the TLS host + cert-manager annotation.
+# Protected edge routing via Kong.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: rrq-edge
+  name: rrq-edge-protected
   namespace: rrq
   labels:
     app.kubernetes.io/part-of: rrq
@@ -18,7 +17,29 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: api-gateway
+                name: core-api
+                port: { number: 8080 }
+---
+# Unprotected edge routing via Kong.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rrq-edge-public
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+  annotations:
+    konghq.com/plugins: rrq-rate-limit
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /v1/auth/token
+            pathType: Exact
+            backend:
+              service:
+                name: core-api
                 port: { number: 8080 }
           - path: /admin
             pathType: Prefix

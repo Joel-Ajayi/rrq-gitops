@@ -5,7 +5,7 @@ metadata:
   namespace: rrq
 plugin: rate-limiting
 config:
-  minute: 500
+  minute: 500 # 500 requests per minute per IP
   limit_by: ip
   policy: local
 ---
