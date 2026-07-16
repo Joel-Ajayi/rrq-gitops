@@ -1,0 +1,66 @@
+# Prod-specific Network Policies
+# These supplement the base policies (in ../../../base/services/network-policies.yaml)
+# with production-specific restrictions.
+
+# Prod: Allow Ingress Controller (Kong) to reach core-api on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-core-api-prod
+  namespace: rrq
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: core-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kong
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# Prod: Allow Ingress Controller (Kong) to reach admin-dashboard on port 8081
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-admin-dashboard-prod
+  namespace: rrq
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: admin-dashboard
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kong
+      ports:
+        - protocol: TCP
+          port: 8081
+
+---
+# Prod: Allow Prometheus metrics scraping from observability namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-scrape-prod
+  namespace: rrq
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
