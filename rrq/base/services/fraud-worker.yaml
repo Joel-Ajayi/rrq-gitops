@@ -54,6 +54,12 @@ spec:
                 secretKeyRef:
                   name: shard-b-app
                   key: uri
+            - name: REDIS_DATA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+                  optional: true
           livenessProbe:
             exec:
               command:
