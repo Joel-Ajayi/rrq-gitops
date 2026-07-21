@@ -15,10 +15,9 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true #the 262KB limitation entirely
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -41,7 +40,6 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
@@ -62,25 +60,25 @@ spec:
         architecture: replication
         auth:
           enabled: true
-          existingSecret: redis-data-auth
-          existingSecretPasswordKey: password
+          existingSecret: redis-secret
+          secretPasswordKey: redis-password
         sentinel:
           enabled: true
-          quorum: 2
-        replica:
-          replicaCount: 2
-          persistence:
-            size: 8Gi
         master:
           persistence:
             size: 8Gi
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: 500m, memory: 256Mi }
+        commonConfiguration: |-
+          appendonly yes
+          save ""
   destination:
     server: https://kubernetes.default.svc
     namespace: rrq
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
@@ -88,25 +86,20 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kong
+  name: envoy-gateway
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://charts.konghq.com
-    chart: kong
-    targetRevision: 2.41.1
-    helm:
-      parameters:
-        - name: ingressController.installCRDs
-          value: "true"
+    repoURL: oci://registry-1.docker.io/envoyproxy/gateway-helm
+    chart: gateway-helm
+    targetRevision: v1.2.0
   destination:
     server: https://kubernetes.default.svc
-    namespace: kong
+    namespace: envoy-gateway-system
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
@@ -128,7 +121,6 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
@@ -154,7 +146,6 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
@@ -198,6 +189,19 @@ spec:
     repoURL: https://prometheus-community.github.io/helm-charts
     chart: kube-prometheus-stack
     targetRevision: 87.3.0
+    helm:
+      values: |
+        grafana:
+          env:
+            JAEGER_AGENT_PORT: ""
+        prometheusOperator:
+          admissionWebhooks:
+            enabled: false
+        alertmanager:
+          alertmanagerSpec:
+            alertmanagerConfigSelector:
+              matchLabels:
+                app.kubernetes.io/part-of: rrq
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
@@ -205,9 +209,16 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m0s
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - Replace=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -239,9 +250,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: https://bitnami.github.io/sealed-secrets
     chart: sealed-secrets
-    targetRevision: 2.5.19
+    targetRevision: 2.19.1
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

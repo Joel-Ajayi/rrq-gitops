@@ -7,7 +7,12 @@ metadata:
     app.kubernetes.io/name: ledger-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: ledger-worker
@@ -22,9 +27,6 @@ spec:
         - name: ledger-worker
           image: rrq/ledger-worker:dev
           imagePullPolicy: Never
-          ports:
-            - name: metrics
-              containerPort: 9090
           envFrom:
             - configMapRef:
                 name: rrq-config
@@ -52,6 +54,20 @@ spec:
                 command:
                   - sleep
                   - "5"
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - ledger-worker
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pgrep
+                - ledger-worker
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
             requests:
               cpu: 100m
@@ -82,22 +98,6 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: ledger-worker-metrics
-  namespace: rrq
-  labels:
-    app.kubernetes.io/name: ledger-worker
-    app.kubernetes.io/part-of: rrq
-spec:
-  selector:
-    app.kubernetes.io/name: ledger-worker
-  ports:
-    - name: metrics
-      port: 9090
-      targetPort: metrics
----
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -116,50 +116,7 @@ spec:
         topic: jobs
         lagThreshold: "100"
         offsetResetPolicy: earliest
-    - type: prometheus
-      metadata:
-        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
-        metricName: rrq_circuit_breaker_state
-        query: 'sum(rrq_circuit_breaker_state{service="ledger-worker",circuit_breaker=~"shard-.*"} == 2)'
-        threshold: "1"
-        activateThreshold: "0"
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: ledger-worker-backoff
-  namespace: rrq
-spec:
-  scaleTargetRef:
-    name: ledger-worker
-  minReplicaCount: 1
-  maxReplicaCount: 10
-  triggers:
-    - type: prometheus
-      metadata:
-        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
-        metricName: rrq_consumer_backoff_duration_seconds_sum
-        query: 'rate(rrq_consumer_backoff_duration_seconds_sum{service="ledger-worker"}[5m])'
-        threshold: "60"
-        activateThreshold: "10"
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: ledger-worker-scaler
-  namespace: rrq
-spec:
-  scaleTargetRef:
-    name: ledger-worker
-  minReplicaCount: 1
-  maxReplicaCount: 10
-  triggers:
-    - type: kafka
-      metadata:
-        bootstrapServers: kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
-        consumerGroup: ledger-workers
-        topic: jobs
-        lagThreshold: "100"
+
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

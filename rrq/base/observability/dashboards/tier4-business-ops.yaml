@@ -1,0 +1,218 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-business-ops
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-business-ops.json: |-
+    {
+      "title": "RRQ Business Operations",
+      "uid": "rrq-business-ops",
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "tags": ["rrq", "tier-4"],
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "GTV/sec (USD)",
+          "gridPos": { "h": 8, "w": 3, "x": 0, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_gtv_total{currency=\"USD\"}[1m])) / 100",
+            "legendFormat": "GTV USD/s"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Transaction Volume/sec",
+          "gridPos": { "h": 8, "w": 3, "x": 3, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_transfers_total[1m]))",
+            "legendFormat": "TPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "GTV by Currency (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_gtv_total[1h])) by (currency)",
+            "legendFormat": "{{currency}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "GTV by Currency",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_gtv_total[1h])) by (currency)",
+            "legendFormat": "{{currency}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Transfer Volume by Status",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            { "expr": "sum(rate(rrq_business_transfers_total{status=\"success\"}[5m]))", "legendFormat": "Success" },
+            { "expr": "sum(rate(rrq_business_transfers_total{status=\"failed\"}[5m]))", "legendFormat": "Failed" },
+            { "expr": "sum(rate(rrq_business_transfers_total{status=\"pending\"}[5m]))", "legendFormat": "Pending" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Transfer Success Rate",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 8 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_transfers_total{status=\"success\"}[5m])) / (sum(rate(rrq_business_transfers_total{status=\"success\"}[5m])) + sum(rate(rrq_business_transfers_total{status=\"failed\"}[5m]))) * 100",
+            "legendFormat": "TSR"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 90 },
+                  { "color": "green", "value": 99 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Failure Rate",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 8 },
+          "targets": [
+            { "expr": "sum(rate(rrq_business_transfers_total{status=\"failed\"}[5m])) / (sum(rate(rrq_business_transfers_total{status=\"success\"}[5m])) + sum(rate(rrq_business_transfers_total{status=\"failed\"}[5m]))) * 100", "legendFormat": "Failure Rate" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "percent" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Decline Reasons",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_declines_total[5m])) by (reason)",
+            "legendFormat": "{{reason}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "table",
+          "title": "Top 10 Decline Reasons",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 16 },
+          "targets": [{
+            "expr": "topk(10, sum(rate(rrq_business_declines_total[5m])) by (reason))",
+            "legendFormat": "{{reason}}",
+            "format": "table",
+            "instant": true
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "DLQ Rate (5m)",
+          "gridPos": { "h": 8, "w": 4, "x": 0, "y": 24 },
+          "targets": [{
+            "expr": "sum(rate(rrq_dlq_ingestion_rate[5m]))",
+            "legendFormat": "DLQ/min"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Active Circuit Breakers",
+          "gridPos": { "h": 8, "w": 4, "x": 4, "y": 24 },
+          "targets": [{
+            "expr": "count(rrq_circuit_breaker_state == 2)",
+            "legendFormat": "Open"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "table",
+          "title": "Top 20 Merchants by Volume",
+          "gridPos": { "h": 8, "w": 4, "x": 8, "y": 24 },
+          "targets": [{
+            "expr": "topk(20, sum(rate(rrq_business_gtv_total[1h])) by (merchant_id))",
+            "legendFormat": "{{merchant_id}}",
+            "format": "table",
+            "instant": true
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Saga Clearing P50/P95",
+          "gridPos": { "h": 8, "w": 3, "x": 0, "y": 32 },
+          "targets": [
+            { "expr": "histogram_quantile(0.50, rate(rrq_business_saga_duration_seconds_bucket[5m]))", "legendFormat": "P50" },
+            { "expr": "histogram_quantile(0.95, rate(rrq_business_saga_duration_seconds_bucket[5m]))", "legendFormat": "P95" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Refund Volume (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 3, "y": 32 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_refunds_total[1h]))",
+            "legendFormat": "Refunds/h"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Chargeback Volume (24h)",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 32 },
+          "targets": [{
+            "expr": "sum(increase(rrq_business_disputes_total[24h]))",
+            "legendFormat": "Disputes/24h"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Consumer Commit Rate",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 32 },
+          "targets": [{
+            "expr": "sum(rate(rrq_consumer_commits_total[5m]))",
+            "legendFormat": "Commits/s"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 95 },
+                  { "color": "green", "value": 99.5 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        }
+      ]
+    }

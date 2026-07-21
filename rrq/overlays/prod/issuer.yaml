@@ -1,4 +1,4 @@
-# Let's Encrypt issuer (cert-manager). Solves ACME HTTP-01 through Kong.
+# Let's Encrypt issuer (cert-manager). Gateway API HTTP-01 Solver:
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -11,16 +11,27 @@ spec:
       name: letsencrypt-prod-account # Stores your CA account credentials
     solvers:
       - http01:
-          ingress:
-            ingressClassName: kong
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: rrq-gateway
+                namespace: rrq
 
-#  [1. ClusterIssuer]  ◄─────── Tells cert-manager where the CA is
+#  [1. ClusterIssuer]       ◄─────── Tells cert-manager where the ACME CA is
 #          │
 #          ▼
-#  [2. Certificate]   ◄─────── Asks cert-manager to fetch a cert for a domain
+#  [2. Certificate]          ◄─────── Solves ACME HTTP-01 challenge via gatewayHTTPRoute
 #          │
 #          ▼ (Auto-creates)
-#  [3. Secret]      ◄─────── Holds the raw public and private keys
+#  [3. Secret: rrq-edge-tls] ◄─────── Stores raw TLS certificate & private key
 #          │
-#          ▼ (Mounted by)
-#  [4. Ingress]      ◄─────── Tells Kong to use the Secret to decrypt traffic
+#          ▼ (Referenced by TLS listener)
+#  [4. GatewayClass]         ◄─────── Managed by Envoy Gateway Controller (gateway.envoyproxy.io)
+#          │
+#          ▼ (Instantiates)
+#  [5. Gateway: rrq-gateway] ◄─────── Listens on 80/443 & attaches rrq-edge-tls Secret
+#          │                           │
+#          ├───────────────────────────┴──────────────────────────┐
+#          ▼                                                      ▼
+#  [6. HTTPRoute: rrq-edge-route]                      [7. Envoy Gateway Policies]
+#     Routes /v1 -> core-api:8080                         - SecurityPolicy (JWT validation)
+#                                                         - ClientTrafficPolicy (Rate limits)

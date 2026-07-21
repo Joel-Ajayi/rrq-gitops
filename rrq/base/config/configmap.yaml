@@ -29,7 +29,7 @@ data:
 
   # --- Behaviour ---
   LOG_LEVEL: "info"
-  TRACE_SAMPLE_RATE: "1.0"
+  TRACE_SAMPLE_RATE: "0.1"
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://platform-collector-collector.observability.svc.cluster.local:4317"
 
   #  jwt

@@ -35,17 +35,29 @@ bootstrap-dev: cluster-up argocd ## Bootstrap the dev cluster and apply infrastr
 	@echo "Infrastructure bootstrap complete. Argo CD is syncing databases and operators."
 	@echo "Run 'make dev' in the river-rust-queue repository to deploy the application."
 
+.PHONY: bootstrap-prod
+bootstrap-prod: argocd ## Bootstrap a production cluster
+	kubectl apply -f bootstrap/root-app-prod.yaml
+	@echo "Production bootstrap complete. Argo CD is syncing databases, operators, and the application."
+
 .PHONY: render-dev
 render-dev: ## Print fully-rendered dev manifests (no apply)
 	kubectl kustomize rrq/overlays/dev
 
-.PHONY: bootstrap-prod
-bootstrap-prod: argocd ## Bootstrap a production cluster (assumes active kubectl context is your prod cluster)
-	kubectl apply -f apps/prod/infrastructure.yaml
-	kubectl apply -f apps/prod/rrq-app.yaml
-	@echo "Production bootstrap complete. Argo CD is syncing databases, operators, and the application."
+.PHONY: render-prod
+render-prod: ## Print fully-rendered prod manifests (no apply)
+	kubectl kustomize rrq/overlays/prod
+
+
 
 .PHONY: seal
 seal: ## Seal prod secrets (requires kubeseal installed)
-	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/overlays/prod/secret.plain.yaml > rrq/overlays/prod/patches/secret.sealed.yaml
+	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/overlays/prod/patches/secret.plain.yaml > rrq/overlays/prod/patches/secret.sealed.yaml
 
+.PHONY: seal-dev
+seal-dev: ## Seal dev secrets (requires kubeseal installed)
+	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/overlays/dev/patches/secret.plain.yaml > rrq/overlays/dev/patches/secret.sealed.yaml
+
+.PHONY: seal-observability
+seal-observability: ## Seal observability secrets (requires kubeseal installed)
+	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/base/observability/secret.plain.yaml > rrq/base/observability/secret.sealed.yaml

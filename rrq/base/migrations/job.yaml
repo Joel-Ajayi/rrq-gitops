@@ -1,54 +1,79 @@
 # Runs once per `make dev` (and as an Argo CD PreSync hook in prod): global migrations
 # on the control-plane DB, shard migrations on every shard. URIs come from CNPG secrets.
+# Uses a single container that migrates each DB sequentially to avoid K8s multi-container
+# Job behaviour (all containers restart on any failure).
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: rrq-migrate
   namespace: rrq
+  labels:
+    app.kubernetes.io/name: rrq-migrate
+    app.kubernetes.io/part-of: rrq
 spec:
   backoffLimit: 10
+  ttlSecondsAfterFinished: 3600
   template:
     spec:
       restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
-        - name: migrate-merchants
+        - name: migrate
           image: rrq/migrate:dev
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           command:
             - /bin/sh
             - -c
             - |
-              echo "Waiting for merchants DB..."
-              until nc -z merchants-db-rw.rrq 5432; do sleep 2; done
-              migrate -path /migrations/global -database "$MERCHANTS_URI?sslmode=require" up
+              set -e
+
+              wait_for_db() {
+                local host="$1" port="$2" timeout=60 elapsed=0
+                until nc -z "$host" "$port" 2>/dev/null; do
+                  elapsed=$((elapsed + 2))
+                  if [ "$elapsed" -ge "$timeout" ]; then
+                    echo "Timed out waiting for $host:$port after ${timeout}s"
+                    exit 1
+                  fi
+                  sleep 2
+                done
+              }
+
+              echo "Migrating merchants DB..."
+              wait_for_db merchants-db-rw.rrq 5432
+              migrate -path /migrations/global -database "${MERCHANTS_URI}?sslmode=require" up
+
+              echo "Migrating shard A..."
+              wait_for_db shard-a-rw.rrq 5432
+              migrate -path /migrations/shard -database "${SHARD_A_URI}?sslmode=require" up
+
+              echo "Migrating shard B..."
+              wait_for_db shard-b-rw.rrq 5432
+              migrate -path /migrations/shard -database "${SHARD_B_URI}?sslmode=require" up
+
+              echo "All migrations complete."
           env:
             - name: MERCHANTS_URI
               valueFrom:
                 secretKeyRef: { name: merchants-db-app, key: uri }
-        
-        - name: migrate-shard-a
-          image: rrq/migrate:dev
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Waiting for Shard A DB..."
-              until nc -z shard-a-rw.rrq 5432; do sleep 2; done
-              migrate -path /migrations/shard -database "$SHARD_A_URI?sslmode=require" up
-          env:
             - name: SHARD_A_URI
               valueFrom:
                 secretKeyRef: { name: shard-a-app, key: uri }
-                
-        - name: migrate-shard-b
-          image: rrq/migrate:dev
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Waiting for Shard B DB..."
-              until nc -z shard-b-rw.rrq 5432; do sleep 2; done
-              migrate -path /migrations/shard -database "$SHARD_B_URI?sslmode=require" up
-          env:
             - name: SHARD_B_URI
               valueFrom:
                 secretKeyRef: { name: shard-b-app, key: uri }

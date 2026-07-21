@@ -3,35 +3,41 @@ kind: Kustomization
 resources:
   - collector.yaml
   - instrumentation.yaml
-  - grafana.yaml
   - servicemonitor.yaml
   - prometheusrule.yaml
-
+  - alertmanagerconfig.yaml
+  - secret.sealed.yaml
+  - elastic.yaml
+  - dashboards
 
 #   [ RRQ NAMESPACE ]                               [ OBSERVABILITY NAMESPACE ]
 #
 #   ┌────────────────────────┐
-#   │    APPLICATION PODS    │
-#   │ (eBPF Agent Injected)  │
-#   └───────────┬────────────┘
-#               │
-#               │ (OTLP gRPC Push)
-#               ▼ (Port 4317)
-#   ┌────────────────────────┐ (Pushes Traces)    ┌───────────────────────────┐
-#   │     OpenTelemetry      ├───────────────────►│      JAEGER TRACING       │───┐
-#   │       Collector        │                    └───────────────────────────┘   │
-#   └───────────┬────────────┘                                                    │
-#               │ (Exposes Metrics)                                               │ (Feeds
-#               ▼ (Port 8889)                                                     │  Traces)
-#   ┌────────────────────────┐ (Feeds Metrics)    ┌───────────────────────────┐   │
-#   │   /metrics endpoint    ├───────────────────►│      ServiceMonitor       │   │
-#   └────────────────────────┘                    └─────────────┬─────────────┘   │
-#                                                               │                 │
-#                                                 ┌─────────────▼─────────────┐   │
-#                                                 │       Prometheus DB       │   │
-#                                                 └─────────────┬─────────────┘   │
-#                                                               │ (Feeds          │
-#                                                               │  Metrics)       │
-#                                                 ┌─────────────▼─────────────┴───▼┐
-#                                                 │           Grafana UI           │
-#                                                 └────────────────────────────────┘
+#   │    APPLICATION PODS    ├───────────────────────┐
+#   │ (Zap Logs + OTLP SDK)  │                       │ (stdout JSON logs)
+#   └───────────┬────────────┘                       │
+#               │                                    ▼
+#               │ (OTLP Traces          ┌───────────────────────────┐
+#               │  & Metrics)           │     filelog receiver      │
+#               ▼                       └────────────┬──────────────┘
+#   ┌────────────────────────┐                       │ (Tails Logs)
+#   │     OpenTelemetry      │◄──────────────────────┘
+#   │   Collector DaemonSet  ├───────────────────► [ Elasticsearch ] ──► [ Kibana UI ]
+#   └──────┬──────────┬──────┘                        (Feeds Logs)
+#          │          │
+#          │          │ (OTLP/gRPC Traces)            ┌─────────────┐
+#          │          ├──────────────────────────────►│   Jaeger    │───┐
+#          │          │                               └─────────────┘   │
+#          │          ▼                                                 │ (Feeds
+#          │  ┌───────────────┐                                         │  Traces)
+#          │  │ServiceMonitor │                                         │
+#          ▼  └───────┬───────┘                                         │
+#   ┌───────────────┐ │ (Scrapes Metrics on Port 8889)                  │
+#   │  Prometheus   │◄┘                                                 │
+#   └───────┬───┬───┘                                                   │
+#           │   │                                                       │
+#           │   └───────────────(Feeds Metrics)────────────────┐        │
+#           ▼                                                  ▼        ▼
+#   ┌───────────────┐                                    ┌────────────────────┐
+#   │ Alertmanager  │                                    │     Grafana UI     │
+#   └────────────────┘                                    └────────────────────┘

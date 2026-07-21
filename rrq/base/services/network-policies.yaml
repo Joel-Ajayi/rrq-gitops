@@ -8,23 +8,16 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
+    - Ingress
+
+
+# NOTE: Egress policies are intentionally omitted.
+# kindnet (kind's default CNI) silently drops ALL egress (including to the
+# API server) when ANY policy with policyTypes: [Egress] is present.
+# Re-introduce egress policies only when using a proper CNI.
 
 ---
-# 2. Default Deny Egress
-# Blocks all outgoing traffic from all pods in the rrq namespace by default.
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-egress
-  namespace: rrq
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-
----
-# 3. Allow Prometheus metrics scraping for all pods
+# 2. Allow Prometheus metrics scraping from observability namespace
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -33,14 +26,18 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
+    - Ingress
   ingress:
-  - ports:
-    - protocol: TCP
-      port: 9090
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
 
 ---
-# 4. Allow Ingress Controller (Kong) to reach core-api on port 8080
+# 3. Allow Envoy Gateway to reach core-api on port 8080
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -51,80 +48,18 @@ spec:
     matchLabels:
       app.kubernetes.io/name: core-api
   policyTypes:
-  - Ingress
+    - Ingress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kong
-    ports:
-    - protocol: TCP
-      port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: envoy-gateway-system
+      ports:
+        - protocol: TCP
+          port: 8080
 
 ---
-# 5. Allow Ingress Controller (Kong) to reach admin-dashboard on port 8081
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-ingress-to-admin-dashboard
-  namespace: rrq
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: admin-dashboard
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kong
-    ports:
-    - protocol: TCP
-      port: 8081
-
----
-# 6. Allow egress to PostgreSQL (merchants + shards)
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-egress-to-postgres
-  namespace: rrq
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: cnpg-system
-    ports:
-    - protocol: TCP
-      port: 5432
-
----
-# 7. Allow egress to Kafka (bootstrap + broker ports)
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-egress-to-kafka
-  namespace: rrq
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: strimzi-system
-    ports:
-    - protocol: TCP
-      port: 9092
-
----
-# 8. Allow intra-namespace pod-to-pod communication (for gRPC if needed)
+# 4. Allow intra-namespace pod-to-pod communication
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -133,70 +68,33 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
   ingress:
-  - from:
-    - podSelector: {}
-  egress:
-  - to:
-    - podSelector: {}
----
-# 9. Allow egress to DNS (CoreDNS in kube-system)
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-egress-dns
-  namespace: rrq
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
+    - from:
+        - podSelector: {}
 
 ---
-# 10. Allow egress to OpenTelemetry Collector
+# 5. Allow CNPG operator (cnpg-system) to manage CNPG pods on ports 5432 + 8000
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-egress-otel
-  namespace: rrq
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-           kubernetes.io/metadata.name: observability
-    ports:
-    - protocol: TCP
-      port: 4317
-
----
-# 11. Allow egress to Kubernetes API Server (for kong-sync-worker)
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-egress-kube-api
+  name: allow-ingress-cnpg-operator
   namespace: rrq
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: kong-sync-worker
+      app.kubernetes.io/managed-by: cloudnative-pg
   policyTypes:
-  - Egress
-  egress:
-  - ports:
-    - protocol: TCP
-      port: 443
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+      ports:
+        # postgres port
+        - protocol: TCP
+          port: 5432
+        # CNPG operator uses this to extract metrics port
+        - protocol: TCP
+          port: 8000

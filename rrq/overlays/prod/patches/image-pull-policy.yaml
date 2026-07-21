@@ -72,30 +72,6 @@ spec:
             - name: recon-worker
               imagePullPolicy: IfNotPresent
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: admin-dashboard
-  namespace: rrq
-spec:
-  template:
-    spec:
-      containers:
-        - name: admin-dashboard
-          imagePullPolicy: IfNotPresent
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kong-sync-worker
-  namespace: rrq
-spec:
-  template:
-    spec:
-      containers:
-        - name: kong-sync-worker
-          imagePullPolicy: IfNotPresent
----
 apiVersion: batch/v1
 kind: Job
 metadata:

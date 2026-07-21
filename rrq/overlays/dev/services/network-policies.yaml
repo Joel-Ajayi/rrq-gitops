@@ -12,29 +12,10 @@ spec:
   podSelector: {}
   policyTypes:
   - Ingress
-  - Egress
   ingress:
   - from:
     - ipBlock:
         cidr: 127.0.0.0/8
-  egress:
-  - to:
-    - ipBlock:
-        cidr: 127.0.0.0/8
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: cnpg-system
-    ports:
-    - protocol: TCP
-      port: 5432
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: strimzi-system
-    ports:
-    - protocol: TCP
-      port: 9092
 
 ---
 # Dev: Allow Prometheus scraping from observability namespace

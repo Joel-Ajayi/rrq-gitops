@@ -9,7 +9,6 @@ resources:
   - ledger-worker.yaml
   - webhook-worker.yaml
   - fraud-worker.yaml
-  - kong-sync-worker.yaml
   - recon-worker.yaml
-  - admin-dashboard.yaml
+  - webhook-echo.yaml
   - network-policies.yaml

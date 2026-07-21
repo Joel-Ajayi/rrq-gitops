@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: rrq-critical-alerts
+  namespace: observability
+  labels:
+    app.kubernetes.io/part-of: rrq
+spec:
+  inhibitRules:
+    - targetMatch:
+        - name: severity
+          value: warning
+      sourceMatch:
+        - name: severity
+          value: critical
+      equal: [alertname, namespace]
+  route:
+    groupBy: [alertname, severity]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    receiver: default-null
+    routes:
+      - matchers:
+          - severity = critical
+        receiver: slack-critical
+        continue: true
+      - matchers:
+          - severity = warning
+        receiver: slack-warning
+  receivers:
+    - name: default-null
+    - name: slack-critical
+      slackConfigs:
+        - channel: "#alerts-critical"
+          # check secret
+          apiURL:
+            name: slack-webhook
+            key: url
+          title: "{{ .GroupLabels.alertname }}"
+          text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+          color: "#FF0000"
+    - name: slack-warning
+      slackConfigs:
+        - channel: "#alerts-warning"
+          apiURL:
+            name: slack-webhook
+            key: url
+          title: "{{ .GroupLabels.alertname }}"
+          text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+          color: "#FFA500"

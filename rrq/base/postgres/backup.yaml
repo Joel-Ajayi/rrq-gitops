@@ -1,0 +1,37 @@
+# Scheduled backups for all CNPG clusters.
+# Requires a Secret `backup-s3-creds` in the rrq namespace with:
+#   access-key-id: <AWS access key>
+#   secret-access-key: <AWS secret key>
+# The S3 bucket must exist before the first backup runs.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: merchants-db-daily
+  namespace: rrq
+spec:
+  schedule: "0 2 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: merchants-db
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: shard-a-daily
+  namespace: rrq
+spec:
+  schedule: "0 3 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: shard-a
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: shard-b-daily
+  namespace: rrq
+spec:
+  schedule: "0 4 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: shard-b

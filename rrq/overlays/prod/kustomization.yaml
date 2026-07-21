@@ -23,16 +23,15 @@ images:
     newName: ghcr.io/Joel-Ajayi/fraud-worker-go
   - name: rrq/recon-worker
     newName: ghcr.io/Joel-Ajayi/recon-worker-go
-  - name: rrq/kong-sync-worker
-    newName: ghcr.io/Joel-Ajayi/kong-sync-worker-go
-  - name: rrq/admin-dashboard
-    newName: ghcr.io/Joel-Ajayi/admin-dashboard
   - name: rrq/migrate
     newName: ghcr.io/Joel-Ajayi/migrate
+  - name: rrq/seed-performance
+    newName: ghcr.io/Joel-Ajayi/seed-performance
+  - name: rrq/webhook-echo
+    newName: ghcr.io/Joel-Ajayi/webhook-echo-go
 patches:
   - path: patches/scale-up.yaml
-  - path: patches/ingress-tls.yaml
-  - path: patches/migrate-hook.yaml
+  - path: patches/presync.yaml
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
 

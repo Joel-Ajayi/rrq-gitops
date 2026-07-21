@@ -1,37 +1,4 @@
-# Prod: ≥2 of everything (no single point of failure).
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: outbox-relay
-  namespace: rrq
-spec:
-  replicas: 2
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: admin-dashboard
-  namespace: rrq
-spec:
-  replicas: 2
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kong-sync-worker
-  namespace: rrq
-spec:
-  replicas: 2
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: core-api
-  namespace: rrq
-spec:
-  minReplicas: 2
----
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: broker
@@ -39,24 +6,7 @@ metadata:
 spec:
   replicas: 3
 ---
-apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: rrq
-  namespace: rrq
-spec:
-  kafka:
-    config:
-      offsets.topic.replication.factor: 3 # Controls the replication factor of the internal __consumer_offsets topic
-      transaction.state.log.replication.factor: 3 # Controls the replication factor of the internal __transaction_state topic
-      # Defines the minimum number of In-Sync Replicas (ISR) required for the transaction state manager to accept incoming write requests
-      transaction.state.log.min.isr: 2
-      # Controls the default replication factor for user-created topics in Kafka
-      default.replication.factor: 3
-      #  Sets the minimum number of replicas that must acknowledge a write for it to be considered successful when a producer uses acks=all
-      min.insync.replicas: 2
----
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: jobs
@@ -64,7 +14,7 @@ metadata:
 spec:
   replicas: 3
 ---
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: notify

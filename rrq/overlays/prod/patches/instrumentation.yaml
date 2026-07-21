@@ -68,28 +68,6 @@ spec:
           annotations:
             instrumentation.opentelemetry.io/inject-go: "true"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: admin-dashboard
-  namespace: rrq
-spec:
-  template:
-    metadata:
-      annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kong-sync-worker
-  namespace: rrq
-spec:
-  template:
-    metadata:
-      annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
----
 apiVersion: batch/v1
 kind: Job
 metadata:

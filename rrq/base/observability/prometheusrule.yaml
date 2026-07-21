@@ -13,7 +13,7 @@ spec:
         - alert: ServiceCrashLoopBackOff
           # Pod stuck in crash loop — immediate investigation needed
           expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="rrq"} > 0
-          for: 2m
+          for: 5m
           labels:
             severity: critical
           annotations:
@@ -21,68 +21,53 @@ spec:
             description: "The pod {{ $labels.pod }} has failed to initialize and is crashing. Check logs for log.Panic events."
             runbook_url: "https://wiki.rrq.local/runbooks/crash-loop-backoff"
 
-    - name: rrq.runtime.failures
+    - name: rrq.core.api
       rules:
-        - alert: CircuitBreakerOpen
-          # CB stuck open — downstream dependency unreachable, traffic failing fast
-          expr: rrq_circuit_breaker_state == 2
-          for: 5m
+        - alert: APIGatewayHTTP5xxRateHigh
+          expr: (sum(rate(rrq_http_server_request_count{http_status_code=~"5.."}[5m])) by (route) / sum(rate(rrq_http_server_request_count[5m])) by (route)) * 100 > 1
+          for: 2m
           labels:
             severity: critical
           annotations:
-            summary: "Circuit Breaker {{ $labels.circuit_breaker }} is OPEN"
-            description: "The circuit breaker in {{ $labels.service_name }} ({{ $labels.pod }}) is stuck OPEN, failing fast. Traffic is not reaching the dependency."
-            runbook_url: "https://wiki.rrq.local/runbooks/circuit-breaker-open"
+            summary: "API Gateway HTTP 5xx Error Rate > 1%"
+            description: "Synchronous HTTP 5xx error rate exceeds 1% over the last 5 minutes."
+            runbook_url: "https://wiki.rrq.local/runbooks/global-sync-error-rate"
 
-        - alert: CircuitBreakerHalfOpenFailure
-          # CB cannot recover — half-open probes keep failing, dependency structurally broken
-          expr: rate(rrq_circuit_breaker_half_open_failure[5m]) > 0
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: "Circuit Breaker {{ $labels.circuit_breaker }} Cannot Recover"
-            description: "The circuit breaker in {{ $labels.service_name }} ({{ $labels.pod }}) repeatedly failed its half-open probe. Immediate escalation to infrastructure team required."
-            runbook_url: "https://wiki.rrq.local/runbooks/circuit-breaker-half-open-failure"
-
-        - alert: HighInfrastructureErrorRate
-          # Transient DB/Redis errors spiking — underlying degradation detected
-          expr: rate(rrq_infrastructure_errors_total[5m]) > 5
+        - alert: APIGatewayProcessingLatencyHigh
+          expr: histogram_quantile(0.99, sum(rate(rrq_http_server_duration_seconds_bucket[5m])) by (route, le)) > 2
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "High Transient Error Rate in {{ $labels.component }} ({{ $labels.service_name }})"
-            description: "The rate of transient infrastructure errors (DB/Redis) in component {{ $labels.component }} on pod {{ $labels.pod }} is excessively high, indicating underlying degradation."
-            runbook_url: "https://wiki.rrq.local/runbooks/high-infra-error-rate"
+            summary: "API Gateway p99 processing latency > 2s"
+            description: "API HTTP Gateway request processing taking too long. Check for backend database lag."
+            runbook_url: "https://wiki.rrq.local/runbooks/api-high-latency"
 
-        - alert: OutboxRelayStalled
-          # Events stuck in outbox — poison pill or Kafka rejection, risk of WAL exhaustion
-          expr: rrq_outbox_lag_seconds > 60
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: "Outbox Relay {{ $labels.shard }} Stalled"
-            description: "Messages are accumulating in the outbox events table ({{ $labels.shard }}) due to a poison pill or Kafka cluster rejection. Risk of database WAL exhaustion."
-            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stalled"
-
-        - alert: HighIdempotencyConflicts
-          # Client spamming duplicate idempotency keys — possible integration bug
-          expr: rate(rrq_idempotency_conflicts_total[5m]) > 5
+        - alert: APIGatewayIdempotencyConflictSpike
+          expr: rate(rrq_idempotency_conflicts_total{service_name="core-api"}[5m]) > 10
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "High Rate of Business Conflicts (Idempotency Key Clashes)"
-            description: "Sudden spike in unique constraint violations for idempotency keys. A downstream client may be spamming the same transaction identifier."
-            runbook_url: "https://wiki.rrq.local/runbooks/high-idempotency-conflicts"
+            summary: "API Gateway high idempotency conflicts spike > 10/5m"
+            description: "A spike in idempotency conflicts indicates client retry loops or possible duplicate submissions."
+            runbook_url: "https://wiki.rrq.local/runbooks/idempotency-spikes"
 
     - name: rrq.ledger.worker
       rules:
+        - alert: LedgerDoubleEntryImbalance
+          expr: saga_unresolved_count{age=">120s"} > 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Asynchronous cross-shard saga hanging unresolved > 120s"
+            description: "A cross-shard transaction saga has been pending for over 2 minutes. Shard could be down or message lost."
+            runbook_url: "https://wiki.rrq.local/runbooks/saga-lag"
+
         - alert: LedgerWorkerDLQSpike
           # DLQ ingestion > 10/min — poison pills or systemic business rule failures
-          expr: rate(rrq_dlq_ingestion_rate{service="ledger-worker"}[5m]) > 10
+          expr: rate(rrq_dlq_ingestion_rate{service_name="ledger-worker"}[5m]) > 10
           for: 2m
           labels:
             severity: critical
@@ -93,7 +78,7 @@ spec:
 
         - alert: LedgerWorkerDLQWriteFailure
           # DLQ write failed — process may crash, check Postgres connectivity immediately
-          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service="ledger-worker"}[5m]) > 0
+          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service_name="ledger-worker"}[5m]) > 0
           for: 0m
           labels:
             severity: critical
@@ -102,21 +87,9 @@ spec:
             description: "DLQ store infrastructure error. Check Postgres connectivity for shard. Process will Fatal on next occurrence."
             runbook_url: "https://wiki.rrq.local/runbooks/ledger-dlq-write-failure"
 
-#        - alert: LedgerWorkerConsumerLag
-#          # TODO: Enable this alert once kafka-exporter is deployed to expose kafka_consumer_group_lag
-#          # Consumer lag > 10k — worker falling behind, check backoff cycles or CB open
-#          expr: kafka_consumer_group_lag{group="ledger-workers"} > 10000
-#          for: 5m
-#          labels:
-#            severity: warning
-#          annotations:
-#            summary: "Ledger Worker consumer lag > 10k"
-#            description: "Worker not keeping up. Check for repeated backoff cycles (rrq_infrastructure_errors_total) or CB open state (rrq_circuit_breaker_state=2)."
-#            runbook_url: "https://wiki.rrq.local/runbooks/ledger-consumer-lag"
-
         - alert: LedgerWorkerCBOpen
           # Shard CB open — database pool unhealthy, check infra errors for that shard
-          expr: rrq_circuit_breaker_state{service="ledger-worker",circuit_breaker=~"shard-.*"} == 2
+          expr: rrq_circuit_breaker_state{service_name="ledger-worker",circuit_breaker=~"shard-.*"} == 2
           for: 1m
           labels:
             severity: critical
@@ -125,20 +98,9 @@ spec:
             description: "Circuit breaker for shard {{ $labels.circuit_breaker }} is Open. Database pool likely unhealthy. Check rrq_infrastructure_errors_total for that shard."
             runbook_url: "https://wiki.rrq.local/runbooks/ledger-cb-open"
 
-        - alert: LedgerWorkerPanicRate
-          # Panic caught and routed to DLQ — check logs for stack trace
-          expr: rate(rrq_outbox_panics_total{service="ledger-worker"}[5m]) > 0
-          for: 0m
-          labels:
-            severity: warning
-          annotations:
-            summary: "Ledger Worker panic recovered"
-            description: "Panic caught and routed to DLQ. Check logs for stack trace."
-            runbook_url: "https://wiki.rrq.local/runbooks/ledger-panic-recovery"
-
         - alert: LedgerWorkerProcessingLatencyHigh
           # p99 processing > 10s — slow queries or lock contention
-          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service="ledger-worker"}[5m])) > 10
+          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service_name="ledger-worker"}[5m])) > 10
           for: 5m
           labels:
             severity: warning
@@ -149,7 +111,7 @@ spec:
 
         - alert: LedgerWorkerBackoffSpike
           # Backoff time > 5min/5min — persistent infrastructure failures
-          expr: rate(rrq_consumer_backoff_duration_seconds_sum{service="ledger-worker"}[5m]) > 300
+          expr: rate(rrq_consumer_backoff_duration_seconds_sum{service_name="ledger-worker"}[5m]) > 300
           for: 5m
           labels:
             severity: warning
@@ -157,3 +119,215 @@ spec:
             summary: "Ledger Worker excessive backoff time > 5min/5min"
             description: "Consumer spending excessive time in backoff. Indicates persistent infrastructure failures."
             runbook_url: "https://wiki.rrq.local/runbooks/ledger-backoff-spike"
+
+    - name: rrq.webhook.worker
+      rules:
+        - alert: WebhookWorkerDLQSpike
+          expr: rate(rrq_dlq_ingestion_rate{service_name="webhook-worker"}[5m]) > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Webhook Worker DLQ ingestion rate > 5/min"
+            description: "Webhook deliveries failing repeatedly and routing to DLQ."
+            runbook_url: "https://wiki.rrq.local/runbooks/webhook-dlq-spike"
+
+        - alert: WebhookWorkerDLQWriteFailure
+          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service_name="webhook-worker"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Webhook Worker failed to write to DLQ"
+            description: "Webhook DLQ store write failure. Connectivity issue to postgres shard."
+            runbook_url: "https://wiki.rrq.local/runbooks/webhook-dlq-write-failure"
+
+        - alert: WebhookWorkerCBOpen
+          expr: rrq_circuit_breaker_state{service_name="webhook-worker",circuit_breaker=~"merchant-.*"} == 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Webhook Worker Merchant CB Open"
+            description: "Webhook circuit breaker for merchant {{ $labels.circuit_breaker }} is Open. Webhook endpoint down or failing."
+            runbook_url: "https://wiki.rrq.local/runbooks/webhook-cb-open"
+
+        - alert: WebhookWorkerProcessingLatencyHigh
+          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service_name="webhook-worker"}[5m])) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Webhook Worker p99 processing latency > 10s"
+            description: "Webhook delivery consumer taking too long to execute retry loops."
+            runbook_url: "https://wiki.rrq.local/runbooks/webhook-high-latency"
+
+    - name: rrq.outbox.relay
+      rules:
+        - alert: OutboxRelayStuck
+          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 30
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Outbox Relay Stuck"
+            description: "Outbox relay lag is greater than 30 seconds for more than 2 minutes."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stuck"
+
+        - alert: OutboxRelayPanicRate
+          expr: rate(rrq_outbox_panics_total{service_name="outbox-relay"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay Panic Rate > 0"
+            description: "Panic recovered in outbox-relay batch loop."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-panic"
+
+    - name: rrq.infrastructure
+      rules:
+        - alert: KafkaConsumerGroupLagHigh
+          expr: kafka_consumergroup_lag{topic=~"jobs|notify"} > 1000
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kafka consumer group lag high"
+            description: "Kafka consumer group lag exceeded 1000 messages for over 3 minutes."
+            runbook_url: "https://wiki.rrq.local/runbooks/kafka-lag"
+
+        - alert: PodOOMKilled
+          expr: kube_pod_container_status_terminated_reason{reason="OOMKilled"} > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod OOMKilled detected"
+            description: "Pod container was terminated due to Out-Of-Memory (OOMKilled)."
+            runbook_url: "https://wiki.rrq.local/runbooks/oom-killed"
+
+        - alert: CertificateExpirySoon
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 604800
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "SSL Certificate expires in less than 7 days"
+            description: "TLS certificate managed by cert-manager will expire within 7 days."
+            runbook_url: "https://wiki.rrq.local/runbooks/cert-expiry"
+
+        - alert: PVCVolumeDiskSpaceLow
+          expr: (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) * 100 < 15
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC Volume Disk Space < 15%"
+            description: "Persistent Volume Claim available storage is below 15%."
+            runbook_url: "https://wiki.rrq.local/runbooks/pvc-disk-low"
+
+    - name: rrq.fraud.worker
+      rules:
+        - alert: FraudWorkerDLQSpike
+          expr: rate(rrq_dlq_ingestion_rate{service_name="fraud-worker"}[5m]) > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Fraud Worker DLQ ingestion rate > 5/min"
+            description: "Velocity checking failed messages routing to DLQ."
+            runbook_url: "https://wiki.rrq.local/runbooks/fraud-dlq-spike"
+
+        - alert: FraudWorkerCBOpen
+          expr: rrq_circuit_breaker_state{service_name="fraud-worker",circuit_breaker=~"shard-.*"} == 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Fraud Worker DB Shard CB Open"
+            description: "Circuit breaker for database shard {{ $labels.circuit_breaker }} in Fraud Worker is Open."
+            runbook_url: "https://wiki.rrq.local/runbooks/fraud-cb-open"
+
+    - name: rrq.recon.worker
+      rules:
+        - alert: ReconciliationRunnerFailed
+          expr: kube_job_status_failed{namespace="rrq", job_name=~"recon-worker-.*"} > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Reconciliation CronJob Runner Failed"
+            description: "A nightly reconciliation batch runner execution failed. Check pod logs for invariant errors or db lock issues."
+            runbook_url: "https://wiki.rrq.local/runbooks/recon-failed"
+
+        - alert: ReconciliationRunnerStuck
+          expr: kube_job_status_active{namespace="rrq", job_name=~"recon-worker-.*"} > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Reconciliation Runner Executing > 10m"
+            description: "The nightly reconciliation batch has been active for more than 10 minutes. A session lock might be stuck."
+            runbook_url: "https://wiki.rrq.local/runbooks/recon-stuck"
+
+    - name: rrq.business
+      rules:
+        - alert: BusinessTSRDrop
+          expr: (sum(rate(rrq_business_transfers_total{status="failed"}[5m])) / sum(rate(rrq_business_transfers_total{}[5m]))) * 100 > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Transfer Success Rate dropped below 95%"
+            description: "Transfer success rate is below 95% over the last 5 minutes. Investigate decline reasons and infrastructure health."
+            runbook_url: "https://wiki.rrq.local/runbooks/tsr-drop"
+
+        - alert: BusinessGTVAnomaly
+          expr: rate(rrq_business_gtv_total[10m]) == 0 and on() rate(rrq_business_transfers_total[10m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No Gross Transaction Value flowing through system"
+            description: "No successful transfer value recorded in the last 10 minutes despite active transfers. Check ledger worker."
+            runbook_url: "https://wiki.rrq.local/runbooks/gtv-anomaly"
+
+        - alert: SagaFailureRateHigh
+          expr: (sum(rate(rrq_business_transfers_total{status="failed",shard_type="cross"}[5m])) / sum(rate(rrq_business_transfers_total{shard_type="cross"}[5m]))) * 100 > 10
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Cross-shard saga failure rate > 10%"
+            description: "More than 10% of cross-shard sagas are failing. Investigate xshard settlement or clearing account issues."
+            runbook_url: "https://wiki.rrq.local/runbooks/saga-failure"
+
+        - alert: FraudVelocityLimitExceeded
+          expr: rate(rrq_velocity_limit_exceeded_total[5m]) > 5
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Velocity limit violated > 5 times in 5 minutes"
+            description: "Fraud worker detected excessive velocity limit violations. Possible automated attack or misconfigured rule."
+            runbook_url: "https://wiki.rrq.local/runbooks/velocity-spike"
+
+        - alert: OutboxRelayNoPublish
+          expr: rate(rrq_outbox_events_published_total[5m]) == 0 and rrq_outbox_lag_seconds > 30
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Outbox relay not publishing despite backlog"
+            description: "Outbox relay has a backlog > 30s but no events are being published. Stuck relay loop."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stuck"
+
+        - alert: ConsumerBackoffDominant
+          expr: rate(rrq_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Consumer spending > 50% of time in backoff"
+            description: "Consumers across the system are spending excessive time in backoff. Persistent infrastructure failures likely."
+            runbook_url: "https://wiki.rrq.local/runbooks/consumer-backoff"

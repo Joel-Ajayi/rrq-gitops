@@ -1,0 +1,184 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-noc-executive
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-noc-executive.json: |-
+    {
+      "title": "RRQ Executive NOC",
+      "uid": "rrq-noc-executive",
+      "version": 1,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "tags": ["rrq", "tier-1"],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Global Transaction Success Rate",
+          "gridPos": { "h": 8, "w": 3, "x": 0, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_transfers_total{status=\"success\"}[5m])) / sum(rate(rrq_business_transfers_total[5m])) * 100",
+            "legendFormat": "TSR"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "red", "value": 99 },
+                  { "color": "yellow", "value": 99.9 },
+                  { "color": "green", "value": 99.95 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "title": "API Gateway P99 Latency",
+          "gridPos": { "h": 8, "w": 3, "x": 3, "y": 0 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(rrq_http_server_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 2 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "title": "System Throughput (TPS)",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_consumer_commits_total{topic=\"jobs\"}[1m]))",
+            "legendFormat": "TPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "stat",
+          "title": "Active P0/P1 Alerts",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 0 },
+          "targets": [{
+            "expr": "count(ALERTS{severity=~\"critical|warning\"} == 1)",
+            "legendFormat": "Alerts"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 3 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        },
+        {
+          "type": "table",
+          "title": "Service Health Matrix",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+          "targets": [{
+            "expr": "up{namespace=\"rrq\",job=~\"core-api|ledger-worker|outbox-relay|webhook-worker|fraud-worker|recon-worker\"}",
+            "legendFormat": "{{job}}",
+            "format": "table",
+            "instant": true
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "transformations": [
+            { "type": "organize", "options": { "excludeByName": { "__name__": true, "instance": true } } }
+          ]
+        },
+        {
+          "type": "gauge",
+          "title": "Ledger Imbalance (MUST BE ZERO)",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+          "targets": [{
+            "expr": "ledger_imbalance_total",
+            "legendFormat": "Total"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              },
+              "color": { "mode": "thresholds" }
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Success Rate (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 0, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(rrq_business_transfers_total{status=\"success\"}[5m])) / sum(rate(rrq_business_transfers_total[5m])) * 100",
+            "legendFormat": "TSR"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "percent" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "P99 Latency (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 3, "y": 16 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(rrq_http_server_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "TPS (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(rrq_consumer_commits_total{topic=\"jobs\"}[1m]))",
+            "legendFormat": "TPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Rate (1h)",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(rrq_dlq_ingestion_rate[5m])) by (service_name)",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }

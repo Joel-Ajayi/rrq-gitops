@@ -6,7 +6,7 @@ resources:
   - ../../base
   - ../../base/migrations # Creates local databases on first boot
   - services # network policies
-  - secret.yaml
+  - patches/secret.sealed.yaml
 images:
   - name: rrq/core-api
     newName: rrq/core-api-go
@@ -20,12 +20,11 @@ images:
     newName: rrq/fraud-worker-go
   - name: rrq/recon-worker
     newName: rrq/recon-worker-go
-  - name: rrq/kong-sync-worker
-    newName: rrq/kong-sync-worker-go
-  - name: rrq/admin-dashboard
-    newName: rrq/admin-dashboard
   - name: rrq/migrate
     newName: rrq/migrate
+  - name: rrq/seed-performance
+    newName: rrq/seed-performance
+  - name: rrq/webhook-echo
+    newName: rrq/webhook-echo-go
 patches:
-  - path: patches/reduce-replicas.yaml
   - path: patches/instrumentation.yaml

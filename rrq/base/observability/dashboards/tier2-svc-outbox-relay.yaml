@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-svc-outbox-relay
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-svc-outbox-relay.json: |-
+    {
+      "title": "RRQ Outbox Relay",
+      "uid": "rrq-svc-outbox-relay",
+      "version": 1,
+      "refresh": "5s",
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "tags": ["rrq", "tier-2"],
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Latency P50/P95/P99",
+          "gridPos": { "h": 8, "w": 3, "x": 0, "y": 0 },
+          "targets": [
+            { "expr": "histogram_quantile(0.50, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"outbox-relay\"}[5m])) by (le))", "legendFormat": "P50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"outbox-relay\"}[5m])) by (le))", "legendFormat": "P95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"outbox-relay\"}[5m])) by (le))", "legendFormat": "P99" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Request Rate (RPS)",
+          "gridPos": { "h": 8, "w": 3, "x": 3, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_consumer_commits_total{service_name=\"outbox-relay\"}[1m])) by (topic)",
+            "legendFormat": "{{topic}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Rate by Code",
+          "gridPos": { "h": 8, "w": 3, "x": 6, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_infrastructure_errors_total{service_name=\"outbox-relay\"}[5m])) by (component)",
+            "legendFormat": "{{component}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox Lag / CB / Publish P99",
+          "gridPos": { "h": 8, "w": 3, "x": 9, "y": 0 },
+          "targets": [
+            { "expr": "rrq_outbox_lag_seconds{service_name=\"outbox-relay\"}", "legendFormat": "{{shard}} lag" },
+            { "expr": "rrq_circuit_breaker_state{circuit_breaker=\"kafka-egress\"}", "legendFormat": "CB kafka-egress" },
+            { "expr": "histogram_quantile(0.99, rate(rrq_outbox_publish_duration_seconds_bucket{service_name=\"outbox-relay\"}[5m]))", "legendFormat": "Publish P99" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        }
+      ]
+    }

@@ -6,11 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/Joel-Ajayi/rrq-gitops.git' # Placeholder URL, change as needed
+    repoURL: "https://github.com/Joel-Ajayi/rrq-gitops.git" # Placeholder URL, change as needed
     targetRevision: HEAD
     path: apps/prod
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: "https://kubernetes.default.svc"
     namespace: argocd
   syncPolicy:
     automated:

@@ -1,0 +1,123 @@
+# Global control-plane DB: the `merchants` table + shard routing directory.
+# CloudNativePG runs primary + standby; Services: merchants-db-rw/-ro/-r.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: merchants-db
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+    rrq.dev/role: control-plane
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.0
+  primaryUpdateStrategy: supervised
+  bootstrap:
+    initdb:
+      database: merchants
+      owner: rrq_app # CNPG generates the Secret `merchants-db-app`
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "250m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://rrq-backups/merchants-db"
+      s3Credentials:
+        accessKeyId:
+          name: backup-s3-creds
+          key: access-key-id
+        secretAccessKey:
+          name: backup-s3-creds
+          key: secret-access-key
+      wal:
+        compression: gzip
+      retentionPolicy: "30d"
+
+---
+# Ledger shard A: data for merchants with shard_id='shard-a'.
+# Intra-shard transfers post both legs here in one transaction.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-a
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+    rrq.dev/role: ledger-shard
+    rrq.dev/shard-id: shard-a
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.0
+  primaryUpdateStrategy: supervised
+  bootstrap:
+    initdb:
+      database: rrq
+      owner: rrq_app # CNPG generates the Secret `shard-a-app`
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "250m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://rrq-backups/shard-a"
+      s3Credentials:
+        accessKeyId:
+          name: backup-s3-creds
+          key: access-key-id
+        secretAccessKey:
+          name: backup-s3-creds
+          key: secret-access-key
+      wal:
+        compression: gzip
+      retentionPolicy: "30d"
+
+---
+# Ledger shard B: data for merchants with shard_id='shard-b'.
+# A shard-a <-> shard-b transfer is the cross-shard (clearing-saga) case.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-b
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+    rrq.dev/role: ledger-shard
+    rrq.dev/shard-id: shard-b
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.0
+  primaryUpdateStrategy: supervised
+  bootstrap:
+    initdb:
+      database: rrq
+      owner: rrq_app # CNPG generates the Secret `shard-b-app`
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "250m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://rrq-backups/shard-b"
+      s3Credentials:
+        accessKeyId:
+          name: backup-s3-creds
+          key: access-key-id
+        secretAccessKey:
+          name: backup-s3-creds
+          key: secret-access-key
+      wal:
+        compression: gzip
+      retentionPolicy: "30d"

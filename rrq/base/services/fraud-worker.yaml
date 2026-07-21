@@ -7,7 +7,12 @@ metadata:
     app.kubernetes.io/name: fraud-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: fraud-worker
@@ -19,78 +24,79 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: fraud-worker
-        image: rrq/fraud-worker:dev
-        imagePullPolicy: Never
-        ports:
-        - name: metrics
-          containerPort: 9090
-        envFrom:
-        - configMapRef:
-            name: rrq-config
-        - secretRef:
-            name: rrq-secrets
-        env:
-        - name: MERCHANTS_DB_URI
-          valueFrom:
-            secretKeyRef:
-              name: merchants-db-app
-              key: uri
-        - name: SHARD_A_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-a-app
-              key: uri
-        - name: SHARD_B_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-b-app
-              key: uri
-        resources:
-          requests:
-            cpu: 50m
-            memory: 96Mi
-          limits:
-            cpu: 300m
-            memory: 192Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+        - name: fraud-worker
+          image: rrq/fraud-worker:dev
+          imagePullPolicy: Never
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "5"
+          envFrom:
+            - configMapRef:
+                name: rrq-config
+            - secretRef:
+                name: rrq-secrets
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: merchants-db-app
+                  key: uri
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-a-app
+                  key: uri
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-b-app
+                  key: uri
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - fraud-worker
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pgrep
+                - fraud-worker
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 300m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                  - fraud-worker
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - fraud-worker
+                topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: fraud-worker-metrics
-  namespace: rrq
-  labels:
-    app.kubernetes.io/name: fraud-worker
-    app.kubernetes.io/part-of: rrq
-spec:
-  selector:
-    app.kubernetes.io/name: fraud-worker
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: metrics
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
@@ -103,13 +109,13 @@ spec:
   minReplicaCount: 1
   maxReplicaCount: 5
   triggers:
-  - type: kafka
-    metadata:
-      bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
-      consumerGroup: fraud-worker
-      topic: jobs
-      lagThreshold: '200'
-      offsetResetPolicy: earliest
+    - type: kafka
+      metadata:
+        bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
+        consumerGroup: fraud-worker
+        topic: jobs
+        lagThreshold: "200"
+        offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

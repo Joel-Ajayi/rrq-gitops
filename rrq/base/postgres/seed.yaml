@@ -1,0 +1,53 @@
+# One-shot Kubernetes Job to seed premium merchant and clearing/fiat vault wallets.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-seed-performance
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+  annotations:
+    description: "Seeds platform premium merchant and clearing/fiat vault wallets on all shards"
+    runbook: "https://wiki.rrq.local/runbooks/seed-performance"
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-dbs
+          image: postgres:16-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for databases..."
+              for url in $GLOBAL_DB_URL $SHARD_A_DB_URL $SHARD_B_DB_URL; do
+                until pg_isready -d "$url" -t 5; do sleep 2; done
+              done
+              echo "All databases ready."
+          env:
+            - name: GLOBAL_DB_URL
+              valueFrom:
+                secretKeyRef: { name: merchants-db-app, key: uri }
+            - name: SHARD_A_DB_URL
+              valueFrom:
+                secretKeyRef: { name: shard-a-app, key: uri }
+            - name: SHARD_B_DB_URL
+              valueFrom:
+                secretKeyRef: { name: shard-b-app, key: uri }
+      containers:
+        - name: seeder
+          image: rrq/seed-performance
+          command: ["/seeds/seed-performance.sh"]
+          env:
+            - name: GLOBAL_DB_URL
+              valueFrom:
+                secretKeyRef: { name: merchants-db-app, key: uri }
+            - name: SHARD_A_DB_URL
+              valueFrom:
+                secretKeyRef: { name: shard-a-app, key: uri }
+            - name: SHARD_B_DB_URL
+              valueFrom:
+                secretKeyRef: { name: shard-b-app, key: uri }

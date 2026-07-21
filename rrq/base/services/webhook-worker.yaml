@@ -7,7 +7,12 @@ metadata:
     app.kubernetes.io/name: webhook-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: webhook-worker
@@ -19,84 +24,79 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: webhook-worker
-        image: rrq/webhook-worker:dev
-        imagePullPolicy: Never
-        ports:
-        - name: metrics
-          containerPort: 9090
-        envFrom:
-        - configMapRef:
-            name: rrq-config
-        - secretRef:
-            name: rrq-secrets
-        env:
-        - name: MERCHANTS_DB_URI
-          valueFrom:
-            secretKeyRef:
-              name: merchants-db-app
-              key: uri
-        - name: SHARD_A_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-a-app
-              key: uri
-        - name: SHARD_B_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-b-app
-              key: uri
-        lifecycle:
-          preStop:
+        - name: webhook-worker
+          image: rrq/webhook-worker:dev
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: rrq-config
+            - secretRef:
+                name: rrq-secrets
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: merchants-db-app
+                  key: uri
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-a-app
+                  key: uri
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-b-app
+                  key: uri
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "5"
+          livenessProbe:
             exec:
               command:
-              - sleep
-              - '5'
-        resources:
-          requests:
-            cpu: 50m
-            memory: 96Mi
-          limits:
-            cpu: 300m
-            memory: 192Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+                - pgrep
+                - webhook-worker
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pgrep
+                - webhook-worker
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 300m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                  - webhook-worker
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - webhook-worker
+                topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: webhook-worker-metrics
-  namespace: rrq
-  labels:
-    app.kubernetes.io/name: webhook-worker
-    app.kubernetes.io/part-of: rrq
-spec:
-  selector:
-    app.kubernetes.io/name: webhook-worker
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: metrics
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
@@ -109,13 +109,13 @@ spec:
   minReplicaCount: 1
   maxReplicaCount: 10
   triggers:
-  - type: kafka
-    metadata:
-      bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
-      consumerGroup: webhook-worker
-      topic: notify
-      lagThreshold: '100'
-      offsetResetPolicy: earliest
+    - type: kafka
+      metadata:
+        bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
+        consumerGroup: webhook-worker
+        topic: notify
+        lagThreshold: "100"
+        offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

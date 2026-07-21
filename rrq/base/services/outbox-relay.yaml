@@ -7,7 +7,12 @@ metadata:
     app.kubernetes.io/name: outbox-relay
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: outbox-relay
@@ -19,61 +24,75 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: outbox-relay
-        image: rrq/outbox-relay:dev
-        imagePullPolicy: Never
-        envFrom:
-        - configMapRef:
-            name: rrq-config
-        - secretRef:
-            name: rrq-secrets
-        env:
-        - name: MERCHANTS_DB_URI
-          valueFrom:
-            secretKeyRef:
-              name: merchants-db-app
-              key: uri
-        - name: SHARD_A_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-a-app
-              key: uri
-        - name: SHARD_B_URI
-          valueFrom:
-            secretKeyRef:
-              name: shard-b-app
-              key: uri
-        lifecycle:
-          preStop:
+        - name: outbox-relay
+          image: rrq/outbox-relay
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: rrq-config
+            - secretRef:
+                name: rrq-secrets
+          env:
+            - name: MERCHANTS_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: merchants-db-app
+                  key: uri
+            - name: SHARD_A_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-a-app
+                  key: uri
+            - name: SHARD_B_URI
+              valueFrom:
+                secretKeyRef:
+                  name: shard-b-app
+                  key: uri
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "5"
+          livenessProbe:
             exec:
               command:
-              - sleep
-              - '5'
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 250m
-            memory: 128Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+                - pgrep
+                - outbox-relay
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pgrep
+                - outbox-relay
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                  - outbox-relay
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - outbox-relay
+                topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -100,20 +119,18 @@ spec:
     name: outbox-relay
   minReplicaCount: 1
   maxReplicaCount: 6
-  pollingInterval: 15
-  cooldownPeriod: 300
   triggers:
-  - type: prometheus
-    metadata:
-      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
-      metricName: rrq_outbox_lag_seconds
-      query: 'sum(rrq_outbox_lag_seconds) by (shard_id)'
-      threshold: '5'
-      activateThreshold: '1'
-  - type: prometheus
-    metadata:
-      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
-      metricName: rrq_circuit_breaker_state
-      query: 'sum(rrq_circuit_breaker_state{name="kafka-egress",state="2"})'
-      threshold: '1'
-      activateThreshold: '0'
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.observability.svc.cluster.local:9090
+        metricName: rrq_outbox_lag_seconds
+        query: "sum(rrq_outbox_lag_seconds) by (shard)"
+        threshold: "5"
+        activateThreshold: "1"
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.observability.svc.cluster.local:9090
+        metricName: rrq_circuit_breaker_state
+        query: 'sum(rrq_circuit_breaker_state{circuit_breaker="kafka-egress"} == 2)'
+        threshold: "1"
+        activateThreshold: "0"

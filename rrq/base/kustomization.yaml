@@ -5,10 +5,8 @@ namespace: rrq
 resources:
   - namespace.yaml
   - config/configmap.yaml
-  # rrq-secrets is per-env: dev = plaintext (overlays/dev/secret.yaml),
-  # prod = SealedSecret (overlays/prod).
   - postgres
   - kafka
   - services
-  - ingress          # Kong edge routing
-  - observability    # Metrics and Tracing
+  - gateway # Envoy Gateway + Gateway API edge routing
+  - observability # Metrics and Tracing
