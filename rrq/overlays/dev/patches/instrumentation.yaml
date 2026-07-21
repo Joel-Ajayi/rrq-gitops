@@ -1,7 +1,6 @@
 # Dev: inject the Go auto-instrumentation agent into Go workloads.
 #  it injects a sidecar container that uses eBPF
 # (extended Berkeley Packet Filter) at the Linux kernel level.
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
