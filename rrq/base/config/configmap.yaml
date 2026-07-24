@@ -24,29 +24,10 @@ data:
   KAFKA_TOPIC_NOTIFY: "notify"
 
   # --- Ephemeral, non-correctness-critical state ---
-  REDIS_DATA_HOST: "redis-master.rrq.svc.cluster.local"
-  REDIS_DATA_PORT: "6379"
+  REDIS_DATA_HOST: "redis.redis.svc.cluster.local"
+  REDIS_DATA_PORT: "26379"
 
   # --- Behaviour ---
   LOG_LEVEL: "info"
   TRACE_SAMPLE_RATE: "0.1"
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://platform-collector-collector.observability.svc.cluster.local:4317"
-
-  #  jwt
-  BCRYPT_COST: "12"
-  JWT_ACTIVE_KEY_ID: "default"
-
-  # --- Kong API Gateway Integration ---
-  KONG_CONFIG_API_VERSION: "configuration.konghq.com/v1"
-  KONG_API_GROUP: "configuration.konghq.com"
-  KONG_API_VERSION: "v1"
-  KONG_RESOURCE_CONSUMERS: "kongconsumers"
-  KONG_RESOURCE_PLUGINS: "kongplugins"
-  KONG_RESOURCE_CREDENTIALS: "kongcredentials"
-  KONG_KIND_CONSUMER: "KongConsumer"
-  KONG_KIND_PLUGIN: "KongPlugin"
-  KONG_KIND_CREDENTIAL: "KongCredential"
-  KONG_PLUGIN_RATE_LIMITING: "rate-limiting"
-  KONG_PLUGIN_POLICY: "local"
-  KONG_CREDENTIAL_TYPE_JWT: "jwt"
-  KONG_JWT_ALGORITHM: "RS256"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "agent-collector.observability.svc.cluster.local:4317"

@@ -1,0 +1,63 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: jaeger
+  namespace: observability
+spec:
+  image: jaegertracing/jaeger:2.19.0
+  mode: deployment
+  replicas: 1
+  env:
+    - name: ES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: elasticsearch-es-elastic-user
+          key: elastic
+  ports:
+    - name: grpc-otlp
+      port: 4317
+      targetPort: 4317
+    - name: http-otlp
+      port: 4318
+      targetPort: 4318
+    - name: jaeger-query
+      port: 16686
+      targetPort: 16686
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        send_batch_size: 1024
+        timeout: 1s
+    exporters:
+      jaeger_storage_exporter:
+        trace_storage: es_backend
+    extensions:
+      jaeger_storage:
+        backends:
+          es_backend:
+            elasticsearch:
+              server_urls:
+                - https://elasticsearch-es-http.observability.svc.cluster.local:9200
+              auth:
+                basic:
+                  username: elastic
+                  password: ${env:ES_PASSWORD}
+              tls:
+                insecure: true
+      jaeger_query:
+        storage:
+          traces: es_backend
+    service:
+      extensions: [jaeger_storage, jaeger_query]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [jaeger_storage_exporter]

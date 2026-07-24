@@ -1,0 +1,82 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: agent
+  namespace: observability
+spec:
+  image: otel/opentelemetry-collector-contrib:0.156.0
+  mode: daemonset
+  serviceAccount: agent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      filelog:
+        include:
+          - /var/log/pods/*/*/*.log
+        start_at: end
+        operators:
+          - type: regex_parser
+            regex: '^(?P<time>\S+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<message>.*)$'
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          memory: {}
+          disk: {}
+          network: {}
+          load: {}
+      kubelet_stats:
+        auth_type: serviceAccount
+        collection_interval: 30s
+        metric_groups:
+          - container
+          - pod
+          - node
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
+      batch:
+        send_batch_size: 1024
+        timeout: 1s
+    exporters:
+      otlp/gateway:
+        endpoint: gateway-collector.observability.svc.cluster.local:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/gateway]
+        metrics:
+          receivers: [otlp, hostmetrics, kubelet_stats]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/gateway]
+        logs:
+          receivers: [filelog]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/gateway]
+      telemetry:
+        metrics:
+          level: detailed
+          readers:
+            - pull:
+                exporter:
+                  prometheus:
+                    host: 0.0.0.0
+                    port: 8888

@@ -40,6 +40,7 @@ spec:
       containers:
         - name: seeder
           image: rrq/seed-performance
+          imagePullPolicy: Never
           command: ["/seeds/seed-performance.sh"]
           env:
             - name: GLOBAL_DB_URL

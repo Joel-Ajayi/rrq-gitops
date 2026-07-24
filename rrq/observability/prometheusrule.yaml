@@ -56,7 +56,7 @@ spec:
     - name: rrq.ledger.worker
       rules:
         - alert: LedgerDoubleEntryImbalance
-          expr: saga_unresolved_count{age=">120s"} > 0
+          expr: rrq_saga_unresolved_count > 0
           for: 2m
           labels:
             severity: warning
@@ -165,7 +165,7 @@ spec:
     - name: rrq.outbox.relay
       rules:
         - alert: OutboxRelayStuck
-          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 30
+          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 60
           for: 2m
           labels:
             severity: warning
@@ -283,7 +283,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/tsr-drop"
 
         - alert: BusinessGTVAnomaly
-          expr: rate(rrq_business_gtv_total[10m]) == 0 and on() rate(rrq_business_transfers_total[10m]) > 0
+          expr: rate(rrq_business_gtv_total[10m]) < 100 and on() rate(rrq_business_transfers_total[10m]) > 0
           for: 5m
           labels:
             severity: warning

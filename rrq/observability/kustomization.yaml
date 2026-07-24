@@ -1,0 +1,107 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - agent.yaml
+  - agent-rbac.yaml
+  - gateway.yaml
+  - gateway-rbac.yaml
+  - jaeger.yaml
+  - elastic.yaml
+  - instrumentation.yaml
+  - servicemonitor.yaml
+  - prometheusrule.yaml
+  - alertmanagerconfig.yaml
+  - dashboards
+
+# ====================================================================================================
+#   RRQ OBSERVABILITY ARCHITECTURE
+#   Pattern: Agent (DaemonSet) → Gateway (Deployment) → Backends
+# ====================================================================================================
+#
+#   ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+#   │  RRQ NAMESPACE                                                                            │
+#   │                                                                                           │
+#   │  ┌──────────────────────────┐                                                             │
+#   │  │    APPLICATION PODS      │──────── OTEL/OTLP ────────┐                                │
+#   │  │  (Zap + OTLP SDK)        │                            │                                │
+#   │  └──────────────────────────┘                            │                                │
+#   │       │                                                  │                                │
+#   │       │ Auto-instrumented via                            │                                │
+#   │       │ OTel Operator eBPF                               │                                │
+#   │       │ ─── endpoint: agent-collector:4317               │                                │
+#   │       │                                                  │                                │
+#   └───────┼──────────────────────────────────────────────────┼────────────────────────────────┘
+#           │                                                  │
+#           ▼                                                  ▼
+#   ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+#   │  OBSERVABILITY NAMESPACE                                                                  │
+#   │                                                                                           │
+#   │  ┌─────────────────────────────────────┐         ┌──────────────────────────────────────┐  │
+#   │  │  AGENT  (DaemonSet, per node)       │         │  GATEWAY  (Deployment, 1 replica)    │  │
+#   │  │  ────────────────────────────       │         │  ────────────────────────────────    │  │
+#   │  │                                     │         │                                      │  │
+#   │  │  RECEIVERS:                         │         │  RECEIVERS:                          │  │
+#   │  │    otlp        ◄─ OTLP from apps    │         │    otlp         ◄─ OTLP from agents  │  │
+#   │  │    filelog     ◄─ stdout/stderr     │         │    kafkametrics ◄─ Kafka broker      │  │
+#   │  │    hostmetrics ◄─ node resources    │         │                                      │  │
+#   │  │    kubelet_stats◄─ pod/container    │         │  PROCESSORS:                         │  │
+#   │  │                                     │         │    memory_limiter                    │  │
+#   │  │  PROCESSORS:                        │         │    k8sattributes ◄─ k8s enrichment  │  │
+#   │  │    memory_limiter                   │         │    transform    ◄─ PII redaction     │  │
+#   │  │    batch                            │         │    batch                             │  │
+#   │  │                                     │         │                                      │  │
+#   │  │  EXPORTERS:                         │         │  CONNECTORS:                         │  │
+#   │  │    otlp/gateway ── OTLP ────────────┼─────────┼──►  otlp                             │  │
+#   │  └─────────────────────────────────────┘         │    spanmetrics ◄─ traces → RED       │  │
+#   │                                                  │                                      │  │
+#   │                                                  │  EXPORTERS:                          │  │
+#   │                                                  │    otlp/jaeger ── OTLP ──────────┐   │  │
+#   │                                                  │    elasticsearch ── logs ────────┐│   │  │
+#   │                                                  │    prometheus ── metrics ──┐     ││   │  │
+#   │                                                  └─────────────────────────────┼─────┼┼───┘  │
+#   │                                                                                │     ││      │
+#   │      ┌─────────────────────────────────────────────────────────────────────────┘     ││      │
+#   │      │                                ┌──────────────────────────────────────────────┘│      │
+#   │      ▼                                ▼                                                ▼      │
+#   │  ┌──────────────────────┐    ┌────────────────────────────────────────┐                       │
+#   │  │  JAEGER v2           │    │  ELASTICSEARCH (ECK)                   │                       │
+#   │  │  (OTel CR, deploy)   │    │  version: 8.17.0, 2 nodes             │                       │
+#   │  │  ────────────────    │    │  ──────────────────────────────────    │                       │
+#   │  │                      │    │                                        │                       │
+#   │  │  otlp → jaeger_      │    │  Stores:                              │                       │
+#   │  │  storage_exporter ───┼────┼───► logs (from elasticsearch exporter)│                       │
+#   │  │                      │    │  │  traces (from Jaeger v2)           │                       │
+#   │  │  jaeger_query ext    │    │                                        │                       │
+#   │  │  → UI :16686         │    └──────────────────┬─────────────────────┘                       │
+#   │  └──────────────────────┘                       │                                             │
+#   │                                                  ▼                                             │
+#   │                                        ┌───────────────────────┐                              │
+#   │                                        │  KIBANA               │                              │
+#   │                                        │  Log exploration UI   │                              │
+#   │                                        └───────────────────────┘                              │
+#   │                                                                                                │
+#   │  ┌──────────────────────────────────────────────────────────────────────────────────────────┐  │
+#   │  │  PROMETHEUS STACK  (kube-prometheus-stack)                                              │  │
+#   │  │  ──────────────────────────────────────────                                             │  │
+#   │  │                                                                                        │  │
+#   │  │  ServiceMonitor                                                         ┌───────────┐  │  │
+#   │  │    ── scrapes gateway-collector:8889/metrics ───────────────────────────►│ PROMETHEUS│  │  │
+#   │  │                                                                         │           │  │  │
+#   │  │  PrometheusRule                                                        │           │  │  │
+#   │  │    ── 25 alert rules (crashloops, latency, DLQ, CB, business)          │           │  │  │
+#   │  │                                                                         │           │  │  │
+#   │  │  AlertmanagerConfig                                                     │           │  │  │
+#   │  │    critical → #alerts-critical                                         └─────┬─────┘  │  │
+#   │  │    warning  → #alerts-warning                                                  │        │  │
+#   │  │                                                                                  │        │  │
+#   │  │                                                                                  ▼        │  │
+#   │  │                                                                          ┌───────────┐  │  │
+#   │  │                                                                          │ GRAFANA   │  │  │
+#   │  │                                                                          │           │  │  │
+#   │  │                                                                          │ RED       │  │  │
+#   │  │                                                                          │ Business  │  │  │
+#   │  │                                                                          │ Infra     │  │  │
+#   │  │                                                                          └───────────┘  │  │
+#   │  └──────────────────────────────────────────────────────────────────────────────────────────┘  │
+#   └─────────────────────────────────────────────────────────────────────────────────────────────────┘

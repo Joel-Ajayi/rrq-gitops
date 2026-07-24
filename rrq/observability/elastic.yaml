@@ -1,0 +1,49 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  namespace: observability
+spec:
+  version: 8.17.0
+  nodeSets:
+    - name: default
+      count: 2
+      config:
+        node.store.allow_mmap: false
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 768Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1536Mi
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: kibana
+  namespace: observability
+spec:
+  version: 8.17.0
+  count: 1
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  elasticsearchRef:
+    name: elasticsearch
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

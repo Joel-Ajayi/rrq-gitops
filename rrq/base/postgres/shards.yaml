@@ -36,7 +36,7 @@ spec:
           key: secret-access-key
       wal:
         compression: gzip
-      retentionPolicy: "30d"
+    retentionPolicy: "30d"
 
 ---
 # Ledger shard A: data for merchants with shard_id='shard-a'.
@@ -78,7 +78,7 @@ spec:
           key: secret-access-key
       wal:
         compression: gzip
-      retentionPolicy: "30d"
+    retentionPolicy: "30d"
 
 ---
 # Ledger shard B: data for merchants with shard_id='shard-b'.
@@ -120,4 +120,4 @@ spec:
           key: secret-access-key
       wal:
         compression: gzip
-      retentionPolicy: "30d"
+    retentionPolicy: "30d"

@@ -1,14 +1,40 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  name: sealed-secrets
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  source:
+    chart: sealed-secrets
+    repoURL: https://bitnami.github.io/sealed-secrets
+    targetRevision: 2.19.1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
   name: cnpg
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
     repoURL: https://cloudnative-pg.github.io/charts
     chart: cloudnative-pg
-    targetRevision: 0.28.3
+    targetRevision: 0.29.0
   destination:
     server: https://kubernetes.default.svc
     namespace: cnpg-system
@@ -24,12 +50,14 @@ kind: Application
 metadata:
   name: strimzi
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
     repoURL: https://strimzi.io/charts/
     chart: strimzi-kafka-operator
-    targetRevision: 0.45.0
+    targetRevision: 1.1.0
     helm:
       parameters:
         - name: watchAnyNamespace
@@ -43,57 +71,21 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: redis
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: registry-1.docker.io/bitnamicharts
-    chart: redis
-    targetRevision: 27.0.12
-    helm:
-      values: |
-        architecture: replication
-        auth:
-          enabled: true
-          existingSecret: redis-secret
-          secretPasswordKey: redis-password
-        sentinel:
-          enabled: true
-        master:
-          persistence:
-            size: 8Gi
-          resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits:   { cpu: 500m, memory: 256Mi }
-        commonConfiguration: |-
-          appendonly yes
-          save ""
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: rrq
-  syncPolicy:
-    automated:
-      prune: true
-    syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
+      - Replace=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: envoy-gateway
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
     repoURL: oci://registry-1.docker.io/envoyproxy/gateway-helm
     chart: gateway-helm
-    targetRevision: v1.2.0
+    targetRevision: v1.8.2
   destination:
     server: https://kubernetes.default.svc
     namespace: envoy-gateway-system
@@ -109,6 +101,8 @@ kind: Application
 metadata:
   name: keda
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
@@ -130,12 +124,14 @@ kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
     repoURL: https://charts.jetstack.io
     chart: cert-manager
-    targetRevision: v1.20.3
+    targetRevision: v1.21.0
     helm:
       parameters:
         - name: crds.enabled
@@ -155,18 +151,20 @@ kind: Application
 metadata:
   name: opentelemetry-operator
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
     repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
     chart: opentelemetry-operator
-    targetRevision: 0.117.0
+    targetRevision: 0.120.0
     helm:
       parameters:
         - name: admissionWebhooks.certManager.enabled
           value: "true"
         - name: manager.collectorImage.repository
-          value: "otel/opentelemetry-collector"
+          value: "otel/opentelemetry-collector-contrib"
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
@@ -181,20 +179,97 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  name: eck-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: eck-operator
+    targetRevision: 3.4.1
+    helm:
+      values: |
+        installCRDs: true
+        logLevel: info
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: elastic-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: redis
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: redis
+    targetRevision: 27.0.15
+    helm:
+      values: |
+        architecture: replication
+        auth:
+          enabled: true
+          existingSecret: redis-secret
+          existingSecretPasswordKey: redis-password
+        sentinel:
+          enabled: true
+        master:
+          persistence:
+            size: 8Gi
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: 500m, memory: 256Mi }
+        commonConfiguration: |-
+          appendonly yes
+          save ""
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: redis
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
   name: kube-prometheus-stack
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
     chart: kube-prometheus-stack
-    targetRevision: 87.3.0
+    targetRevision: 87.17.0
     helm:
       values: |
         grafana:
+          grafana.ini:
+            auth.anonymous:
+              enabled: true
+              org_role: Viewer
           env:
             JAEGER_AGENT_PORT: ""
         prometheusOperator:
+          tls:
+            enabled: false
           admissionWebhooks:
             enabled: false
         alertmanager:
@@ -218,44 +293,29 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
-      - Replace=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: jaeger
+  name: portainer
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
-    repoURL: https://jaegertracing.github.io/helm-charts
-    chart: jaeger
-    targetRevision: 3.3.1
+    repoURL: https://portainer.github.io/k8s/
+    chart: portainer
+    targetRevision: 1.0.57
+    helm:
+      values: |
+        service:
+          type: ClusterIP
+        ingress:
+          enabled: false
   destination:
     server: https://kubernetes.default.svc
-    namespace: observability
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: sealed-secrets
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://bitnami.github.io/sealed-secrets
-    chart: sealed-secrets
-    targetRevision: 2.19.1
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: portainer
   syncPolicy:
     automated:
       prune: true

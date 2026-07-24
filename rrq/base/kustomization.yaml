@@ -1,7 +1,6 @@
 # Shared base; overlays patch per-env. Stateful topology identical in both.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: rrq
 resources:
   - namespace.yaml
   - config/configmap.yaml
@@ -9,4 +8,3 @@ resources:
   - kafka
   - services
   - gateway # Envoy Gateway + Gateway API edge routing
-  - observability # Metrics and Tracing

@@ -2,15 +2,15 @@ apiVersion: opentelemetry.io/v1alpha1
 kind: Instrumentation
 metadata:
   name: platform-autoinstrumentation
-  namespace: rrq
+  namespace: observability
 spec:
   exporter:
     # Where the injected agent should send its collected traces and metrics
-    endpoint: http://platform-collector-collector.observability.svc.cluster.local:4317
+    endpoint: http://agent-collector.observability.svc.cluster.local:4317
   propagators:
     # How trace IDs are injected into HTTP headers to track requests across services
     - tracecontext
     - baggage
+  # The actual eBPF auto-instrumentation image that attaches to our Go binaries
   go:
-    # The actual eBPF auto-instrumentation image that attaches to our Go binaries
     image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:v0.24.0

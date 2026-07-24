@@ -33,10 +33,9 @@ spec:
     - name: slack-critical
       slackConfigs:
         - channel: "#alerts-critical"
-          # check secret
           apiURL:
             name: slack-webhook
-            key: url
+            key: url-critical
           title: "{{ .GroupLabels.alertname }}"
           text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
           color: "#FF0000"
@@ -45,7 +44,7 @@ spec:
         - channel: "#alerts-warning"
           apiURL:
             name: slack-webhook
-            key: url
+            key: url-warning
           title: "{{ .GroupLabels.alertname }}"
           text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
           color: "#FFA500"
