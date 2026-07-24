@@ -1,4 +1,4 @@
-# Unprotected edge route for authentication & JWKS public key discovery
+# Unprotected edge routes (no auth)
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -9,19 +9,28 @@ metadata:
 spec:
   parentRefs:
     - name: rrq-gateway
+  hostnames:
+    - "api.127.0.0.1.nip.io"
+    - "api.rrq.yotstack.tech"
   rules:
     - matches:
         - path:
             type: Exact
-            value: /v1/auth/token
+            value: /health
+        - path:
+            type: Exact
+            value: /ready
         - path:
             type: Exact
             value: /.well-known/jwks.json
+        - path:
+            type: Exact
+            value: /v1/auth/token
       backendRefs:
         - name: core-api
           port: 8080
 ---
-# Protected edge route for all core platform API resources (JWT-verified)
+# Protected edge route for all /v1/* resources (JWT-verified via SecurityPolicy)
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -32,6 +41,9 @@ metadata:
 spec:
   parentRefs:
     - name: rrq-gateway
+  hostnames:
+    - "api.127.0.0.1.nip.io"
+    - "api.rrq.yotstack.tech"
   rules:
     - matches:
         - path:

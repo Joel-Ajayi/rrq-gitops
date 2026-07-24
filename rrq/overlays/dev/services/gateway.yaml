@@ -1,0 +1,48 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rrq-gateway
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: kind-proxy-config
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+# Fixes Envoy NodePorts to Kind host mappings.
+# Without this the envoy service will pick random high ports.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: kind-proxy-config
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - name: http
+                  nodePort: 30080
+                  port: 80
+                - name: https
+                  nodePort: 30443
+                  port: 443

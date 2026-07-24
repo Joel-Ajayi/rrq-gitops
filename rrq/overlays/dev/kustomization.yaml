@@ -1,12 +1,10 @@
 # Dev overlay (kind). Reduces replicas and resources for local development.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: rrq
 resources:
   - ../../base
   - ../../base/migrations # Creates local databases on first boot
-  - services # network policies
-  - patches/secret.sealed.yaml
+  - services
 images:
   - name: rrq/core-api
     newName: rrq/core-api-go

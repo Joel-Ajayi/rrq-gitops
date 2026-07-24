@@ -17,41 +17,8 @@ spec:
         issuer: rrq-core-api
         remoteJWKS:
           uri: http://core-api.rrq.svc.cluster.local:8080/.well-known/jwks.json
-        claimsToHeaders:
+        claimToHeaders:
+          - claim: sub
+            header: X-Merchant-Id
           - claim: tier
             header: X-Merchant-Tier
----
-# Tier-Based Rate Limiting using ClientTrafficPolicy
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: ClientTrafficPolicy
-metadata:
-  name: rrq-client-policy
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  targetRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: rrq-gateway
-  rateLimit:
-    global:
-      rules:
-        # Premium Tier Merchants: 1,000 req/min
-        - clientSelectors:
-            - headers:
-                - type: Exact
-                  name: X-Merchant-Tier
-                  value: premium
-          limit:
-            requests: 1000
-            unit: Minute
-        # Standard Tier Merchants: 500 req/min
-        - clientSelectors:
-            - headers:
-                - type: Exact
-                  name: X-Merchant-Tier
-                  value: standard
-          limit:
-            requests: 500
-            unit: Minute

@@ -8,7 +8,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: yotstack@gmail.com
     privateKeySecretRef:
-      name: letsencrypt-prod-account # Stores your CA account credentials
+      name: letsencrypt-prod-account
     solvers:
       - http01:
           gatewayHTTPRoute:
@@ -19,19 +19,19 @@ spec:
 #  [1. ClusterIssuer]       ◄─────── Tells cert-manager where the ACME CA is
 #          │
 #          ▼
-#  [2. Certificate]          ◄─────── Solves ACME HTTP-01 challenge via gatewayHTTPRoute
+#  [2. Gateway]            ◄─────── Has cert-manager.io/cluster-issuer annotation + hostname
+#          │
+#          ▼ (Auto-creates via cert-manager gateway-shim)
+#  [3. Certificate]        ◄─────── Solves ACME HTTP-01 challenge via gatewayHTTPRoute
 #          │
 #          ▼ (Auto-creates)
-#  [3. Secret: rrq-edge-tls] ◄─────── Stores raw TLS certificate & private key
+#  [4. Secret: rrq-edge-tls] ◄─────── Stores TLS cert & key
 #          │
 #          ▼ (Referenced by TLS listener)
-#  [4. GatewayClass]         ◄─────── Managed by Envoy Gateway Controller (gateway.envoyproxy.io)
-#          │
-#          ▼ (Instantiates)
-#  [5. Gateway: rrq-gateway] ◄─────── Listens on 80/443 & attaches rrq-edge-tls Secret
+#  [5. Gateway Listener]   ◄─────── Listens on 443 & attaches rrq-edge-tls Secret
 #          │                           │
 #          ├───────────────────────────┴──────────────────────────┐
 #          ▼                                                      ▼
-#  [6. HTTPRoute: rrq-edge-route]                      [7. Envoy Gateway Policies]
+#  [6. HTTPRoute: rrq-public-route]                    [7. Envoy Gateway Policies]
 #     Routes /v1 -> core-api:8080                         - SecurityPolicy (JWT validation)
 #                                                         - ClientTrafficPolicy (Rate limits)

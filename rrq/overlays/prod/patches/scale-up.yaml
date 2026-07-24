@@ -28,7 +28,7 @@ metadata:
   name: merchants-db
   namespace: rrq
 spec:
-  instances: 2
+  instances: 3
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -36,7 +36,7 @@ metadata:
   name: shard-a
   namespace: rrq
 spec:
-  instances: 2
+  instances: 3
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -44,4 +44,4 @@ metadata:
   name: shard-b
   namespace: rrq
 spec:
-  instances: 2
+  instances: 3

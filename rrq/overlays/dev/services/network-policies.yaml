@@ -1,21 +1,20 @@
 # Dev-specific Network Policies
 # These supplement the base policies (in ../../../base/services/network-policies.yaml)
-# with development-specific allowances.
 
-# Dev: Allow local port-forward / localhost access for debugging
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-dev-local-access
+  name: allow-envoy-gateway-to-rrq
   namespace: rrq
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
+    - Ingress
   ingress:
-  - from:
-    - ipBlock:
-        cidr: 127.0.0.0/8
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: envoy-gateway-system
 
 ---
 # Dev: Allow Prometheus scraping from observability namespace
@@ -27,12 +26,12 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
+    - Ingress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: observability
-    ports:
-    - protocol: TCP
-      port: 9090
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090

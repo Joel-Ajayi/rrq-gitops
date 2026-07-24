@@ -1,0 +1,66 @@
+# Prod: Run DB migrations in Sync Wave 1
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-migrate
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+# Prod: Run performance seeder in Sync Wave 1
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-seed-performance
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+# Prod: Deploy microservices in Sync Wave 2 (after migrations are complete)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recon-worker
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"

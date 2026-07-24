@@ -2,14 +2,9 @@
 # this adds secrets, the cert-manager issuer, TLS, scale-up, and the migration hook.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: rrq
 resources:
   - ../../base
-  - ../../base/migrations # run as a PreSync hook (see patches/migrate-hook.yaml)
-  - services # prod-specific service overlays (network policies)
-  - issuer.yaml
-  # Generated via `make seal`
-  - patches/secret.sealed.yaml
+  - services # prod-specific service overlays (tls, gateways,network policies)
 images:
   - name: rrq/core-api
     newName: ghcr.io/Joel-Ajayi/core-api-go
@@ -31,7 +26,7 @@ images:
     newName: ghcr.io/Joel-Ajayi/webhook-echo-go
 patches:
   - path: patches/scale-up.yaml
-  - path: patches/presync.yaml
+  - path: patches/sync-waves.yaml
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
 
