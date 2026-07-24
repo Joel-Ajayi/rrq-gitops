@@ -33,7 +33,7 @@ graph TD
         Base["rrq/base/ <br> (Common Infrastructure)"]
         Dev["rrq/overlays/dev/ <br> (Dev Configurations)"]
         Prod["rrq/overlays/prod/ <br> (Prod Configurations)"]
-        
+
         Apps -->|Defines Environments| Dev
         Apps -->|Defines Environments| Prod
         Dev -.->|Inherits| Base
@@ -44,7 +44,7 @@ graph TD
         ArgoDev["Argo CD"]
         ArgoDev -->|Syncs| DevNS["rrq Namespace (Dev)"]
     end
-    
+
     subgraph "Prod Cluster"
         ArgoProd["Argo CD"]
         ArgoProd -->|Syncs| ProdNS["rrq Namespace (Prod)"]
@@ -72,7 +72,6 @@ The platform relies on the following Kubernetes operators, configured via public
 - **CloudNativePG**: Manages HA PostgreSQL clusters (`merchants-db`, `shard-a`, `shard-b`).
 - **Strimzi**: Manages Kafka brokers using modern KRaft mode.
 - **KEDA**: Event-driven autoscaling based on Kafka consumer lag.
-- **Kong**: Ingress Edge Router for path stripping and TLS termination.
 - **Bitnami Redis**: Ephemeral state for velocity checks.
 - **OpenTelemetry**: Auto-instrumentation and trace collection.
 

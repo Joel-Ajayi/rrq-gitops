@@ -23,41 +23,53 @@ cluster-down: ## Delete the kind cluster
 	-kind delete cluster --name $(CLUSTER)
 
 .PHONY: argocd
-argocd: ## Install Argo CD manually (the only non-GitOps operator)
+argocd: ## Install Argo CD manually
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo update
 	helm upgrade --install argocd argo/argo-cd \
-	  -n argocd --create-namespace --version $(ARGOCD_VERSION) --wait
+	  -n argocd --create-namespace --wait \
+	  --set configs.cm.timeout.reconciliation=600
 
-.PHONY: bootstrap-dev
-bootstrap-dev: cluster-up argocd ## Bootstrap the dev cluster and apply infrastructure
+
+# --- DEVELOPMENT ---
+.PHONY: dev
+dev: ## Bootstrap dev infrastructure operators & sealed-secrets
+	@echo "1/4 Provisioning dev sealed secrets..."
+	$(MAKE) seal-dev
+	@echo "2/4 Deploying infrastructure backends to Argo CD..."
 	kubectl apply -f apps/dev/infrastructure.yaml
-	@echo "Infrastructure bootstrap complete. Argo CD is syncing databases and operators."
-	@echo "Run 'make dev' in the river-rust-queue repository to deploy the application."
+	@echo "3/4 Waiting for sealed-secrets controller to be ready..."
+	-kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=120s
+	@echo "4/4 Waiting for infrastructure backends to be ready..."
+	-$(MAKE) wait-infra
+	@echo "Dev infrastructure ready! Skaffold will now deploy your application code."
 
-.PHONY: bootstrap-prod
-bootstrap-prod: argocd ## Bootstrap a production cluster
-	kubectl apply -f bootstrap/root-app-prod.yaml
-	@echo "Production bootstrap complete. Argo CD is syncing databases, operators, and the application."
+
+.PHONY: seal-dev
+seal-dev: ## Seal dev secrets (requires kubeseal installed)
+	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/secrets/dev/secret.plain.yaml > rrq/secrets/dev/secret.sealed.yaml
+	kubectl apply -k rrq/secrets/dev
+
+.PHONY: wait-infra
+wait-infra: ## Wait for Postgres CNPG clusters, Redis, and infrastructure readiness
+	@echo "Checking Postgres CNPG cluster health..."
+	-kubectl wait --for=jsonpath='{.status.phase}'=ClusterInHealthyState cluster/merchants-db -n rrq --timeout=5s 2>/dev/null || true
+	-kubectl wait --for=jsonpath='{.status.phase}'=ClusterInHealthyState cluster/shard-a -n rrq --timeout=5s 2>/dev/null || true
+	-kubectl wait --for=jsonpath='{.status.phase}'=ClusterInHealthyState cluster/shard-b -n rrq --timeout=5s 2>/dev/null || true
+	@echo "Checking Redis readiness..."
+	-kubectl rollout status statefulset/redis-node -n rrq --timeout=60s 2>/dev/null || true
 
 .PHONY: render-dev
 render-dev: ## Print fully-rendered dev manifests (no apply)
 	kubectl kustomize rrq/overlays/dev
 
-.PHONY: render-prod
-render-prod: ## Print fully-rendered prod manifests (no apply)
-	kubectl kustomize rrq/overlays/prod
-
-
+# --- PRODUCTION ---
+.PHONY: deploy
+deploy: seal ## Bootstrap production via root App-of-Apps
+	kubectl apply -f bootstrap/root-app-prod.yaml
+	@echo "Production bootstrap complete. Argo CD is syncing databases, operators, and the application."
 
 .PHONY: seal
 seal: ## Seal prod secrets (requires kubeseal installed)
-	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/overlays/prod/patches/secret.plain.yaml > rrq/overlays/prod/patches/secret.sealed.yaml
-
-.PHONY: seal-dev
-seal-dev: ## Seal dev secrets (requires kubeseal installed)
-	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/overlays/dev/patches/secret.plain.yaml > rrq/overlays/dev/patches/secret.sealed.yaml
-
-.PHONY: seal-observability
-seal-observability: ## Seal observability secrets (requires kubeseal installed)
-	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/base/observability/secret.plain.yaml > rrq/base/observability/secret.sealed.yaml
+	kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < rrq/secrets/prod/secret.plain.yaml > rrq/secrets/prod/secret.sealed.yaml
+	kubectl apply -k rrq/secrets/prod

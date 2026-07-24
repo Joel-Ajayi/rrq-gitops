@@ -1,6 +1,4 @@
-# Plaintext secrets — NEVER commit. Use `make seal` to produce the sealed version.
-secret.plain.yaml
 .env
 *.env
 secret.plain.yaml
-secret.yaml
+q_decisions

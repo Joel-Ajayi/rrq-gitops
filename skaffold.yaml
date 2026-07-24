@@ -1,0 +1,26 @@
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: rrq-gitops-infra
+manifests:
+  kustomize:
+    paths:
+      - rrq/overlays/dev
+deploy:
+  kubectl:
+    hooks:
+      before:
+        - host:
+            command: ["make", "dev"]
+        - host:
+            command:
+              [
+                "kubectl",
+                "delete",
+                "job",
+                "rrq-migrate",
+                "rrq-seed-performance",
+                "-n",
+                "rrq",
+                "--ignore-not-found=true",
+              ]
