@@ -74,24 +74,19 @@ spec:
           livenessProbe:
             exec:
               command:
-                - pgrep
-                - service
+                - /bin/sh
+                - -c
+                - kill -0 1
             initialDelaySeconds: 30
             periodSeconds: 30
-          readinessProbe:
-            exec:
-              command:
-                - pgrep
-                - service
-            initialDelaySeconds: 10
-            periodSeconds: 10
+
           resources:
             requests:
-              cpu: 50m
-              memory: 96Mi
+              cpu: 500m
+              memory: 256Mi
             limits:
-              cpu: 300m
-              memory: 192Mi
+              cpu: "1"
+              memory: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -124,7 +119,7 @@ spec:
   scaleTargetRef:
     name: webhook-worker
   minReplicaCount: 1
-  maxReplicaCount: 10
+  maxReplicaCount: 6
   triggers:
     - type: kafka
       metadata:
@@ -133,6 +128,16 @@ spec:
         topic: notify
         lagThreshold: "100"
         offsetResetPolicy: earliest
+    - type: postgresql
+      metadata:
+        connectionFromEnv: SHARD_A_URI
+        query: "SELECT COUNT(*) FROM webhook_deliveries WHERE status = 'pending' AND next_retry_at <= NOW()"
+        targetQueryValue: "100"
+    - type: postgresql
+      metadata:
+        connectionFromEnv: SHARD_B_URI
+        query: "SELECT COUNT(*) FROM webhook_deliveries WHERE status = 'pending' AND next_retry_at <= NOW()"
+        targetQueryValue: "100"
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
