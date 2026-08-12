@@ -101,11 +101,11 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 50m
-              memory: 96Mi
+              cpu: 60m
+              memory: 66Mi
             limits:
-              cpu: 300m
-              memory: 192Mi
+              cpu: 60m
+              memory: 66Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -138,14 +138,14 @@ spec:
   scaleTargetRef:
     name: fraud-worker
   minReplicaCount: 1
-  maxReplicaCount: 5
+  maxReplicaCount: 1
   triggers:
     - type: kafka
       metadata:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: fraud-worker
         topic: jobs
-        lagThreshold: "200"
+        lagThreshold: "10000"
         offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1

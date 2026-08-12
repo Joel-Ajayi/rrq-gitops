@@ -1,0 +1,146 @@
+{
+  "environment": "dev",
+  "baseUrl": "http://api.127.0.0.1.nip.io:8888",
+  "workloads": {
+    "smoke": {
+      "executor": "constant-arrival-rate",
+      "rate": 5,
+      "timeUnit": "1s",
+      "duration": "30s",
+      "preAllocatedVUs": 5,
+      "maxVUs": 10
+    },
+    "breakpoint": {
+      "executor": "ramping-arrival-rate",
+      "startRate": 50,
+      "timeUnit": "1s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 1000,
+      "stages": [
+        {
+          "target": 250,
+          "duration": "1m"
+        },
+        {
+          "target": 500,
+          "duration": "1m"
+        },
+        {
+          "target": 750,
+          "duration": "1m"
+        },
+        {
+          "target": 1000,
+          "duration": "1m"
+        },
+        {
+          "target": 1250,
+          "duration": "1m"
+        },
+        {
+          "target": 1500,
+          "duration": "1m"
+        },
+        {
+          "target": 0,
+          "duration": "30s"
+        }
+      ]
+    },
+    "load": {
+      "executor": "ramping-arrival-rate",
+      "startRate": 100,
+      "timeUnit": "1s",
+      "preAllocatedVUs": 100,
+      "maxVUs": 500,
+      "stages": [
+        {
+          "target": 500,
+          "duration": "1m"
+        },
+        {
+          "target": 1000,
+          "duration": "2m"
+        },
+        {
+          "target": 1000,
+          "duration": "2m"
+        },
+        {
+          "target": 0,
+          "duration": "30s"
+        }
+      ]
+    },
+    "stress": {
+      "executor": "ramping-arrival-rate",
+      "startRate": 300,
+      "timeUnit": "1s",
+      "preAllocatedVUs": 300,
+      "maxVUs": 1500,
+      "stages": [
+        {
+          "target": 900,
+          "duration": "1m"
+        },
+        {
+          "target": 1800,
+          "duration": "1m"
+        },
+        {
+          "target": 2700,
+          "duration": "1m"
+        },
+        {
+          "target": 3000,
+          "duration": "1m"
+        },
+        {
+          "target": 0,
+          "duration": "1m"
+        }
+      ]
+    },
+    "spike": {
+      "executor": "ramping-arrival-rate",
+      "startRate": 100,
+      "timeUnit": "1s",
+      "preAllocatedVUs": 200,
+      "maxVUs": 1000,
+      "stages": [
+        {
+          "target": 500,
+          "duration": "30s"
+        },
+        {
+          "target": 2500,
+          "duration": "30s"
+        },
+        {
+          "target": 500,
+          "duration": "1m"
+        },
+        {
+          "target": 0,
+          "duration": "10s"
+        }
+      ]
+    },
+    "soak": {
+      "executor": "constant-arrival-rate",
+      "rate": 500,
+      "timeUnit": "1s",
+      "duration": "1h",
+      "preAllocatedVUs": 100,
+      "maxVUs": 500
+    },
+    "chaos": {
+      "executor": "constant-arrival-rate",
+      "rate": 500,
+      "timeUnit": "1s",
+      "duration": "2m",
+      "preAllocatedVUs": 100,
+      "maxVUs": 500
+    }
+  }
+}

@@ -16,8 +16,6 @@ images:
     newName: rrq/webhook-worker-go
   - name: rrq/fraud-worker
     newName: rrq/fraud-worker-go
-  - name: rrq/recon-worker
-    newName: rrq/recon-worker-go
   - name: rrq/migrate
     newName: rrq/migrate
   - name: rrq/seed-performance
@@ -26,3 +24,4 @@ images:
     newName: rrq/webhook-echo-go
 patches:
   - path: patches/instrumentation.yaml
+  - path: patches/breakpoint-patch.yaml

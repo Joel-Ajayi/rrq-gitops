@@ -4,23 +4,10 @@ metadata:
   name: broker
   namespace: rrq
 spec:
-  replicas: 3
----
-apiVersion: kafka.strimzi.io/v1
-kind: KafkaTopic
-metadata:
-  name: jobs
-  namespace: rrq
-spec:
-  replicas: 3
----
-apiVersion: kafka.strimzi.io/v1
-kind: KafkaTopic
-metadata:
-  name: notify
-  namespace: rrq
-spec:
-  replicas: 3
+  replicas: 2
+  resources:
+    requests: { cpu: "2", memory: 4Gi }
+    limits: { cpu: "4", memory: 8Gi }
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -29,6 +16,13 @@ metadata:
   namespace: rrq
 spec:
   instances: 3
+  resources:
+    requests: { cpu: "4", memory: 8Gi }
+    limits: { cpu: "8", memory: 16Gi }
+  postgresql:
+    parameters:
+      max_connections: "1000"
+      shared_buffers: "4GB"
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -37,6 +31,13 @@ metadata:
   namespace: rrq
 spec:
   instances: 3
+  resources:
+    requests: { cpu: "4", memory: 8Gi }
+    limits: { cpu: "8", memory: 16Gi }
+  postgresql:
+    parameters:
+      max_connections: "1000"
+      shared_buffers: "4GB"
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -45,3 +46,10 @@ metadata:
   namespace: rrq
 spec:
   instances: 3
+  resources:
+    requests: { cpu: "4", memory: 8Gi }
+    limits: { cpu: "8", memory: 16Gi }
+  postgresql:
+    parameters:
+      max_connections: "1000"
+      shared_buffers: "4GB"

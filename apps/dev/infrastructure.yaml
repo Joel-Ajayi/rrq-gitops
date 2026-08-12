@@ -221,8 +221,13 @@ spec:
           persistence:
             size: 1Gi
           resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits:   { cpu: 500m, memory: 256Mi }
+            requests: { cpu: 500m, memory: 512Mi }
+            limits:   { cpu: "1", memory: 1Gi }
+        replica:
+          replicaCount: 2
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits:   { cpu: "1", memory: 1Gi }
         commonConfiguration: |-
           appendonly yes
           save ""

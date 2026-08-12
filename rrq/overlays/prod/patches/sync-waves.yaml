@@ -56,11 +56,3 @@ metadata:
   namespace: rrq
   annotations:
     argocd.argoproj.io/sync-wave: "2"
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: recon-worker
-  namespace: rrq
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"

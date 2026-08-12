@@ -82,11 +82,11 @@ spec:
 
           resources:
             requests:
-              cpu: 500m
-              memory: 256Mi
+              cpu: 150m
+              memory: 81Mi
             limits:
               cpu: "1"
-              memory: 512Mi
+              memory: 81Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -119,14 +119,14 @@ spec:
   scaleTargetRef:
     name: webhook-worker
   minReplicaCount: 1
-  maxReplicaCount: 6
+  maxReplicaCount: 1
   triggers:
     - type: kafka
       metadata:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: webhook-worker
         topic: notify
-        lagThreshold: "100"
+        lagThreshold: "8700"
         offsetResetPolicy: earliest
     - type: postgresql
       metadata:

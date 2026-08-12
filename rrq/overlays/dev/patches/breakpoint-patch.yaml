@@ -1,0 +1,96 @@
+# Breakpoint Testing Capacity Calibration Patch (Step 2 Sizing Gateway)
+# Purpose: Isolates core-api to a single 1.0 CPU pod (maxReplicas: 1) and scales
+# all background workers (ledger, fraud, webhook, outbox-relay) to 0.
+# This prevents HPA autoscale-out and background worker interference during k6
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: core-api
+          resources:
+            requests: { cpu: "1", memory: 128Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  minReplicas: 1
+  maxReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  replicas: 0
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  replicas: 0
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  replicas: 0
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  replicas: 0
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 0

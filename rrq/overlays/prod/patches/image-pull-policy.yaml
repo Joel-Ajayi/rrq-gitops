@@ -59,20 +59,6 @@ spec:
           imagePullPolicy: IfNotPresent
 ---
 apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: recon-worker
-  namespace: rrq
-spec:
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: recon-worker
-              imagePullPolicy: IfNotPresent
----
-apiVersion: batch/v1
 kind: Job
 metadata:
   name: rrq-migrate

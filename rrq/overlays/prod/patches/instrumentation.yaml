@@ -9,7 +9,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,7 +31,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -42,7 +42,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -53,20 +53,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: recon-worker
-  namespace: rrq
-spec:
-  jobTemplate:
-    spec:
-      template:
-        metadata:
-          annotations:
-            instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: batch/v1
 kind: Job
@@ -77,4 +64,4 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"

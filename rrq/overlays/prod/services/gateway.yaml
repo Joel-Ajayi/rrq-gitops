@@ -95,6 +95,19 @@ spec:
           - group: ""
             kind: Secret
             name: growth-tls
+    - name: prometheus-https
+      protocol: HTTPS
+      port: 443
+      hostname: "prometheus.rrq.yotstack.tech"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: prometheus-tls
 ---
 # HTTP to HTTPS 301 Permanent Redirect
 apiVersion: gateway.networking.k8s.io/v1

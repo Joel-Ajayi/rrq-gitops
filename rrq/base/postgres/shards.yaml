@@ -19,24 +19,13 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "250m", memory: 512Mi }
-    limits: { cpu: "1", memory: 1Gi }
+    requests: { cpu: "1", memory: 8Gi }
+    limits: { cpu: "2", memory: 8Gi }
   postgresql:
     parameters:
-      max_connections: "200"
-  backup:
-    barmanObjectStore:
-      destinationPath: "s3://rrq-backups/merchants-db"
-      s3Credentials:
-        accessKeyId:
-          name: backup-s3-creds
-          key: access-key-id
-        secretAccessKey:
-          name: backup-s3-creds
-          key: secret-access-key
-      wal:
-        compression: gzip
-    retentionPolicy: "30d"
+      max_connections: "955"
+      shared_buffers: "512MB" #Industry standard: 25% of your RAM
+      work_mem: "16Mi"
 
 ---
 # Ledger shard A: data for merchants with shard_id='shard-a'.
@@ -61,24 +50,13 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "250m", memory: 512Mi }
-    limits: { cpu: "1", memory: 1Gi }
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { cpu: "2", memory: 1.5Gi }
   postgresql:
     parameters:
-      max_connections: "200"
-  backup:
-    barmanObjectStore:
-      destinationPath: "s3://rrq-backups/shard-a"
-      s3Credentials:
-        accessKeyId:
-          name: backup-s3-creds
-          key: access-key-id
-        secretAccessKey:
-          name: backup-s3-creds
-          key: secret-access-key
-      wal:
-        compression: gzip
-    retentionPolicy: "30d"
+      max_connections: "955"
+      shared_buffers: "512MB" #Industry standard: 25% of your RAM
+      work_mem: "16Mi"
 
 ---
 # Ledger shard B: data for merchants with shard_id='shard-b'.
@@ -103,21 +81,10 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "250m", memory: 512Mi }
-    limits: { cpu: "1", memory: 1Gi }
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { cpu: "2", memory: 1.5Gi }
   postgresql:
     parameters:
-      max_connections: "200"
-  backup:
-    barmanObjectStore:
-      destinationPath: "s3://rrq-backups/shard-b"
-      s3Credentials:
-        accessKeyId:
-          name: backup-s3-creds
-          key: access-key-id
-        secretAccessKey:
-          name: backup-s3-creds
-          key: secret-access-key
-      wal:
-        compression: gzip
-    retentionPolicy: "30d"
+      max_connections: "955"
+      shared_buffers: "512MB" #Industry standard: 25% of your RAM
+      work_mem: "16Mi"

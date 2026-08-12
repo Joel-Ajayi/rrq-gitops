@@ -30,6 +30,10 @@ argocd: ## Install Argo CD manually
 	  -n argocd --create-namespace --wait \
 	  --set configs.cm.timeout.reconciliation=600
 
+.PHONY: capacity
+capacity: ## Regenerate GitOps manifests from capacity models
+	cd capacity && go run . -input slo-input.yaml -output capacity-output.yaml -render ..
+
 
 # --- DEVELOPMENT ---
 .PHONY: dev

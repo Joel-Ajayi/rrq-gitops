@@ -1,5 +1,4 @@
-# Local dev cluster. Mirrors production topology at laptop resource sizes.
-# Used by `make cluster-up` / `make dev`.
+# Local dev cluster.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: rrq

@@ -1,0 +1,20 @@
+{
+  "name": "rrq-k6-tests",
+  "version": "1.0.0",
+  "description": "Enterprise TypeScript k6 load and performance testing suite for RRQ",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "seed": "node seed-test-data.mjs",
+    "seed:balances": "node seed-test-data.mjs --fund",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/k6": "^0.54.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,86 @@
+# Breakpoint Testing Capacity Calibration Patch (Step 2 Sizing Gateway)
+# Purpose: Isolates core-api to a single 1.0 CPU pod (maxReplicas: 1) and scales
+# all background workers (ledger, fraud, webhook, outbox-relay) to 0.
+# This prevents HPA autoscale-out and background worker interference during k6
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: core-api
+          resources:
+            requests: { cpu: "1", memory: 128Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: core-api
+spec:
+  minReplicas: 1
+  maxReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+spec:
+  replicas: 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fraud-worker
+spec:
+  minReplicas: 0
+  maxReplicas: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+spec:
+  replicas: 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ledger-worker
+spec:
+  minReplicas: 0
+  maxReplicas: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+spec:
+  replicas: 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: outbox-relay
+spec:
+  minReplicas: 0
+  maxReplicas: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+spec:
+  replicas: 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: webhook-worker
+spec:
+  minReplicas: 0
+  maxReplicas: 0

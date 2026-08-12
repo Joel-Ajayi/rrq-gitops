@@ -7,11 +7,21 @@ on:
     branches: [ main ]
 
 jobs:
-  kustomize-build:
-    name: Validate Kustomize Overlays
+  capacity-and-kustomize:
+    name: Capacity Engine + Kustomize Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Run Capacity Engine
+        working-directory: capacity
+        run: |
+          go run . -input slo-input.yaml -output capacity-output.yaml -render ..
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2

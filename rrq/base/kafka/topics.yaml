@@ -8,10 +8,10 @@ metadata:
   labels:
     strimzi.io/cluster: rrq
 spec:
-  partitions: 16
-  replicas: 3
+  partitions: 3
+  replicas: 2
   config:
-    retention.ms: "604800000" # 7 days
+    retention.ms: "259200000" # 3 days
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -21,10 +21,10 @@ metadata:
   labels:
     strimzi.io/cluster: rrq
 spec:
-  partitions: 16
-  replicas: 3
+  partitions: 8
+  replicas: 2
   config:
-    retention.ms: "604800000" # 7 days
+    retention.ms: "259200000" # 3 days
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -34,10 +34,10 @@ metadata:
   labels:
     strimzi.io/cluster: rrq
 spec:
-  partitions: 16
-  replicas: 3
+  partitions: 5
+  replicas: 2
   config:
-    retention.ms: "604800000" # 7 days
+    retention.ms: "259200000" # 3 days
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -47,7 +47,7 @@ metadata:
   labels:
     strimzi.io/cluster: rrq
 spec:
-  partitions: 16
-  replicas: 3
+  partitions: 5
+  replicas: 2
   config:
-    retention.ms: "604800000" # 7 days
+    retention.ms: "259200000" # 3 days

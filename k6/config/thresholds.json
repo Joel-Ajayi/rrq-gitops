@@ -1,0 +1,24 @@
+{
+  "smoke": {
+    "http_req_failed": ["rate==0.00"],
+    "http_req_duration": ["p(99)<100"]
+  },
+  "breakpoint": {
+    "http_req_failed": ["rate<0.01"],
+    "http_req_duration": ["p(95)<500"]
+  },
+  "load": {
+    "http_req_failed": ["rate<0.0005"],
+    "http_req_duration": ["p(95)<100", "p(99)<200"]
+  },
+  "stress": {
+    "http_req_duration": ["p(99)<1000"]
+  },
+  "soak": {
+    "http_req_failed": ["rate<0.001"],
+    "http_req_duration": ["p(95)<150", "p(99)<300"]
+  },
+  "spike": {
+    "http_req_failed": ["rate<0.01"]
+  }
+}
