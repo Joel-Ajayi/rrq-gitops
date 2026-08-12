@@ -22,3 +22,25 @@ spec:
             header: X-Merchant-Id
           - claim: tier
             header: X-Merchant-Tier
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: rrq-merchant-rate-limit
+  namespace: rrq
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rrq-protected-route
+
+  rateLimit:
+    global:
+      rules:
+        - clientSelectors:
+            - headers:
+                - type: Distinct
+                  name: X-Merchant-Id
+          limit:
+            requests: 100
+            unit: Minute

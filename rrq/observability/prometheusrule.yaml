@@ -24,7 +24,7 @@ spec:
     - name: rrq.core.api
       rules:
         - alert: APIGatewayHTTP5xxRateHigh
-          expr: (sum(rate(rrq_http_server_request_count{http_status_code=~"5.."}[5m])) by (route) / sum(rate(rrq_http_server_request_count[5m])) by (route)) * 100 > 1
+          expr: (sum(rate(http_server_request_count{http_status_code=~"5..",service_name="core-api"}[5m])) by (http_route) / sum(rate(http_server_request_count{service_name="core-api"}[5m])) by (http_route)) * 100 > 1
           for: 2m
           labels:
             severity: critical
@@ -34,7 +34,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/global-sync-error-rate"
 
         - alert: APIGatewayProcessingLatencyHigh
-          expr: histogram_quantile(0.99, sum(rate(rrq_http_server_duration_seconds_bucket[5m])) by (route, le)) > 2
+          expr: histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name="core-api"}[5m])) by (http_route, le)) > 2
           for: 5m
           labels:
             severity: warning
@@ -52,6 +52,17 @@ spec:
             summary: "API Gateway high idempotency conflicts spike > 10/5m"
             description: "A spike in idempotency conflicts indicates client retry loops or possible duplicate submissions."
             runbook_url: "https://wiki.rrq.local/runbooks/idempotency-spikes"
+
+        - alert: CoreAPIBulkheadOverload
+          expr: rate(rrq_bulkhead_rejections_total{service_name="core-api"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Core-API bulkhead rejecting requests"
+            description: "Core-API bulkhead semaphore exhausted. Scale-up or investigate slow DB queries."
+            runbook_url: "https://wiki.rrq.local/runbooks/api-bulkhead-overload"
+
 
     - name: rrq.ledger.worker
       rules:
@@ -164,15 +175,55 @@ spec:
 
     - name: rrq.outbox.relay
       rules:
-        - alert: OutboxRelayStuck
-          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 60
+        - alert: OutboxLagCritical
+          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 10
           for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay Lag Critical > 10s"
+            description: "Outbox relay oldest unpublished event age exceeds 10s for 2 consecutive poll cycles. Kafka egress or DB pool likely unhealthy."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-lag-critical"
+
+        - alert: OutboxLagWarning
+          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 5
+          for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "Outbox Relay Stuck"
-            description: "Outbox relay lag is greater than 30 seconds for more than 2 minutes."
-            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stuck"
+            summary: "Outbox Relay Lag Warning > 5s"
+            description: "Outbox relay oldest unpublished event age exceeds 5s for 5 consecutive poll cycles. May need scale-up."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-lag-warning"
+
+        - alert: OutboxDLQIngestion
+          expr: rate(rrq_dlq_ingestion_rate{service_name="outbox-relay"}[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay DLQ Ingestion > 0.1/min"
+            description: "Outbox events are being routed to DLQ. Investigate corrupted payloads or schema violations in outbox_events."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-dlq-spike"
+
+        - alert: OutboxKafkaBufferFull
+          expr: rrq_kafka_producer_buffer_fill_ratio{service_name="outbox-relay"} > 0.99
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay Kafka Producer Buffer Full"
+            description: "Kafka producer buffer fill ratio > 99% for 30s. Kafka broker unreachable or network partitioned."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-kafka-buffer-full"
+
+        - alert: OutboxRelayShardCBOpen
+          expr: rrq_circuit_breaker_state{service_name="outbox-relay",circuit_breaker=~"shard-rw-.*|shard-ro-.*"} == 2
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Outbox Relay Shard DB Circuit Breaker Open"
+            description: "Per-shard DB circuit breaker {{ $labels.circuit_breaker }} is Open. Database pool for shard likely unhealthy. Check Postgres connectivity."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-cb-open"
 
         - alert: OutboxRelayPanicRate
           expr: rate(rrq_outbox_panics_total{service_name="outbox-relay"}[5m]) > 0
@@ -183,6 +234,16 @@ spec:
             summary: "Outbox Relay Panic Rate > 0"
             description: "Panic recovered in outbox-relay batch loop."
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-panic"
+
+        - alert: OutboxRelayNoPublish
+          expr: rate(rrq_outbox_events_published_total{service_name="outbox-relay"}[5m]) == 0 and rrq_outbox_lag_seconds{service_name="outbox-relay"} > 30
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Outbox relay not publishing despite backlog"
+            description: "Outbox relay has a backlog > 30s but no events are being published. Stuck relay loop."
+            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stuck"
 
     - name: rrq.infrastructure
       rules:

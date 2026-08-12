@@ -64,7 +64,7 @@ spec:
             default: "unknown"
           - name: messaging.system
             default: "unknown"
-          - name: db.system
+          - name: db.system.name
             default: "unknown"
     exporters:
       otlp/jaeger:
@@ -72,7 +72,8 @@ spec:
         tls:
           insecure: true
       elasticsearch:
-        endpoints: ["http://elasticsearch-es-http.observability.svc.cluster.local:9200"]
+        endpoints:
+          ["http://elasticsearch-es-http.observability.svc.cluster.local:9200"]
         logs_index: "rrq-logs-%{+yyyy.MM.dd}"
       prometheus:
         endpoint: 0.0.0.0:8889
