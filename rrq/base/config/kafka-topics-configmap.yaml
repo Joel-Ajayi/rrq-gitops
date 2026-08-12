@@ -1,0 +1,14 @@
+apiVersion: v1
+data:
+    topic.jobs.partitions: "3"
+    topic.jobs.replicas: "2"
+    topic.notify.partitions: "8"
+    topic.notify.replicas: "2"
+    topic.xshard.shard-a.partitions: "5"
+    topic.xshard.shard-a.replicas: "2"
+    topic.xshard.shard-b.partitions: "5"
+    topic.xshard.shard-b.replicas: "2"
+kind: ConfigMap
+metadata:
+    name: rrq-kafka-topics
+    namespace: rrq
