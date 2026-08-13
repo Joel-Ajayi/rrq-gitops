@@ -193,11 +193,6 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		if d.LagThreshold > 0 {
 			m["KEDA_LAG_THRESHOLD"] = fmt.Sprintf("%d", d.LagThreshold)
 		}
-		pollTimeout := svc.ConsumerPollTimeoutMS
-		if pollTimeout == 0 {
-			pollTimeout = consumerPollTimeout(d.SessionMs)
-		}
-		m["CONSUMER_POLL_TIMEOUT_MS"] = fmt.Sprintf("%d", pollTimeout)
 	}
 
 	// API-specific config
@@ -385,11 +380,6 @@ func serviceValues(name string, d Derived, svc *Service, input *SLOInput) map[st
 	if d.LagThreshold > 0 {
 		m["KEDA_LAG_THRESHOLD"] = fmt.Sprintf("%d", d.LagThreshold)
 	}
-	pollTimeout := svc.ConsumerPollTimeoutMS
-	if pollTimeout == 0 {
-		pollTimeout = consumerPollTimeout(d.SessionMs)
-	}
-	m["CONSUMER_POLL_TIMEOUT_MS"] = fmt.Sprintf("%d", pollTimeout)
 
 	if svc.JWTAccessHrs > 0 {
 		m["JWT_ACCESS_HRS"] = fmt.Sprintf("%d", svc.JWTAccessHrs)

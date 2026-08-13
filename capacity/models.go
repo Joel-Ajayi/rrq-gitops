@@ -93,7 +93,7 @@ func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas int) int {
 		maxReplicas = 1
 	}
 	// Fair share of the DB ceiling divided by maximum peak replicas
-	safeCap := ceiling / numServicesOnShard / maxReplicas
+	safeCap := int(math.Ceil(float64(ceiling) / float64(numServicesOnShard) / float64(maxReplicas)))
 
 	// Clamp the demanded poolSize to the mathematically safe cap
 	if poolSize > safeCap {
@@ -356,12 +356,6 @@ func kafkaClusterCap(brokers, perBrokerCap int) int {
 // [SOURCED] maxmem = ram_bytes × (1 − fork_headroom) / fragmentation
 func redisMaxMem(ramBytes int64, forkHeadroom, fragmentation float64) int64 {
 	return int64(math.Floor(float64(ramBytes) * (1 - forkHeadroom) / fragmentation))
-}
-
-// CONSUMER POLL TIMEOUT — Kafka liveness (B9)
-// [DERIVED] poll_ms = SessionMs × 2  (> session to survive rebalance)
-func consumerPollTimeout(sessionMs int) int {
-	return sessionMs * 2
 }
 
 // SERVER IDLE TIMEOUT — Go HTTP server

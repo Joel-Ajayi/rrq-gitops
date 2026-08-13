@@ -111,7 +111,6 @@ type Service struct {
 	MaxRequestBytes       int            `yaml:"max_request_bytes"`
 	VelocityThreshold     float64        `yaml:"velocity_threshold"`
 	VelocityWindowMS      int            `yaml:"velocity_window_ms"`
-	ConsumerPollTimeoutMS int            `yaml:"consumer_poll_timeout_ms"`
 	Webhook               *WebhookConfig `yaml:"webhook"`
 	CoresPerPod           int            `yaml:"cores_per_pod"`
 	HPATargetCPU          float64        `yaml:"hpa_target_cpu"`
