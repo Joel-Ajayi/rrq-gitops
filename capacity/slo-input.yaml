@@ -104,27 +104,27 @@ services:
       - name: create-transfer
         nominal_qps: 3000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
         peak_qps: 5000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
-        avg_query_time_ms: 3 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 3 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean² (Highly variable)
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 1 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
+        writes_per_message: 1 # trace analysis - DB write span count per request (`db_system_name="postgresql"`)
       - name: get-balance
         nominal_qps: 500 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
         peak_qps: 1000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
-        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean² (Highly variable)
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 0 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
+        writes_per_message: 0 # trace analysis - DB write span count per request (`db_system_name="postgresql"`)
       - name: merchant-lookup
         nominal_qps: 3500 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
         peak_qps: 6000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
-        avg_query_time_ms: 2 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 2 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: merchants # Architecture definition - Target DB cluster
-        writes_per_message: 0 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
+        writes_per_message: 0 # trace analysis - DB write span count per request (`db_system_name="postgresql"`)
     circuit_breaker:
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
       min_requests: 90 # k6 chaos test - statistical significance threshold
@@ -149,7 +149,7 @@ services:
       - name: poll-shard-a
         nominal_qps: 200 # postgres-exporter `pg_stat_statements` outbox read RPS p50 (requires pg_exporter scrape)
         peak_qps: 400 # postgres-exporter `pg_stat_statements` outbox read RPS p99 (requires pg_exporter scrape)
-        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.3 # Batched arrival distribution (highly uniform)
         db_instance: shard-a # Architecture definition - Target DB cluster
@@ -157,7 +157,7 @@ services:
       - name: poll-shard-b
         nominal_qps: 200 # postgres-exporter `pg_stat_statements` outbox read RPS p50 (requires pg_exporter scrape)
         peak_qps: 400 # postgres-exporter `pg_stat_statements` outbox read RPS p99 (requires pg_exporter scrape)
-        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.3 # Batched arrival distribution (highly uniform)
         db_instance: shard-b # Architecture definition - Target DB cluster
@@ -199,7 +199,7 @@ services:
       - name: process-transfer-shard-a
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
@@ -207,7 +207,7 @@ services:
       - name: process-transfer-shard-b
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
@@ -239,7 +239,7 @@ services:
       - name: delivery-tracking-shard-a
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
@@ -247,7 +247,7 @@ services:
       - name: delivery-tracking-shard-b
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="postgresql"}` mean over DB spans (manual pgx tracer)
         c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
@@ -297,7 +297,7 @@ services:
       - name: velocity-check-shard-a
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds` mean over Redis/DB spans
+        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="redis"}` mean over Redis spans (redisotel hook)
         c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
@@ -305,7 +305,7 @@ services:
       - name: velocity-check-shard-b
         nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
         peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
-        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds` mean over Redis/DB spans
+        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds{db_system_name="redis"}` mean over Redis spans (redisotel hook)
         c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
