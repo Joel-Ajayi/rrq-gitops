@@ -101,7 +101,17 @@ data:
             "legendFormat": "{{group}} - {{topic}}"
           }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Outbound HTTP Latency (P50/P99)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            { "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{span_kind=\"SPAN_KIND_CLIENT\"}[5m])) by (le, service_name))", "legendFormat": "{{service_name}} - P50" },
+            { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{span_kind=\"SPAN_KIND_CLIENT\"}[5m])) by (le, service_name))", "legendFormat": "{{service_name}} - P99" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
         }
       ]
     }

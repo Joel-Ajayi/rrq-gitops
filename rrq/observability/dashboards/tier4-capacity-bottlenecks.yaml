@@ -95,7 +95,28 @@ data:
             "expr": "pg_settings_max_parallel_workers_per_gather",
             "legendFormat": "{{server}}"
           }],
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Query Latency (Mean)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [{
+            "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[5m])) by (service_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"postgresql\"}[5m])) by (service_name)",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Query Latency (Mean & P99)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [
+            { "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"redis\"}[5m])) by (service_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"redis\"}[5m])) by (service_name)", "legendFormat": "{{service_name}} - Mean" },
+            { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"redis\"}[5m])) by (le, service_name))", "legendFormat": "{{service_name}} - P99" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
         }
       ]
     }
