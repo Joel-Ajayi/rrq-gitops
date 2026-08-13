@@ -24,8 +24,8 @@ infrastructure:
         parallel_io_limit: 0 # pg_settings max_worker_processes limit
         work_mem_mb: 16 # DBA tuning - per-query sort memory allocation
     workload:
-      session_busy_ratio: 0.3 # Prometheus 'pg_stat_activity' active vs idle ratio
-      avg_parallelism: 1 # Prometheus 'max_parallel_workers_per_gather' usage
+      session_busy_ratio: 0.3 # postgres-exporter `pg_stat_activity` active vs idle ratio (requires pg_exporter scrape)
+      avg_parallelism: 1 # postgres-exporter pg_settings max_parallel_workers_per_gather usage (requires pg_exporter)
     tuning:
       shared_buffers_pct: 0.25 # Postgres Tuning Guide - 25% RAM allocated to shared_buffers
       os_buffer_pct: 0.25 # OS tuning - memory left for page cache
@@ -56,7 +56,7 @@ infrastructure:
     nodes: 1 # Terraform aws_elasticache_cluster node count
     ram_bytes_per_node: 8589934592 # Terraform instance type RAM (8 GiB)
     fork_headroom: 0.30 # Redis docs - 30% safety margin for BGSAVE memory spikes
-    fragmentation_factor: 1.25 # Prometheus 'mem_fragmentation_ratio' historical average target
+    fragmentation_factor: 1.25 # redis-exporter `redis_memory_fragmentation_ratio` historical average target (requires redis-exporter scrape)
     per_key_bytes: 160 # Redis 'MEMORY USAGE' command sampling
     ketama_vnodes: 160 # Client consistent hashing virtual nodes standard
 
@@ -102,29 +102,29 @@ services:
     max_request_bytes: 524288 # Security Team - WAF payload size limit (512KB)
     endpoints:
       - name: create-transfer
-        nominal_qps: 3000 # Prometheus 'http_requests_total' p50 over 7 days
-        peak_qps: 5000 # Prometheus 'http_requests_total' p99 over 7 days
-        avg_query_time_ms: 3 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2 (Highly variable)
+        nominal_qps: 3000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
+        peak_qps: 5000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
+        avg_query_time_ms: 3 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean² (Highly variable)
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 1 # APM trace - number of INSERT/UPDATEs per request
+        writes_per_message: 1 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
       - name: get-balance
-        nominal_qps: 500 # Prometheus 'http_requests_total' p50 over 7 days
-        peak_qps: 1000 # Prometheus 'http_requests_total' p99 over 7 days
-        avg_query_time_ms: 5 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2 (Highly variable)
+        nominal_qps: 500 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
+        peak_qps: 1000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean² (Highly variable)
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 0 # APM trace - number of INSERT/UPDATEs per request
+        writes_per_message: 0 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
       - name: merchant-lookup
-        nominal_qps: 3500 # Prometheus 'http_requests_total' p50 over 7 days
-        peak_qps: 6000 # Prometheus 'http_requests_total' p99 over 7 days
-        avg_query_time_ms: 2 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.0 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 3500 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p50 over 7 days
+        peak_qps: 6000 # span_metrics calls `traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}` p99 over 7 days
+        avg_query_time_ms: 2 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 1.0 # Assuming pure Poisson arrival distribution
         db_instance: merchants # Architecture definition - Target DB cluster
-        writes_per_message: 0 # APM trace - number of INSERT/UPDATEs per request
+        writes_per_message: 0 # trace analysis - DB write span count per request (requires pgx DB span instrumentation)
     circuit_breaker:
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
       min_requests: 90 # k6 chaos test - statistical significance threshold
@@ -147,21 +147,21 @@ services:
     producer_throughput_rps: 4000 # k6 stress test - max Kafka produce RPS before OS socket exhaustion
     endpoints:
       - name: poll-shard-a
-        nominal_qps: 200 # Prometheus 'pg_stat_statements' p50 outbox reads
-        peak_qps: 400 # Prometheus 'pg_stat_statements' p99 outbox reads
-        avg_query_time_ms: 5 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 200 # postgres-exporter `pg_stat_statements` outbox read RPS p50 (requires pg_exporter scrape)
+        peak_qps: 400 # postgres-exporter `pg_stat_statements` outbox read RPS p99 (requires pg_exporter scrape)
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.3 # Batched arrival distribution (highly uniform)
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 2 # APM trace - number of outbox marker updates
+        writes_per_message: 2 # trace analysis - outbox marker update count per relay poll
       - name: poll-shard-b
-        nominal_qps: 200 # Prometheus 'pg_stat_statements' p50 outbox reads
-        peak_qps: 400 # Prometheus 'pg_stat_statements' p99 outbox reads
-        avg_query_time_ms: 5 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 200 # postgres-exporter `pg_stat_statements` outbox read RPS p50 (requires pg_exporter scrape)
+        peak_qps: 400 # postgres-exporter `pg_stat_statements` outbox read RPS p99 (requires pg_exporter scrape)
+        avg_query_time_ms: 5 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.3 # Batched arrival distribution (highly uniform)
         db_instance: shard-b # Architecture definition - Target DB cluster
-        writes_per_message: 2 # APM trace - number of outbox marker updates
+        writes_per_message: 2 # trace analysis - outbox marker update count per relay poll
     topics:
       - jobs # Architecture definition - Producer topic routing
       - notify # Architecture definition - Producer topic routing
@@ -174,7 +174,7 @@ services:
       min_requests: 90 # k6 chaos test - statistical significance threshold
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
     relay:
-      staging_kb: 50 # APM trace - average outbox payload size
+      staging_kb: 50 # trace/OTel - average outbox payload size
       max_payload_kb: 64 # Kafka producer 'max.request.size' configuration limit
       buffer_sample_interval_ms: 100 # Capacity Team - AIMD buffer sample frequency
       buffer_max_throttle_level: 3 # k6 backpressure test - AIMD max backoff depth
@@ -197,21 +197,21 @@ services:
     mem_limit_bytes: 268435456 # k8s pod Memory limit
     endpoints:
       - name: process-transfer-shard-a
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 20 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 11 # APM trace - heavy saga transaction INSERT/UPDATE count
+        writes_per_message: 11 # trace analysis - saga transaction DB write count
       - name: process-transfer-shard-b
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 20 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 20 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
-        writes_per_message: 11 # APM trace - heavy saga transaction INSERT/UPDATE count
+        writes_per_message: 11 # trace analysis - saga transaction DB write count
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
       - xshard.shard-a # Architecture definition - Consumer topic subscriptions
@@ -237,26 +237,26 @@ services:
     mem_limit_bytes: 268435456 # k8s pod Memory limit
     endpoints:
       - name: delivery-tracking-shard-a
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 45 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 3 # APM trace - state updates per webhook execution
+        writes_per_message: 3 # trace analysis - DB state update count per webhook execution
       - name: delivery-tracking-shard-b
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 45 # APM DB trace 'query_duration_ms' mean
-        c_s_squared: 1.5 # APM DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 45 # span_metrics `traces_span_metrics_duration_seconds` mean over DB spans (requires pgx DB span instrumentation)
+        c_s_squared: 1.5 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
-        writes_per_message: 3 # APM trace - state updates per webhook execution
+        writes_per_message: 3 # trace analysis - DB state update count per webhook execution
     topics:
       - notify # Architecture definition - Consumer topic subscriptions
     http_outbound:
       peak_qps_per_pod: 100 # k6 stress test - max outgoing HTTP connections per pod before port exhaustion
-      avg_latency_s: 1.0 # Prometheus downstream merchant response time p50
+      avg_latency_s: 1.0 # span_metrics `traces_span_metrics_duration_seconds{span_kind="SPAN_KIND_CLIENT",service_name="webhook-worker"}` outbound p50
       host_count: 3 # Capacity Team - Estimated concurrent distinct merchant domains
       per_host_headroom: 16 # Go net/http DefaultMaxIdleConnsPerHost baseline + safety
       idle_conn_timeout_ms: 90000 # Go net/http DefaultIdleConnTimeout (90s)
@@ -295,21 +295,21 @@ services:
     velocity_window_ms: 60000 # Risk/Trust Team - Transfer velocity window (1 minute)
     endpoints:
       - name: velocity-check-shard-a
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 0.5 # APM Redis/DB trace 'query_duration_ms' mean
-        c_s_squared: 1.0 # APM Redis/DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds` mean over Redis/DB spans
+        c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-a # Architecture definition - Target DB cluster
-        writes_per_message: 2 # APM trace - state updates per message
+        writes_per_message: 2 # trace analysis - DB state update count per message
       - name: velocity-check-shard-b
-        nominal_qps: 60 # Prometheus 'kafka_consumer_records' p50 over 7 days
-        peak_qps: 100 # Prometheus 'kafka_consumer_records' p99 over 7 days
-        avg_query_time_ms: 0.5 # APM Redis/DB trace 'query_duration_ms' mean
-        c_s_squared: 1.0 # APM Redis/DB trace duration Variance / Mean^2
+        nominal_qps: 60 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p50 over 7 days
+        peak_qps: 100 # kafka_metrics consume RPS from `kafka_consumer_offset` deltas p99 over 7 days
+        avg_query_time_ms: 0.5 # span_metrics `traces_span_metrics_duration_seconds` mean over Redis/DB spans
+        c_s_squared: 1.0 # span_metrics duration variance/mean²
         c_a_squared: 0.5 # Partition batched arrival distribution
         db_instance: shard-b # Architecture definition - Target DB cluster
-        writes_per_message: 2 # APM trace - state updates per message
+        writes_per_message: 2 # trace analysis - DB state update count per message
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:

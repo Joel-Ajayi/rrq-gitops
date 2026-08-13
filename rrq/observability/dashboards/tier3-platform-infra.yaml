@@ -85,7 +85,7 @@ data:
           "title": "Consumer Group Lag (Top 10)",
           "gridPos": { "h": 8, "w": 3, "x": 6, "y": 8 },
           "targets": [{
-            "expr": "topk(10, kafka_consumer_group_lag)",
+            "expr": "topk(10, kafka_consumer_lag)",
             "legendFormat": "{{group}}"
           }],
           "datasource": { "type": "prometheus", "uid": "prometheus" }

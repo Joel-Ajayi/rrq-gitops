@@ -21,9 +21,9 @@ data:
           "title": "Latency P50/P95/P99",
           "gridPos": { "h": 8, "w": 3, "x": 0, "y": 0 },
           "targets": [
-            { "expr": "histogram_quantile(0.50, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P50" },
-            { "expr": "histogram_quantile(0.95, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P95" },
-            { "expr": "histogram_quantile(0.99, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P99" }
+            { "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"fraud-worker\"}[5m])) by (le))", "legendFormat": "P99" }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "fieldConfig": { "defaults": { "unit": "s" } }

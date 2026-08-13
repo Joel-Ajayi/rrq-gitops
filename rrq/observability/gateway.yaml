@@ -8,6 +8,11 @@ spec:
   mode: deployment
   serviceAccount: gateway
   replicas: 1
+  args:
+    # Force the span_metrics connector to record durations in seconds (OTel
+    # semantic convention) so Prometheus deterministically exposes
+    # traces_span_metrics_duration_seconds_* (not ..._milliseconds_*).
+    - --feature-gates=connector.spanmetrics.useSecondAsDefaultMetricsUnit
   resources:
     limits:
       cpu: 500m
@@ -21,10 +26,14 @@ spec:
         protocols:
           grpc:
             endpoint: 0.0.0.0:4317
-      kafkametrics:
+      kafka_metrics:
         brokers: "rrq-kafka-bootstrap.rrq.svc.cluster.local:9092"
         protocol_version: 2.0.0
         collection_interval: 10s
+        scrapers:
+          - topics
+          - consumers
+          - brokers
     processors:
       memory_limiter:
         check_interval: 1s
@@ -50,7 +59,7 @@ spec:
         send_batch_size: 1024
         timeout: 1s
     connectors:
-      spanmetrics:
+      span_metrics:
         dimensions:
           - name: http.method
             default: "GET"
@@ -83,9 +92,9 @@ spec:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, k8sattributes, batch]
-          exporters: [otlp/jaeger, spanmetrics]
+          exporters: [otlp/jaeger, span_metrics]
         metrics:
-          receivers: [otlp, kafkametrics, spanmetrics]
+          receivers: [otlp, kafka_metrics, span_metrics]
           processors: [memory_limiter, k8sattributes, batch]
           exporters: [prometheus]
         logs:

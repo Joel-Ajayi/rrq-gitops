@@ -21,9 +21,9 @@ data:
           "title": "Latency P50/P95/P99",
           "gridPos": { "h": 8, "w": 3, "x": 0, "y": 0 },
           "targets": [
-            { "expr": "histogram_quantile(0.50, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P50" },
-            { "expr": "histogram_quantile(0.95, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P95" },
-            { "expr": "histogram_quantile(0.99, sum(rate(rrq_consumer_message_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P99" }
+            { "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"ledger-worker\"}[5m])) by (le))", "legendFormat": "P99" }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "fieldConfig": { "defaults": { "unit": "s" } }
@@ -55,7 +55,7 @@ data:
           "gridPos": { "h": 8, "w": 3, "x": 9, "y": 0 },
           "targets": [
             { "expr": "rrq_circuit_breaker_state{service_name=\"ledger-worker\",circuit_breaker=~\"shard-.*\"}", "legendFormat": "{{circuit_breaker}}" },
-            { "expr": "rrq_consumer_lag{service_name=\"ledger-worker\"}", "legendFormat": "Kafka lag" },
+            { "expr": "rrq_consumer_lag_messages{service_name=\"ledger-worker\"}", "legendFormat": "Kafka lag" },
             { "expr": "rrq_saga_unresolved_count", "legendFormat": "Saga unresolved" },
             { "expr": "sum(rate(rrq_consumer_backoff_duration_seconds_sum{service_name=\"ledger-worker\"}[5m]))", "legendFormat": "Backoff" }
           ],

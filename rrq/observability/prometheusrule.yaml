@@ -24,7 +24,7 @@ spec:
     - name: rrq.core.api
       rules:
         - alert: APIGatewayHTTP5xxRateHigh
-          expr: (sum(rate(http_server_request_count{http_status_code=~"5..",service_name="core-api"}[5m])) by (http_route) / sum(rate(http_server_request_count{service_name="core-api"}[5m])) by (http_route)) * 100 > 1
+          expr: (sum(rate(traces_span_metrics_calls_total{http_status_code=~"5..",service_name="core-api"}[5m])) by (http_route) / sum(rate(traces_span_metrics_calls_total{service_name="core-api"}[5m])) by (http_route)) * 100 > 1
           for: 2m
           labels:
             severity: critical
@@ -34,7 +34,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/global-sync-error-rate"
 
         - alert: APIGatewayProcessingLatencyHigh
-          expr: histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name="core-api"}[5m])) by (http_route, le)) > 2
+          expr: histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name="core-api",span_kind="SPAN_KIND_SERVER"}[5m])) by (http_route, le)) > 2
           for: 5m
           labels:
             severity: warning
@@ -111,7 +111,7 @@ spec:
 
         - alert: LedgerWorkerProcessingLatencyHigh
           # p99 processing > 10s — slow queries or lock contention
-          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service_name="ledger-worker"}[5m])) > 10
+          expr: histogram_quantile(0.99, rate(traces_span_metrics_duration_seconds_bucket{service_name="ledger-worker"}[5m])) > 10
           for: 5m
           labels:
             severity: warning
@@ -164,7 +164,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/webhook-cb-open"
 
         - alert: WebhookWorkerProcessingLatencyHigh
-          expr: histogram_quantile(0.99, rate(rrq_consumer_message_duration_seconds_bucket{service_name="webhook-worker"}[5m])) > 10
+          expr: histogram_quantile(0.99, rate(traces_span_metrics_duration_seconds_bucket{service_name="webhook-worker"}[5m])) > 10
           for: 5m
           labels:
             severity: warning
@@ -248,7 +248,7 @@ spec:
     - name: rrq.infrastructure
       rules:
         - alert: KafkaConsumerGroupLagHigh
-          expr: kafka_consumergroup_lag{topic=~"jobs|notify"} > 1000
+          expr: kafka_consumer_lag{topic=~"jobs|notify"} > 1000
           for: 3m
           labels:
             severity: critical
