@@ -111,7 +111,28 @@ data:
             { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{span_kind=\"SPAN_KIND_CLIENT\"}[5m])) by (le, service_name))", "legendFormat": "{{service_name}} - P99" }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Peak Partition Consume RPS Per Pod (partition_consume_rps validation)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [{
+            "expr": "max(rate(kafka_consumer_offset{topic=~\"$topic\", group=~\"$consumer_group\"}[1m])) by (pod)",
+            "legendFormat": "{{pod}} - Peak RPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Peak Produce RPS Per Pod (producer_throughput_rps validation)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [{
+            "expr": "max(rate(kafka_producer_record_send_total[1m])) by (pod)",
+            "legendFormat": "{{pod}} - Peak RPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
         }
       ]
     }

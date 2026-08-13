@@ -92,6 +92,25 @@ data:
             "expr": "rrq_circuit_breaker_state{service_name=\"$service_name\"} == 2",
             "legendFormat": "{{circuit_breaker}}"
           }],
+        },
+        {
+          "type": "timeseries",
+          "title": "DB Queries per Request (writes_per_message validation)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", db_system_name=\"postgresql\"}[1m])) by (service_name) / sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (service_name)",
+            "legendFormat": "{{service_name}} - Queries/Req"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Throughput Efficiency (rps_per_core validation)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (service_name) / sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m]))",
+            "legendFormat": "{{service_name}} - RPS/Core"
+          }],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
