@@ -129,14 +129,6 @@
       "duration": "4h",
       "preAllocatedVUs": 500,
       "maxVUs": 3000
-    },
-    "chaos": {
-      "executor": "constant-arrival-rate",
-      "rate": 2500,
-      "timeUnit": "1s",
-      "duration": "5m",
-      "preAllocatedVUs": 500,
-      "maxVUs": 3000
     }
   }
 }

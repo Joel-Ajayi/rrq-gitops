@@ -6,7 +6,7 @@ import exec from 'k6/execution';
 
 export const options: Options = {
   scenarios: {
-    spike_test: <RampingArrivalRateScenario>CONFIG.workloads.spike,
+    spike_test: CONFIG.workloads.spike as RampingArrivalRateScenario,
   },
   thresholds: CONFIG.thresholds.spike,
 };

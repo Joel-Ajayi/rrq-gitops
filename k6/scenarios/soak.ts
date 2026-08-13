@@ -7,7 +7,7 @@ import exec from 'k6/execution';
 
 export const options: Options = {
   scenarios: {
-    soak_test: <ConstantArrivalRateScenario>CONFIG.workloads.soak,
+    soak_test: CONFIG.workloads.soak as ConstantArrivalRateScenario,
   },
   thresholds: CONFIG.thresholds.soak,
 };

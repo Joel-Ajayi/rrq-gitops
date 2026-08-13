@@ -6,7 +6,7 @@ import exec from 'k6/execution';
 
 export const options: Options = {
   scenarios: {
-    smoke_test: <ConstantArrivalRateScenario>CONFIG.workloads.smoke,
+    smoke_test: CONFIG.workloads.smoke as ConstantArrivalRateScenario,
   },
   thresholds: CONFIG.thresholds.smoke,
 };

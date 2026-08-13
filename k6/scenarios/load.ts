@@ -7,7 +7,7 @@ import exec from 'k6/execution';
 
 export const options: Options = {
   scenarios: {
-    slo_load_test: <RampingArrivalRateScenario>CONFIG.workloads.load,
+    slo_load_test: CONFIG.workloads.load as RampingArrivalRateScenario,
   },
   thresholds: CONFIG.thresholds.load,
 };

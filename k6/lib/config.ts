@@ -11,7 +11,6 @@ export interface WorkloadsConfig {
   stress: RampingArrivalRateScenario;
   soak: ConstantArrivalRateScenario;
   spike: RampingArrivalRateScenario;
-  chaos: ConstantArrivalRateScenario;
 }
 
 export interface EnvironmentConfig {

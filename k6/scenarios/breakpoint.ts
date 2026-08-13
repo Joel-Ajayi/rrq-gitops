@@ -7,7 +7,7 @@ import exec from 'k6/execution';
 
 export const options: Options = {
   scenarios: {
-    breakpoint_capacity_test: <RampingArrivalRateScenario>CONFIG.workloads.breakpoint,
+    breakpoint_capacity_test: CONFIG.workloads.breakpoint as RampingArrivalRateScenario,
   },
   thresholds: CONFIG.thresholds.breakpoint,
 };
