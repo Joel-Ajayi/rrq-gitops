@@ -76,6 +76,25 @@ data:
             "expr": "kafka_topic_partition_under_replicated",
             "legendFormat": "{{topic}}"
           }],
+        },
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Active vs Idle Sessions",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            { "expr": "sum(pg_stat_activity_count{state=\"active\"}) by (server)", "legendFormat": "{{server}} - Active" },
+            { "expr": "sum(pg_stat_activity_count{state=\"idle\"}) by (server)", "legendFormat": "{{server}} - Idle" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Max Parallel Workers Per Gather",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [{
+            "expr": "pg_settings_max_parallel_workers_per_gather",
+            "legendFormat": "{{server}}"
+          }],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]

@@ -81,6 +81,26 @@ data:
             "legendFormat": "{{status}}"
           }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox Relay Poll RPS",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(pg_stat_statements_calls{query=~\"(?i).*SELECT.*outbox.*\"}[1m])) by (server)",
+            "legendFormat": "{{server}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Consume RPS",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [{
+            "expr": "sum(rate(kafka_consumer_offset{topic=~\"$topic\", group=~\"$consumer_group\"}[1m])) by (group, topic)",
+            "legendFormat": "{{group}} - {{topic}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "fieldConfig": { "defaults": { "unit": "cps" } }
         }
       ]

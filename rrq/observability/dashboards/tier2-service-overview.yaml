@@ -33,7 +33,7 @@ data:
           "title": "Request Rate (RPS)",
           "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
           "targets": [{
-            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\"}[1m])) by (span_name)",
+            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
             "legendFormat": "{{span_name}}"
           }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -44,7 +44,7 @@ data:
           "title": "Error Rate (EPS)",
           "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
           "targets": [{
-            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
+            "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
             "legendFormat": "{{span_name}}"
           }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
