@@ -2,6 +2,23 @@ package main
 
 import "math"
 
+const (
+	// DefaultSessionTimeoutMS is the fallback minimum session timeout (10s)
+	DefaultSessionTimeoutMS = 10000
+	// DefaultHeartbeatTimeoutMS is the fallback minimum heartbeat timeout (3s)
+	DefaultHeartbeatTimeoutMS = 3000
+	// WebhookConcurrencyRatio is the percentage of workers allocated to a single merchant's bulkhead
+	WebhookConcurrencyRatio = 0.10
+	// DefaultBreakerEvictionTTLMS is the minimum circuit breaker eviction TTL (5 minutes)
+	DefaultBreakerEvictionTTLMS = 300000
+	// ShutdownTimeoutMinMS is the minimum graceful shutdown period (30s)
+	ShutdownTimeoutMinMS = 30000
+	// ShutdownTimeoutBufferMS is the buffer added to session timeout for graceful shutdown (15s)
+	ShutdownTimeoutBufferMS = 15000
+	// ConnectionOverheadMB is the baseline memory overhead per PostgreSQL connection
+	ConnectionOverheadMB = 8
+)
+
 // KINGMAN'S FORMULA — G/G/1 waiting time (J.F.C. Kingman, 1961
 // [SOURCED] E[W_q] ≈ (ρ / (1−ρ)) × ((c_a² + c_s²) / 2) × τ
 //   ρ     = target_utilization
@@ -109,14 +126,8 @@ func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas int) int {
 // WORKER CONCURRENCY — bounded by partition count for consumers,
 // throughput demand for APIs.
 //
-//	[DERIVED] wTime = kingmanLatency(tau) × workerAmp
-//	  where tau = avg_query_time_ms (per-message service time, already
-//	  includes all synchronous DB operations). Kingman L(ρ) = τ + E[W_q]
-//	  accounts for utilization-induced queueing. No separate amplification
-//	  factor — tau already represents total per-message service time.
-//	Workers = ceil(throughput × wTime)
-//
-// workerConcurrency computes the required worker pool size per pod.
+//		[DERIVED] wTime = kingmanLatency(tau) × workerAmp
+//	 workerConcurrency computes the required worker pool size per pod.
 func workerConcurrency(throughputPerPod, kingmanLatencyMs, workerAmp float64) int {
 	wTime := kingmanLatencyMs * workerAmp / 1000.0
 	return int(math.Ceil(throughputPerPod * wTime))
@@ -125,11 +136,20 @@ func workerConcurrency(throughputPerPod, kingmanLatencyMs, workerAmp float64) in
 // REPLICA COUNT — pod throughput (k6 benchmarks)
 // [DERIVED] podCap = rps_per_core × (cpu_mcores / 1000)
 //
-//	minReplicas = ceil(λ_nominal / podCap)
-//	maxReplicas = ceil(λ_peak / podCap × az_factor)  [3-AZ lose-1: ×1.5]
-func replicaCounts(nominal, peak, podCap, azFactor float64) (int, int) {
+//	minReplicas = max(ceil(λ_nominal / podCap), min_replicas_default)
+//	maxReplicas = min(max(ceil(λ_peak / podCap × az_factor), minReplicas), max_replicas_default)
+func replicaCounts(nominal, peak, podCap, azFactor float64, minFloor, maxCap int) (int, int) {
 	minR := int(math.Ceil(nominal / podCap))
+	if minFloor > 0 && minR < minFloor {
+		minR = minFloor
+	}
 	maxR := int(math.Ceil(peak / podCap * azFactor))
+	if maxR < minR {
+		maxR = minR
+	}
+	if maxCap > 0 && maxR > maxCap {
+		maxR = maxCap
+	}
 	if maxR < minR {
 		maxR = minR
 	}
@@ -179,11 +199,11 @@ func sessionTiming(processTO, dlqTotal, bufferMS int) (session, heartbeat int) {
 	// Re-couple to KIP-62 reality for segmentio/kafka-go which doesn't support max.poll.interval.ms
 	session = processTO + dlqTotal + (2 * bufferMS)
 	heartbeat = session / 3
-	if session < 10000 {
-		session = 10000 // 10s default
+	if session < DefaultSessionTimeoutMS {
+		session = DefaultSessionTimeoutMS
 	}
-	if heartbeat < 3000 {
-		heartbeat = 3000 // 3s default
+	if heartbeat < DefaultHeartbeatTimeoutMS {
+		heartbeat = DefaultHeartbeatTimeoutMS
 	}
 	return
 }
@@ -214,14 +234,11 @@ func httpPoolSize(qps, latencySec, headroom float64, workers, hostCount int) (po
 
 // WEBHOOK PER-MERCHANT BULKHEAD (issue 24)
 // [DERIVED] per_merchant = max(1, ceil(workers × 0.10))
-//
-// The standard practice is to cap any single tenant at a safe percentage of the worker pool
-// so they can burst without monopolizing the pod.
 func webhookMaxConcurrency(workers int) int {
 	if workers <= 0 {
 		return 1
 	}
-	v := int(math.Ceil(float64(workers) * 0.10))
+	v := int(math.Ceil(float64(workers) * WebhookConcurrencyRatio))
 	if v < 1 {
 		v = 1
 	}
@@ -233,19 +250,14 @@ func webhookMaxConcurrency(workers int) int {
 
 // WEBHOOK BREAKER EVICTION TTL (issue 26)
 // [DERIVED] eviction_ttl_ms = max(5min, 10 × max(delivery_backoff_base_ms, dlq_base_delay_ms))
-//
-//	We want a merchant that has been silent for a delivery period to have its
-//	breaker reaped; if no deliveries are expected for a long time, the breaker
-//	should be reaped sooner rather than later to free memory. 5min floor covers
-//	a normal delivery cadence without thrashing.
 func breakerEvictionTTL(deliveryBackoffBaseMS, dlqBaseDelayMS int) int {
 	base := deliveryBackoffBaseMS
 	if dlqBaseDelayMS > base {
 		base = dlqBaseDelayMS
 	}
 	ttl := 10 * base
-	if ttl < 300000 {
-		ttl = 300000 // 5 minutes
+	if ttl < DefaultBreakerEvictionTTLMS {
+		ttl = DefaultBreakerEvictionTTLMS
 	}
 	return ttl
 }
@@ -332,10 +344,7 @@ func pgMaxConnections(ramBytes int64, workMemMB int, sharedPct, osPct, maintPct 
 	maintBuf := int(float64(totalMB) * maintPct)
 	available := totalMB - sharedBuf - osBuf - maintBuf
 	// Fractional work_mem assumes not all connections execute heavy sorts concurrently.
-	perConn := int(math.Ceil(float64(workMemMB)*0.25)) + 8
-	if perConn <= 0 {
-		perConn = 1
-	}
+	perConn := int(math.Ceil(float64(workMemMB)*0.25)) + ConnectionOverheadMB
 	if available <= 0 {
 		return 1
 	}
@@ -367,9 +376,9 @@ func serverIdleTimeout(sessionMs, heartbeatMs int) int {
 // SHUTDOWN TIMEOUT — Graceful termination period for Kubernetes SIGTERM
 // [DERIVED] shutdown_ms = max(30000, SessionMs + 15000)
 func shutdownTimeout(sessionMs int) int {
-	s := sessionMs + 15000
-	if s < 30000 {
-		return 30000
+	s := sessionMs + ShutdownTimeoutBufferMS
+	if s < ShutdownTimeoutMinMS {
+		return ShutdownTimeoutMinMS
 	}
 	return s
 }

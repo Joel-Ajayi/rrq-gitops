@@ -52,16 +52,9 @@ func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, inpu
 		"KETAMA_VNODES":                     fmt.Sprintf("%d", r.KetamaVnodes),
 		"PG_CONN_MAX_IDLE_TIME_MS":          fmt.Sprintf("%d", input.Infra.PG.Connection.MaxIdleMS),
 		"PG_CONN_MAX_LIFETIME_MS":           fmt.Sprintf("%d", input.Infra.PG.Connection.MaxLifetimeMS),
-	}
-
-	// RO pool caps (combined across shards). Server-side max_connections
-	// values (the DB's hard limit) are NOT emitted here — they belong in
-	// the PG Cluster manifest, not in the platform configmap (Issue 7 / Phase 1d).
-	for name := range input.Infra.PG.Instances {
-		roDemand := instRODemand(name, svcs, input)
-		// Export discrete variables for each shard to prevent overwrite collisions
-		formattedName := strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
-		m["PG_"+formattedName+"_RO_MAX_CONNS"] = fmt.Sprintf("%d", roDemand)
+		"RETRY_BUDGET_MIN_TOKENS":           fmt.Sprintf("%d", d.RetryBudgetMinTokens),
+		"RETRY_BUDGET_MAX_TOKENS":           fmt.Sprintf("%d", d.RetryBudgetMaxTokens),
+		"RETRY_BUDGET_FRACTION":             fmt.Sprintf("%g", d.RetryBudgetFraction),
 	}
 
 	if len(rc) > 0 {
@@ -107,8 +100,10 @@ func serviceHitsInstance(input *SLOInput, svcName, instName string) bool {
 	for _, svc := range input.Services {
 		if svc.Name == svcName {
 			for _, ep := range svc.Endpoints {
-				if ep.DBInstance == instName {
-					return true
+				for _, inst := range ep.GetDBInstances() {
+					if inst == instName {
+						return true
+					}
 				}
 			}
 		}
@@ -152,11 +147,20 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		"DLQ_CAP_DELAY_MS":       fmt.Sprintf("%d", d.DLQCapDelayMs),
 		"DLQ_WRITE_TIMEOUT_MS":   fmt.Sprintf("%d", d.DLQWriteTimeoutMs),
 		"POD_MEM_REQUEST_MIB":    fmt.Sprintf("%d", d.MemRequest),
+		"RETRY_BUDGET_MIN_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMinTokens),
+		"RETRY_BUDGET_MAX_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMaxTokens),
+		"RETRY_BUDGET_FRACTION":   fmt.Sprintf("%g", input.Defaults.RetryBudgetFraction),
 	}
 
 	// Per-pod per-shard RW cap (engine-derived). Only render shards this service touches.
 	for shardName, cap := range d.PerShardRW {
 		envName := "PG_" + strings.ToUpper(strings.ReplaceAll(shardName, "-", "_")) + "_RW_MAX_CONNS"
+		if cap > 0 {
+			m[envName] = fmt.Sprintf("%d", cap)
+		}
+	}
+	for shardName, cap := range d.PerShardRO {
+		envName := "PG_" + strings.ToUpper(strings.ReplaceAll(shardName, "-", "_")) + "_RO_MAX_CONNS"
 		if cap > 0 {
 			m[envName] = fmt.Sprintf("%d", cap)
 		}
@@ -283,18 +287,14 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 }
 
 func renderRRQConfig(dir string, svcs map[string]Derived, input *SLOInput) error {
-	core, ok := svcs["core-api"]
-	if !ok {
-		return nil
-	}
-	coreSvc := findService(input, "core-api")
-	if coreSvc == nil {
-		return nil
-	}
-
 	m := platformData(input, svcs)
-	for k, v := range serviceValues("core-api", core, coreSvc, input) {
-		m[k] = v
+	for name, d := range svcs {
+		svc := findService(input, name)
+		if svc != nil {
+			for k, v := range serviceValues(name, d, svc, input) {
+				m[k] = v
+			}
+		}
 	}
 	return writeYAML(dir+"/rrq-config.yaml", configMap("rrq-config", m))
 }
@@ -366,6 +366,19 @@ func serviceValues(name string, d Derived, svc *Service, input *SLOInput) map[st
 		"POD_MEM_REQUEST_MIB":    fmt.Sprintf("%d", d.MemRequest),
 	}
 
+	for shardName, cap := range d.PerShardRW {
+		envName := "PG_" + strings.ToUpper(strings.ReplaceAll(shardName, "-", "_")) + "_RW_MAX_CONNS"
+		if cap > 0 {
+			m[envName] = fmt.Sprintf("%d", cap)
+		}
+	}
+	for shardName, cap := range d.PerShardRO {
+		envName := "PG_" + strings.ToUpper(strings.ReplaceAll(shardName, "-", "_")) + "_RO_MAX_CONNS"
+		if cap > 0 {
+			m[envName] = fmt.Sprintf("%d", cap)
+		}
+	}
+
 	if svc.CB != nil {
 		m["CB_ERROR_THRESHOLD"] = fmt.Sprintf("%g", svc.CB.ErrorThreshold)
 		m["CB_MIN_REQUESTS"] = fmt.Sprintf("%d", svc.CB.MinRequests)
@@ -389,6 +402,72 @@ func serviceValues(name string, d Derived, svc *Service, input *SLOInput) map[st
 	}
 	if svc.MaxRequestBytes > 0 {
 		m["MAX_REQUEST_BYTES"] = fmt.Sprintf("%d", svc.MaxRequestBytes)
+	}
+
+	if svc.VelocityThreshold > 0 {
+		m["VELOCITY_THRESHOLD"] = fmt.Sprintf("%g", svc.VelocityThreshold)
+		m["VELOCITY_WINDOW_MS"] = fmt.Sprintf("%d", svc.VelocityWindowMS)
+	}
+
+	if d.HTTPPool > 0 && svc.HTTP != nil {
+		m["HTTP_MAX_IDLE_CONNS"] = fmt.Sprintf("%d", d.HTTPPool)
+		m["HTTP_MAX_IDLE_PER_HOST"] = fmt.Sprintf("%d", d.HTTPPerHost)
+		m["HTTP_TIMEOUT_MS"] = fmt.Sprintf("%d", svc.HTTP.TimeoutMS)
+		m["HTTP_IDLE_CONN_TIMEOUT_MS"] = fmt.Sprintf("%d", svc.HTTP.IdleConnTimeoutMS)
+		m["HTTP_RESPONSE_HEADER_TIMEOUT_MS"] = fmt.Sprintf("%d", svc.HTTP.ResponseHeaderTimeoutMS)
+		m["HTTP_TLS_HANDSHAKE_TIMEOUT_MS"] = fmt.Sprintf("%d", svc.HTTP.TLSHandshakeTimeoutMS)
+		m["HTTP_EXPECT_CONTINUE_TIMEOUT_MS"] = fmt.Sprintf("%d", svc.HTTP.ExpectContinueTimeoutMS)
+	}
+
+	if d.RelayReplicas > 0 {
+		m["FETCH_BATCH_SIZE"] = fmt.Sprintf("%d", d.RelayFetchBatch)
+		m["RELAY_POOL_INTERVAL_MS"] = fmt.Sprintf("%d", d.RelayPoolIntervalMS)
+		m["RELAY_BATCH_TIMEOUT_MS"] = fmt.Sprintf("%d", d.RelayBatchTimeoutMS)
+		if svc.Relay != nil {
+			r := svc.Relay
+			m["STAGING_KB"] = fmt.Sprintf("%d", r.StagingKB)
+			m["RELAY_MAX_PAYLOAD_BYTES"] = fmt.Sprintf("%d", r.MaxPayloadKB*1024)
+			m["RELAY_BUFFER_SAMPLE_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferSampleIntervalMS)
+			m["RELAY_BUFFER_MAX_THROTTLE_LEVEL"] = fmt.Sprintf("%d", r.BufferMaxThrottleLevel)
+			m["RELAY_BUFFER_MAX_POLL_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferMaxPollIntervalMS)
+			m["AIMD_THROTTLE_FRAC"] = fmt.Sprintf("%g", r.AIMDThrottleFrac)
+			m["AIMD_PAUSE_FRAC"] = fmt.Sprintf("%g", r.AIMDPauseFrac)
+			m["AIMD_RESUME_FRAC"] = fmt.Sprintf("%g", r.AIMDResumeFrac)
+		}
+	}
+
+	if svc.Webhook != nil {
+		w := svc.Webhook
+		m["DELIVERY_MAX_ATTEMPTS"] = fmt.Sprintf("%d", w.DeliveryMaxAttempts)
+		m["DELIVERY_BACKOFF_BASE_MS"] = fmt.Sprintf("%d", w.DeliveryBackoffBaseMS)
+		m["DELIVERY_BACKOFF_CAP_MS"] = fmt.Sprintf("%d", w.DeliveryBackoffCapMS)
+		m["SCHEDULER_POLL_INTERVAL_MS"] = fmt.Sprintf("%d", w.SchedulerPollIntervalMS)
+		m["SCHEDULER_BATCH_SIZE"] = fmt.Sprintf("%d", w.SchedulerBatchSize)
+		m["FAST_LANE_GRACE_PERIOD_MS"] = fmt.Sprintf("%d", w.FastLaneGracePeriodMS)
+		m["FAST_LANE_BUFFER_SIZE"] = fmt.Sprintf("%d", w.FastLaneBufferSize)
+		m["FAST_LANE_WORKER_POOL_SIZE"] = fmt.Sprintf("%d", d.FastLaneWorkerPoolSize)
+		m["BREAKER_EVICTION_INTERVAL_MS"] = fmt.Sprintf("%d", w.BreakerEvictionIntervalMS)
+		evTTL := w.BreakerEvictionTTLMS
+		if evTTL <= 0 {
+			evTTL = d.BreakerEvictionTTLMS
+		}
+		if evTTL > 0 {
+			m["BREAKER_EVICTION_TTL_MS"] = fmt.Sprintf("%d", evTTL)
+		}
+		maxConc := w.MaxConcurrencyPerMerchant
+		if maxConc <= 0 {
+			maxConc = d.WebhookMaxConcurrency
+		}
+		if maxConc > 0 {
+			m["WEBHOOK_MAX_CONCURRENCY"] = fmt.Sprintf("%d", maxConc)
+		}
+	}
+
+	if svc.HPATargetCPU > 0 {
+		m["HPA_TARGET_CPU"] = fmt.Sprintf("%g", svc.HPATargetCPU)
+	}
+	if svc.MemLimitBytes > 0 {
+		m["POD_MEM_LIMIT_BYTES"] = fmt.Sprintf("%d", svc.MemLimitBytes)
 	}
 
 	prefixed := map[string]string{}
@@ -428,7 +507,7 @@ func renderKafka(dir string, svcs map[string]Derived, input *SLOInput) error {
 }
 
 func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string) error {
-	return writeYAML(dir+"/capacity-output.yaml", map[string]interface{}{
+	return writeYAML("capacity-output.yaml", map[string]interface{}{
 		"ceilings": pg, "kafka_cap": kc, "redis_cap": rc,
 		"services": svcs, "failures": fails, "warnings": warns,
 	})

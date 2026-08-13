@@ -47,11 +47,11 @@ func main() {
 func printResults(pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, svcs map[string]Derived, fails []string, warns []string) {
 	fmt.Println("=== SUPPLY ===")
 	for _, c := range pg {
-		fmt.Printf("  PG %s: max_conns=%d optimal=%d\n", c.Instance, c.MaxConns, c.OptimalActive)
+		fmt.Printf("  PG %s: max_conns=%d optimal=%d storage=%.2f GB/day\n", c.Instance, c.MaxConns, c.OptimalActive, c.StorageGBPerDay)
 	}
-	fmt.Printf("  Kafka: cluster=%d per_broker=%d\n", kc.ClusterCap, kc.PerBrokerCap)
+	fmt.Printf("  Kafka: cluster=%d per_broker=%d storage=%.2f GB/day\n", kc.ClusterCap, kc.PerBrokerCap, kc.StorageGBPerDay)
 	if len(rc) > 0 {
-		fmt.Printf("  Redis: maxmem=%dMiB\n", rc[0].MaxMemoryBytes/1024/1024)
+		fmt.Printf("  Redis: maxmem=%dMiB storage=%.2f GB\n", rc[0].MaxMemoryBytes/1024/1024, rc[0].StorageGB)
 	}
 
 	fmt.Println("\n=== DERIVED (per service) ===")

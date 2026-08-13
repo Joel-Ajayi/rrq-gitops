@@ -80,9 +80,13 @@ type Defaults struct {
 	AZRedundancy             float64 `yaml:"az_redundancy_factor"`
 	GrowthHeadroom           float64 `yaml:"growth_headroom"`
 	RetryBudgetFraction      float64 `yaml:"retry_budget_fraction"`
+	RetryBudgetMinTokens     int     `yaml:"retry_budget_min_tokens"`
+	RetryBudgetMaxTokens     int     `yaml:"retry_budget_max_tokens"`
 	WorkerAmplification      float64 `yaml:"worker_amplification"`
 	HTTPHeadroom             float64 `yaml:"http_headroom"`
 	PoolFloor                int     `yaml:"pool_floor"`
+	MinReplicas              int     `yaml:"min_replicas"`
+	MaxReplicas              int     `yaml:"max_replicas"`
 	ConsumerSessionBufferMS  int     `yaml:"consumer_session_buffer_ms"`
 	ConsumerCommitFlushMS    int     `yaml:"consumer_commit_flush_ms"`
 	ConsumerPartitionSize    int     `yaml:"consumer_partition_size"`
@@ -115,6 +119,8 @@ type Service struct {
 	CoresPerPod           int            `yaml:"cores_per_pod"`
 	HPATargetCPU          float64        `yaml:"hpa_target_cpu"`
 	MemLimitBytes         int64          `yaml:"mem_limit_bytes"`
+	MinReplicas           int            `yaml:"min_replicas"`
+	MaxReplicas           int            `yaml:"max_replicas"`
 }
 
 type WebhookConfig struct {
@@ -147,14 +153,25 @@ type ServiceCB struct {
 }
 
 type Endpoint struct {
-	Name             string  `yaml:"name"`
-	NominalQPS       float64 `yaml:"nominal_qps"`
-	PeakQPS          float64 `yaml:"peak_qps"`
-	AvgQueryTimeMS   float64 `yaml:"avg_query_time_ms"`
-	CSquaredS        float64 `yaml:"c_s_squared"`
-	CSquaredA        float64 `yaml:"c_a_squared"`
-	DBInstance       string  `yaml:"db_instance"`
-	WritesPerMessage int     `yaml:"writes_per_message"`
+	Name             string   `yaml:"name"`
+	NominalQPS       float64  `yaml:"nominal_qps"`
+	PeakQPS          float64  `yaml:"peak_qps"`
+	AvgQueryTimeMS   float64  `yaml:"avg_query_time_ms"`
+	CSquaredS        float64  `yaml:"c_s_squared"`
+	CSquaredA        float64  `yaml:"c_a_squared"`
+	DBInstance       string   `yaml:"db_instance"`
+	DBInstances      []string `yaml:"db_instances"`
+	WritesPerMessage int      `yaml:"writes_per_message"`
+}
+
+func (e *Endpoint) GetDBInstances() []string {
+	if len(e.DBInstances) > 0 {
+		return e.DBInstances
+	}
+	if e.DBInstance != "" {
+		return []string{e.DBInstance}
+	}
+	return nil
 }
 
 type RedisSvc struct {
@@ -188,22 +205,25 @@ type RelayConfig struct {
 // --- Output types ---
 
 type PGCeiling struct {
-	Instance      string
-	MaxConns      int // models.go: pgMaxConnections — derived from RAM + work_mem
-	OptimalActive int
+	Instance        string
+	MaxConns        int // models.go: pgMaxConnections — derived from RAM + work_mem
+	OptimalActive   int
+	StorageGBPerDay float64
 }
 
 type KafkaCeiling struct {
-	ClusterCap     int
-	PerBrokerCap   int
-	FDWarning      bool
-	LatencyWarning bool
-	Warnings       []string
+	ClusterCap      int
+	PerBrokerCap    int
+	FDWarning       bool
+	LatencyWarning  bool
+	Warnings        []string
+	StorageGBPerDay float64
 }
 
 type RedisCeiling struct {
 	Node           int
 	MaxMemoryBytes int64
+	StorageGB      float64
 }
 
 type Derived struct {
@@ -240,8 +260,11 @@ type Derived struct {
 	DLQBaseDelayMs          int
 	DLQCapDelayMs           int
 	PerShardRW              map[string]int // per-pod, per-shard RW cap (keyed by shard ID)
+	PerShardRO              map[string]int // per-pod, per-shard RO cap (keyed by shard ID)
 	DLQWriteTimeoutMs       int            // outer DLQ write deadline (== total DLQ retry time, ≤ ProcessTimeoutMs)
 	FastLaneWorkerPoolSize  int            // engine-derived fast lane HTTP delivery pool size (webhook workers)
+	RetryBudgetMinTokens    int            // engine-derived cold-start retry token floor
+	RetryBudgetMaxTokens    int            // engine-derived peak volume retry token ceiling
 }
 
 type EngineOutput struct {

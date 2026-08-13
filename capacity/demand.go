@@ -2,6 +2,19 @@ package main
 
 import "math"
 
+const (
+	// RetryBudgetBurstWindowSec is the time window over which the retry budget token bucket allows bursts
+	RetryBudgetBurstWindowSec = 2.0
+	// RetryBudgetMinTokensFloor is the absolute minimum number of tokens required in a retry budget
+	RetryBudgetMinTokensFloor = 2
+	// RetryBudgetMaxTokensFloor is the absolute minimum maximum-capacity of a retry budget token bucket
+	RetryBudgetMaxTokensFloor = 10
+	// RetryBudgetMinTokensRatio is the ratio of MaxTokens used to compute MinTokens
+	RetryBudgetMinTokensRatio = 0.10
+	// DBTargetUtilization is the target utilization (rho) for database connections
+	DBTargetUtilization = 0.65
+)
+
 // derive computes all per-service derived values by calling model functions from models.go.
 // This file is pure orchestration — no formulas live here.
 
@@ -36,10 +49,16 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 		effectivePeak := ep.PeakQPS * retryMultiplier
 		totalPeak += effectivePeak
 		totalNominal += ep.NominalQPS
-		id := perIns[ep.DBInstance]
-		id.Peak += effectivePeak
-		id.QPSMS += effectivePeak * ep.AvgQueryTimeMS / 1000.0
-		perIns[ep.DBInstance] = id
+		insts := ep.GetDBInstances()
+		k := float64(len(insts))
+		if k > 0 {
+			for _, inst := range insts {
+				id := perIns[inst]
+				id.Peak += effectivePeak / k
+				id.QPSMS += (effectivePeak / k) * ep.AvgQueryTimeMS / 1000.0
+				perIns[inst] = id
+			}
+		}
 		if ep.AvgQueryTimeMS > maxLatencyMS {
 			maxLatencyMS = ep.AvgQueryTimeMS
 		}
@@ -47,7 +66,15 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 
 	// models.go: Replica Count — pod capacity from k6 benchmark
 	podCap := podCapacity(svc.RPSPerCore, svc.CoresPerPod)
-	d.MinReplicas, d.MaxReplicas = replicaCounts(totalNominal, totalPeak, podCap, az)
+	minFloor := inp.Defaults.MinReplicas
+	if svc.MinReplicas > 0 {
+		minFloor = svc.MinReplicas
+	}
+	maxCap := inp.Defaults.MaxReplicas
+	if svc.MaxReplicas > 0 {
+		maxCap = svc.MaxReplicas
+	}
+	d.MinReplicas, d.MaxReplicas = replicaCounts(totalNominal, totalPeak, podCap, az, minFloor, maxCap)
 	d.MaxReplicasCap = d.MaxReplicas
 
 	// models.go: Weighted Average Service Time
@@ -91,6 +118,19 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 	}
 	d.MaxRetries = maxRetries(svc.SLO.LatencyMS, slack, avgMS, inp.Defaults.RetryBudgetFraction)
 	d.BackoffCapMS = backoffCap(d.BackoffBaseMS, d.MaxRetries, svc.SLO.LatencyMS, slack, inp.Defaults.RetryBudgetFraction)
+
+	// Volume-derived Token Bucket Retry Budget parameters
+	// maxTokens is derived from PeakQPSPerPod over a 2-second burst window at retry_budget_fraction
+	maxTokens := int(math.Ceil(peakPerPod * RetryBudgetBurstWindowSec * inp.Defaults.RetryBudgetFraction))
+	if maxTokens < RetryBudgetMaxTokensFloor {
+		maxTokens = RetryBudgetMaxTokensFloor
+	}
+	minTokens := int(math.Ceil(float64(maxTokens) * RetryBudgetMinTokensRatio))
+	if minTokens < RetryBudgetMinTokensFloor {
+		minTokens = RetryBudgetMinTokensFloor
+	}
+	d.RetryBudgetMaxTokens = maxTokens
+	d.RetryBudgetMinTokens = minTokens
 
 	// ProcessTimeout — per-message deadline, bounded by SLO budget (ceiling).
 	// Must accommodate the tail of the latency distribution, so we use the SLO.
@@ -202,25 +242,31 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 		d.MemRequest = memRequest(d.PoolSize, d.HTTPPool) + kafkaBufferMB
 	}
 
-	// models.go: Per-Pod Per-Shard RW Cap
-	d.PerShardRW = perShardRWCaps(svc, inp, &d)
+	// models.go: Per-Pod Per-Shard RW & RO Caps
+	d.PerShardRW, d.PerShardRO = perShardCaps(svc, inp, &d)
 
 	return d
 }
 
-// perShardRWCaps computes per-pod per-shard connection caps for each shard
-// the service touches. Caps are derived from the engine's PG ceiling
-// (max_connections) and ensure the total per-instance connection count
-// never exceeds the server-side hard limit at peak.
-func perShardRWCaps(svc Service, inp *SLOInput, d *Derived) map[string]int {
-	caps := make(map[string]int)
-	// Collect shards this service touches
+// perShardCaps computes per-pod per-shard connection caps for both RW and RO pools.
+// Ensures that total (RW + RO) across all shards for a pod does not exceed d.PoolSize.
+func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[string]int) {
+	rwCaps := make(map[string]int)
+	roCaps := make(map[string]int)
+
 	shards := map[string]bool{}
 	for _, ep := range svc.Endpoints {
-		if ep.DBInstance != "" {
-			shards[ep.DBInstance] = true
+		for _, inst := range ep.GetDBInstances() {
+			shards[inst] = true
 		}
 	}
+
+	rho := DBTargetUtilization
+	minR := float64(d.MinReplicas)
+	if minR <= 0 {
+		minR = 1
+	}
+
 	for shardName := range shards {
 		inst, ok := inp.Infra.PG.Instances[shardName]
 		if !ok {
@@ -230,17 +276,72 @@ func perShardRWCaps(svc Service, inp *SLOInput, d *Derived) map[string]int {
 			inp.Infra.PG.Tuning.SharedBuffersPct,
 			inp.Infra.PG.Tuning.OSPct,
 			inp.Infra.PG.Tuning.MaintenancePct)
-		// Count services that hit this shard
+
 		numServicesOnShard := 0
 		for _, other := range inp.Services {
 			for _, ep := range other.Endpoints {
-				if ep.DBInstance == shardName {
-					numServicesOnShard++
-					break
+				for _, otherInst := range ep.GetDBInstances() {
+					if otherInst == shardName {
+						numServicesOnShard++
+						break
+					}
 				}
 			}
 		}
-		caps[shardName] = perShardRWCap(d.PoolSize, ceiling, numServicesOnShard, d.MaxReplicasCap)
+
+		var rwQPSMS, roQPSMS float64
+		for _, ep := range svc.Endpoints {
+			insts := ep.GetDBInstances()
+			k := float64(len(insts))
+			if k == 0 {
+				continue
+			}
+			for _, targetInst := range insts {
+				if targetInst == shardName {
+					qpsms := (ep.PeakQPS / k) * (ep.AvgQueryTimeMS / 1000.0)
+					if ep.WritesPerMessage > 0 {
+						rwQPSMS += qpsms
+					} else {
+						roQPSMS += qpsms
+					}
+				}
+			}
+		}
+
+		if rwQPSMS > 0 {
+			rwPoolDemand := int(math.Ceil((rwQPSMS / rho) / minR))
+			if rwPoolDemand < 1 {
+				rwPoolDemand = 1
+			}
+			rwCaps[shardName] = perShardRWCap(rwPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
+		}
+		if roQPSMS > 0 {
+			roPoolDemand := int(math.Ceil((roQPSMS / rho) / minR))
+			if roPoolDemand < 1 {
+				roPoolDemand = 1
+			}
+			roCaps[shardName] = perShardRWCap(roPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
+		}
 	}
-	return caps
+
+	// Scale down if total (RW + RO) across all shards exceeds d.PoolSize
+	totalAlloc := 0
+	for _, c := range rwCaps {
+		totalAlloc += c
+	}
+	for _, c := range roCaps {
+		totalAlloc += c
+	}
+
+	if totalAlloc > d.PoolSize && totalAlloc > 0 {
+		scale := float64(d.PoolSize) / float64(totalAlloc)
+		for s, c := range rwCaps {
+			rwCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
+		}
+		for s, c := range roCaps {
+			roCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
+		}
+	}
+
+	return rwCaps, roCaps
 }
