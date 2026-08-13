@@ -101,6 +101,25 @@ data:
             "expr": "sum(rate(rrq_business_transfers_total[1m])) by (status)",
             "legendFormat": "{{status}}"
           }],
+        },
+        {
+          "type": "timeseries",
+          "title": "Cross-Shard Sagas Unresolved",
+          "gridPos": { "h": 10, "w": 12, "x": 0, "y": 18 },
+          "targets": [{
+            "expr": "rrq_saga_unresolved_count",
+            "legendFormat": "Unresolved Sagas"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Fraud Velocity Limit Violations",
+          "gridPos": { "h": 10, "w": 12, "x": 12, "y": 18 },
+          "targets": [{
+            "expr": "sum(rate(rrq_velocity_limit_exceeded_total[1m])) by (limit_type)",
+            "legendFormat": "{{limit_type}}"
+          }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "fieldConfig": { "defaults": { "unit": "cps" } }
         }

@@ -131,8 +131,59 @@ data:
             "expr": "max(rate(kafka_producer_record_send_total[1m])) by (pod)",
             "legendFormat": "{{pod}} - Peak RPS"
           }],
+        },
+        {
+          "type": "timeseries",
+          "title": "Producer AIMD Buffer Fill Ratio",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+          "targets": [{
+            "expr": "rrq_kafka_producer_buffer_fill_ratio{service_name=\"$service_name\"}",
+            "legendFormat": "{{shard}} - Buffer Fill %"
+          }],
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "fieldConfig": { "defaults": { "unit": "cps" } }
+          "fieldConfig": { "defaults": { "unit": "percentunit" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Task Channel Fill & Coordinator Queue",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+          "targets": [
+            { "expr": "rrq_task_channel_fill_ratio{service_name=\"$service_name\"}", "legendFormat": "{{topic}}/{{partition}} - Task Channel Fill %" },
+            { "expr": "rrq_commit_coordinator_queue_depth{service_name=\"$service_name\"}", "legendFormat": "{{topic}}/{{partition}} - Coord Queue" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox Publishing RPS & Panics",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+          "targets": [
+            { "expr": "sum(rate(rrq_outbox_events_published_total{service_name=\"$service_name\"}[1m])) by (shard)", "legendFormat": "{{shard}} - Publish (RPS)" },
+            { "expr": "sum(rate(rrq_outbox_panics_total{service_name=\"$service_name\"}[1m])) by (shard)", "legendFormat": "{{shard}} - Panics" },
+            { "expr": "sum(rate(rrq_consumer_panics_total{service_name=\"$service_name\"}[1m])) by (topic)", "legendFormat": "{{topic}} - Consumer Panics" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer Backoff Duration (Seconds)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+          "targets": [{
+            "expr": "sum(rate(rrq_consumer_backoff_duration_seconds_sum{service_name=\"$service_name\"}[1m])) by (topic) / sum(rate(rrq_consumer_backoff_duration_seconds_count{service_name=\"$service_name\"}[1m])) by (topic)",
+            "legendFormat": "{{topic}} - Avg Backoff"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Infra Floods vs Replays",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+          "targets": [
+            { "expr": "sum(rate(rrq_dlq_infrastructure_flood_total{service_name=\"$service_name\"}[1m])) by (service_name)", "legendFormat": "Infra Floods" },
+            { "expr": "sum(rate(rrq_admin_dlq_replayed_total{service_name=\"$service_name\"}[1m])) by (shard)", "legendFormat": "{{shard}} - Replayed" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }

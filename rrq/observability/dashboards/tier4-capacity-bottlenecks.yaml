@@ -21,6 +21,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
           "targets": [
             { "expr": "sum(rrq_pg_pool_acquired_conns) by (service_name)", "legendFormat": "{{service_name}} - Acquired" },
+            { "expr": "sum(rrq_pg_pool_idle_conns) by (service_name)", "legendFormat": "{{service_name}} - Idle" },
             { "expr": "sum(rrq_pg_pool_max_conns) by (service_name)", "legendFormat": "{{service_name}} - Max" }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -115,8 +116,26 @@ data:
             { "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"redis\"}[5m])) by (service_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"redis\"}[5m])) by (service_name)", "legendFormat": "{{service_name}} - Mean" },
             { "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"redis\"}[5m])) by (le, service_name))", "legendFormat": "{{service_name}} - P99" }
           ],
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Infrastructure Errors",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+          "targets": [{
+            "expr": "sum(rate(rrq_infrastructure_errors_total[1m])) by (component)",
+            "legendFormat": "{{component}} - Errors (RPS)"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Fail-Closed Rate",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+          "targets": [{
+            "expr": "sum(rate(rrq_redis_fail_closed_total[1m]))",
+            "legendFormat": "Redis Fail-Closed (RPS)"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }

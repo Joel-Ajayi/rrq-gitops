@@ -111,7 +111,48 @@ data:
             "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (service_name) / sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m]))",
             "legendFormat": "{{service_name}} - RPS/Core"
           }],
+        },
+        {
+          "type": "timeseries",
+          "title": "Circuit Breaker Events",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            { "expr": "sum(rate(rrq_circuit_breaker_open_total{service_name=\"$service_name\"}[1m])) by (circuit_breaker)", "legendFormat": "{{circuit_breaker}} - Open" },
+            { "expr": "sum(rate(rrq_circuit_breaker_half_open_failure{service_name=\"$service_name\"}[1m])) by (circuit_breaker)", "legendFormat": "{{circuit_breaker}} - Half-Open Failure" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Bulkhead Capacity & Rejections",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [
+            { "expr": "sum(rrq_bulkhead_in_flight{service_name=\"$service_name\"}) by (service_name)", "legendFormat": "In-Flight Requests" },
+            { "expr": "sum(rate(rrq_bulkhead_rejections_total{service_name=\"$service_name\"}[1m])) by (service_name)", "legendFormat": "Rejections (RPS)" }
+          ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Idempotency Hits vs Conflicts",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [
+            { "expr": "sum(rate(rrq_idempotency_hits_total{service_name=\"$service_name\"}[1m])) by (service_name)", "legendFormat": "Hits (RPS)" },
+            { "expr": "sum(rate(rrq_idempotency_conflicts_total{service_name=\"$service_name\"}[1m])) by (service_name)", "legendFormat": "Conflicts (RPS)" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Peak Outbound HTTP RPS Per Pod (peak_qps_per_pod validation)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [{
+            "expr": "max(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_CLIENT\"}[1m])) by (pod)",
+            "legendFormat": "{{pod}} - Peak RPS"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
         }
       ]
     }
