@@ -11,6 +11,40 @@ import {
   BalanceDurationTrend,
 } from './metrics.ts';
 
+const jwtCache = new Map<string, string>();
+
+/**
+ * Gets the current JWT for a merchant from the local VU cache, or falls back to the original JWT.
+ */
+export function getActiveJwt(merchantIdx: number, originalJwt: string): string {
+  return jwtCache.get(merchantIdx.toString()) || originalJwt;
+}
+
+/**
+ * Refreshes the JWT token using the merchant's API key.
+ * Stores the new token in the VU's local cache.
+ */
+export function refreshToken(merchantIdx: number, apiKey: string): string | null {
+  const params = {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    tags: { name: 'POST /v1/auth/token', endpoint: 'auth' },
+  };
+
+  const res = http.post(`${CONFIG.baseUrl}/v1/auth/token`, '', params);
+
+  if (res.status === 200) {
+    try {
+      const body = res.json() as Record<string, unknown>;
+      const newJwt = body.token as string;
+      jwtCache.set(merchantIdx.toString(), newJwt);
+      return newJwt;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function uuidv4(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;

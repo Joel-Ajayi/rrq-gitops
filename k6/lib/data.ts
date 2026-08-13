@@ -3,6 +3,7 @@ import { SharedArray } from 'k6/data';
 export interface SeedData {
   jwts: string[];
   wallets: string[][];
+  apiKeys: string[];
 }
 
 
@@ -10,11 +11,15 @@ export interface WalletPair {
   fromWallet: string;
   toWallet: string;
   jwt: string;
+  apiKey: string;
+  merchantIdx: number;
 }
 
 export interface DepositContext {
   walletId: string;
   jwt: string;
+  apiKey: string;
+  merchantIdx: number;
 }
 
 const seedData = new SharedArray<SeedData>('test-data', function () {
@@ -39,6 +44,8 @@ export function selectWalletPair(vu: number, iter: number): WalletPair {
     fromWallet: fromWallets[fromWalletIdx],
     toWallet: toWallets[toWalletIdx],
     jwt: seedData.jwts[merchantIdx],
+    apiKey: seedData.apiKeys[merchantIdx],
+    merchantIdx: merchantIdx,
   };
 }
 
@@ -55,5 +62,7 @@ export function selectDepositWallet(vu: number, iter: number): DepositContext {
   return {
     walletId: wallets[walletIdx],
     jwt: seedData.jwts[merchantIdx],
+    apiKey: seedData.apiKeys[merchantIdx],
+    merchantIdx: merchantIdx,
   };
 }

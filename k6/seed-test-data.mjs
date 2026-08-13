@@ -169,7 +169,8 @@ async function main() {
 
   // ── Phase 5: Write test data ──
   console.log("Writing test-data.json...");
-  const outData = { jwts, wallets };
+  const apiKeys = merchants.map(m => m.apiKey);
+  const outData = { jwts, wallets, apiKeys };
   fs.writeFileSync(
     path.join(__dirname, "test-data.json"),
     JSON.stringify(outData, null, 2),
