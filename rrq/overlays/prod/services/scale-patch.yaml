@@ -12,15 +12,6 @@ spec:
             requests: { cpu: "500m", memory: 128Mi }
             limits: { cpu: "2", memory: 256Mi }
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: core-api
-  namespace: rrq
-spec:
-  minReplicas: 4
-  maxReplicas: 30
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,15 +25,6 @@ spec:
           resources:
             requests: { cpu: "500m", memory: 128Mi }
             limits: { cpu: "1", memory: 256Mi }
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: fraud-worker
-  namespace: rrq
-spec:
-  minReplicaCount: 4
-  maxReplicaCount: 16
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -58,15 +40,6 @@ spec:
             requests: { cpu: "500m", memory: 128Mi }
             limits: { cpu: "1", memory: 256Mi }
 ---
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: ledger-worker
-  namespace: rrq
-spec:
-  minReplicaCount: 4
-  maxReplicaCount: 16
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -81,15 +54,6 @@ spec:
             requests: { cpu: "500m", memory: 128Mi }
             limits: { cpu: "1", memory: 256Mi }
 ---
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: outbox-relay
-  namespace: rrq
-spec:
-  minReplicaCount: 2
-  maxReplicaCount: 4
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -103,12 +67,3 @@ spec:
           resources:
             requests: { cpu: "500m", memory: 128Mi }
             limits: { cpu: "1", memory: 256Mi }
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: webhook-worker
-  namespace: rrq
-spec:
-  minReplicaCount: 4
-  maxReplicaCount: 16

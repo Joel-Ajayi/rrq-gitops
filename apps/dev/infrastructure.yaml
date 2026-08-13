@@ -218,8 +218,6 @@ spec:
         sentinel:
           enabled: true
         master:
-          persistence:
-            size: 1Gi
           resources:
             requests: { cpu: 500m, memory: 512Mi }
             limits:   { cpu: "1", memory: 1Gi }
@@ -229,7 +227,7 @@ spec:
             requests: { cpu: 500m, memory: 512Mi }
             limits:   { cpu: "1", memory: 1Gi }
         commonConfiguration: |-
-          appendonly yes
+          appendonly no
           save ""
   destination:
     server: https://kubernetes.default.svc

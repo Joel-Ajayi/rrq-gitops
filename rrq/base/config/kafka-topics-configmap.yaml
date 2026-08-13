@@ -2,11 +2,11 @@ apiVersion: v1
 data:
     topic.jobs.partitions: "5"
     topic.jobs.replicas: "2"
-    topic.notify.partitions: "8"
+    topic.notify.partitions: "14"
     topic.notify.replicas: "2"
-    topic.xshard.shard-a.partitions: "5"
+    topic.xshard.shard-a.partitions: "8"
     topic.xshard.shard-a.replicas: "2"
-    topic.xshard.shard-b.partitions: "5"
+    topic.xshard.shard-b.partitions: "8"
     topic.xshard.shard-b.replicas: "2"
 kind: ConfigMap
 metadata:

@@ -21,8 +21,8 @@ spec:
         deleteClaim: false
         kraftMetadata: shared
   resources:
-    requests: { cpu: "1", memory: 512Mi }
-    limits: { cpu: "1", memory: 1Gi } # (< 50 MB/s)
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { cpu: "2", memory: 4Gi }
   template:
     pod:
       affinity:

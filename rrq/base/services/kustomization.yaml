@@ -6,6 +6,5 @@ resources:
   - ledger-worker.yaml
   - webhook-worker.yaml
   - fraud-worker.yaml
-  - recon-worker.yaml
   - webhook-echo.yaml
   - network-policies.yaml

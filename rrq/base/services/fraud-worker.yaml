@@ -101,11 +101,11 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 60m
-              memory: 66Mi
+              cpu: 20m
+              memory: 65Mi
             limits:
-              cpu: 60m
-              memory: 66Mi
+              cpu: 20m
+              memory: 65Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -137,8 +137,8 @@ metadata:
 spec:
   scaleTargetRef:
     name: fraud-worker
-  minReplicaCount: 1
-  maxReplicaCount: 1
+  minReplicaCount: 3
+  maxReplicaCount: 3
   triggers:
     - type: kafka
       metadata:

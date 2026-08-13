@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier1-business-slos
+  namespace: observability
+  labels:
+    grafana_dashboard: '1'
+data:
+  rrq-tier1-business-slos.json: |-
+    {
+      "title": "Tier 1: Business & SLOs",
+      "uid": "tier1-business-slos",
+      "version": 1,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Total Processed Transfers",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_transfers_total[1m])) by (status)",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Fraud / Velocity Rejections",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "rate(rrq_velocity_limit_exceeded_total[1m])",
+              "legendFormat": "Rejections/sec"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Transfer Success Rate",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"create-transfer\", status_code=\"STATUS_CODE_OK\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_name=\"create-transfer\"}[1m]))",
+              "legendFormat": "Success Ratio"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Active Merchants (Proxy)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"merchant-lookup\"}[1m]))",
+              "legendFormat": "Lookup RPS"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Gross Transaction Value (GTV)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_gtv_total[1m])) by (currency)",
+              "legendFormat": "GTV ({{currency}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

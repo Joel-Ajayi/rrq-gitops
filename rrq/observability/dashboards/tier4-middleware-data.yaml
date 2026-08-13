@@ -1,0 +1,256 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier4-middleware-data
+  namespace: observability
+  labels:
+    grafana_dashboard: '1'
+data:
+  rrq-tier4-middleware-data.json: |-
+    {
+      "title": "Tier 4: Middleware & Data (USE)",
+      "uid": "tier4-middleware-data",
+      "version": 1,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Postgres Cache Hit Ratio",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m])))",
+              "legendFormat": "Hit Ratio"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Postgres Dead Tuples (Bloat)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(pg_stat_user_tables_n_dead_tup) by (relname)",
+              "legendFormat": "{{relname}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Postgres TXID Age (Wraparound)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "max(pg_database_age)",
+              "legendFormat": "Max TXID Age"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Under Replicated Partitions",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(kafka_cluster_partition_underreplicated)",
+              "legendFormat": "URP Count"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Active Controllers",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "targets": [
+            {
+              "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount)",
+              "legendFormat": "Controllers"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Memory Fragmentation",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "targets": [
+            {
+              "expr": "redis_memory_fragmentation_ratio",
+              "legendFormat": "Ratio"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Evicted Keys",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          },
+          "targets": [
+            {
+              "expr": "rate(redis_evicted_keys_total[1m])",
+              "legendFormat": "Evictions/sec"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox AIMD Backpressure",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 32
+          },
+          "targets": [
+            {
+              "expr": "rrq_kafka_producer_buffer_fill",
+              "legendFormat": "Buffer Fill Ratio"
+            },
+            {
+              "expr": "rate(rrq_outbox_events_published_total[1m])",
+              "legendFormat": "Published RPS"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Concurrency",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 32
+          },
+          "targets": [
+            {
+              "expr": "rrq_bulkhead_inflight_requests",
+              "legendFormat": "Inflight"
+            },
+            {
+              "expr": "rate(rrq_bulkhead_rejections_total[1m])",
+              "legendFormat": "Rejections"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Database Query Latency",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 40
+          },
+          "targets": [
+            {
+              "expr": "avg(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[1m])) / avg(rate(traces_span_metrics_duration_seconds_count[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} latency"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "DB Write Spans per Request",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 40
+          },
+          "targets": [
+            {
+              "expr": "rate(traces_span_metrics_calls_total{span_name=~\"(?i).*(INSERT|UPDATE|DELETE).*\"}[1m]) / rate(traces_span_metrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m])",
+              "legendFormat": "Writes/Req"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

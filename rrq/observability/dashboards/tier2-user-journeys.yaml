@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier2-user-journeys
+  namespace: observability
+  labels:
+    grafana_dashboard: '1'
+data:
+  rrq-tier2-user-journeys.json: |-
+    {
+      "title": "Tier 2: User Journeys & Flows",
+      "uid": "tier2-user-journeys",
+      "version": 1,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Saga Unresolved Count",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "rrq_saga_unresolved_count",
+              "legendFormat": "Stuck Sagas"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Dead Letter Queue (DLQ) Churn",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "rate(rrq_dlq_ingestion_total[1m])",
+              "legendFormat": "Ingested"
+            },
+            {
+              "expr": "rate(rrq_admin_dlq_replayed_total[1m])",
+              "legendFormat": "Replayed"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Delivery vs Rejections",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "rate(rrq_bulkhead_inflight_requests[1m])",
+              "legendFormat": "Inflight"
+            },
+            {
+              "expr": "rate(rrq_bulkhead_rejections_total[1m])",
+              "legendFormat": "Rejected"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Idempotency Conflicts",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "rate(rrq_idempotency_conflicts_total[1m])",
+              "legendFormat": "Conflicts"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

@@ -1,0 +1,207 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier3-service-health
+  namespace: observability
+  labels:
+    grafana_dashboard: '1'
+data:
+  rrq-tier3-service-health.json: |-
+    {
+      "title": "Tier 3: Service Health (RED)",
+      "uid": "tier3-service-health",
+      "version": 1,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "service_name",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(traces_span_metrics_calls_total, service_name)",
+            "refresh": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "API / Kafka Throughput (Rate)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} API RPS"
+            },
+            {
+              "expr": "sum(rate(kafka_consumer_offset{service_name=\"$service_name\"}[1m])) by (topic)",
+              "legendFormat": "{{topic}} Consume RPS"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Rate",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} Errors"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Latency (Duration)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le))",
+              "legendFormat": "P99"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le))",
+              "legendFormat": "P50"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Open Circuit Breakers",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "targets": [
+            {
+              "expr": "rrq_circuit_breaker_state{service_name=\"$service_name\"}",
+              "legendFormat": "State (0=C, 1=H, 2=O)"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "DB Connection Pool Starvation",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "targets": [
+            {
+              "expr": "rate(rrq_pg_pool_empty_acquire_total{service_name=\"$service_name\"}[1m])",
+              "legendFormat": "Wait Events/sec"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Go Goroutines",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "targets": [
+            {
+              "expr": "go_goroutines{service_name=\"$service_name\"}",
+              "legendFormat": "Count"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod CPU Usage",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod Memory Usage",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"rrq\", pod=~\"$service_name-.*\"}) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

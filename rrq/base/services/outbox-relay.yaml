@@ -91,10 +91,10 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 400m
+              cpu: 267m
               memory: 74Mi
             limits:
-              cpu: 400m
+              cpu: 267m
               memory: 74Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -138,8 +138,8 @@ metadata:
 spec:
   scaleTargetRef:
     name: outbox-relay
-  minReplicaCount: 1
-  maxReplicaCount: 2
+  minReplicaCount: 3
+  maxReplicaCount: 5
   triggers:
     - type: prometheus
       metadata:

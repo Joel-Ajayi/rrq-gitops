@@ -11,8 +11,6 @@ const (
 	RetryBudgetMaxTokensFloor = 10
 	// RetryBudgetMinTokensRatio is the ratio of MaxTokens used to compute MinTokens
 	RetryBudgetMinTokensRatio = 0.10
-	// DBTargetUtilization is the target utilization (rho) for database connections
-	DBTargetUtilization = 0.65
 )
 
 // derive computes all per-service derived values by calling model functions from models.go.
@@ -261,7 +259,7 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 		}
 	}
 
-	rho := DBTargetUtilization
+	rho := svc.HPATargetCPU
 	minR := float64(d.MinReplicas)
 	if minR <= 0 {
 		minR = 1

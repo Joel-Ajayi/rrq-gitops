@@ -23,7 +23,7 @@ spec:
     limits: { cpu: "2", memory: 8Gi }
   postgresql:
     parameters:
-      max_connections: "955"
+      max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
       work_mem: "16Mi"
 
@@ -54,7 +54,7 @@ spec:
     limits: { cpu: "2", memory: 1.5Gi }
   postgresql:
     parameters:
-      max_connections: "955"
+      max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
       work_mem: "16Mi"
 
@@ -85,6 +85,6 @@ spec:
     limits: { cpu: "2", memory: 1.5Gi }
   postgresql:
     parameters:
-      max_connections: "955"
+      max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
       work_mem: "16Mi"
