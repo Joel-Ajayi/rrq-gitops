@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier3-event-pipeline
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-tier3-event-pipeline.json: |-
+    {
+      "title": "Tier 3: Async & Messaging Pipeline",
+      "uid": "tier3-event-pipeline",
+      "version": 1,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "tags": ["rrq", "tier-3"],
+      "templating": {
+        "list": [
+          {
+            "name": "topic",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "query": "label_values(kafka_consumer_group_lag, topic)",
+            "refresh": 1,
+            "sort": 1,
+            "multi": true,
+            "includeAll": true
+          },
+          {
+            "name": "consumer_group",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "query": "label_values(kafka_consumer_group_lag, group)",
+            "refresh": 1,
+            "sort": 1,
+            "multi": true,
+            "includeAll": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Consumer Group Lag",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [{
+            "expr": "sum(kafka_consumer_group_lag{topic=~\"$topic\", group=~\"$consumer_group\"}) by (group, topic)",
+            "legendFormat": "{{group}} - {{topic}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "short" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox Relay Lag",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [{
+            "expr": "rrq_outbox_lag_seconds",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Ingestion Rate",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [{
+            "expr": "sum(rate(rrq_dlq_ingestion_rate[1m])) by (service_name)",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Delivery Status",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [{
+            "expr": "sum(rate(rrq_webhook_deliveries_total[1m])) by (status)",
+            "legendFormat": "{{status}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        }
+      ]
+    }

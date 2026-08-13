@@ -309,27 +309,6 @@ spec:
             description: "Circuit breaker for database shard {{ $labels.circuit_breaker }} in Fraud Worker is Open."
             runbook_url: "https://wiki.rrq.local/runbooks/fraud-cb-open"
 
-    - name: rrq.recon.worker
-      rules:
-        - alert: ReconciliationRunnerFailed
-          expr: kube_job_status_failed{namespace="rrq", job_name=~"recon-worker-.*"} > 0
-          for: 0m
-          labels:
-            severity: critical
-          annotations:
-            summary: "Reconciliation CronJob Runner Failed"
-            description: "A nightly reconciliation batch runner execution failed. Check pod logs for invariant errors or db lock issues."
-            runbook_url: "https://wiki.rrq.local/runbooks/recon-failed"
-
-        - alert: ReconciliationRunnerStuck
-          expr: kube_job_status_active{namespace="rrq", job_name=~"recon-worker-.*"} > 0
-          for: 10m
-          labels:
-            severity: warning
-          annotations:
-            summary: "Reconciliation Runner Executing > 10m"
-            description: "The nightly reconciliation batch has been active for more than 10 minutes. A session lock might be stuck."
-            runbook_url: "https://wiki.rrq.local/runbooks/recon-stuck"
 
     - name: rrq.business
       rules:
@@ -373,15 +352,6 @@ spec:
             description: "Fraud worker detected excessive velocity limit violations. Possible automated attack or misconfigured rule."
             runbook_url: "https://wiki.rrq.local/runbooks/velocity-spike"
 
-        - alert: OutboxRelayNoPublish
-          expr: rate(rrq_outbox_events_published_total[5m]) == 0 and rrq_outbox_lag_seconds > 30
-          for: 2m
-          labels:
-            severity: warning
-          annotations:
-            summary: "Outbox relay not publishing despite backlog"
-            description: "Outbox relay has a backlog > 30s but no events are being published. Stuck relay loop."
-            runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-stuck"
 
         - alert: ConsumerBackoffDominant
           expr: rate(rrq_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5

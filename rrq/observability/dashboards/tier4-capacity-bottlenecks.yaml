@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rrq-tier4-capacity-bottlenecks
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  rrq-tier4-capacity-bottlenecks.json: |-
+    {
+      "title": "Tier 4: Infrastructure & Capacity Bottlenecks",
+      "uid": "tier4-capacity-bottlenecks",
+      "version": 1,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "tags": ["rrq", "tier-4"],
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Client Pool Utilization (Acquired vs Max)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            { "expr": "sum(rrq_pg_pool_acquired_conns) by (service_name)", "legendFormat": "{{service_name}} - Acquired" },
+            { "expr": "sum(rrq_pg_pool_max_conns) by (service_name)", "legendFormat": "{{service_name}} - Max" }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Empty Acquire Count (Starvation)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [{
+            "expr": "sum(rate(rrq_pg_pool_empty_acquire_count[1m])) by (service_name)",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "cps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "PostgreSQL Query Latency P99",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, service_name))",
+            "legendFormat": "{{service_name}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Memory Fragmentation Ratio",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [{
+            "expr": "redis_memory_fragmentation_ratio",
+            "legendFormat": "Ratio"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Broker Disk %",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [{
+            "expr": "kafka_log_disk_usage_bytes / kafka_log_disk_capacity_bytes * 100",
+            "legendFormat": "disk %"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "percent" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Under-Replicated Partitions",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [{
+            "expr": "kafka_topic_partition_under_replicated",
+            "legendFormat": "{{topic}}"
+          }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
