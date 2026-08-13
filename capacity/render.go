@@ -507,10 +507,26 @@ func renderKafka(dir string, svcs map[string]Derived, input *SLOInput) error {
 }
 
 func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string) error {
-	return writeYAML("capacity-output.yaml", map[string]interface{}{
-		"ceilings": pg, "kafka_cap": kc, "redis_cap": rc,
-		"services": svcs, "failures": fails, "warnings": warns,
-	})
+	uniqTopics := map[string]int{}
+	for _, d := range svcs {
+		for t, p := range d.Partitions {
+			if e, ok := uniqTopics[t]; !ok || p > e {
+				uniqTopics[t] = p
+			}
+		}
+	}
+
+	kc.Topics = uniqTopics
+
+	out := EngineOutput{
+		Ceilings:    pg,
+		KafkaCap:    kc,
+		RedisCap:    rc,
+		Services:    svcs,
+		Failures:    fails,
+		Warnings:    warns,
+	}
+	return writeYAML("capacity-output.yaml", out)
 }
 
 func configMap(name string, data map[string]string) map[string]interface{} {

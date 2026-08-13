@@ -205,73 +205,74 @@ type RelayConfig struct {
 // --- Output types ---
 
 type PGCeiling struct {
-	Instance        string
-	MaxConns        int // models.go: pgMaxConnections — derived from RAM + work_mem
-	OptimalActive   int
-	StorageGBPerDay float64
+	Instance        string  `yaml:"instance"`
+	MaxConns        int     `yaml:"max_conns"` // models.go: pgMaxConnections — derived from RAM + work_mem
+	OptimalActive   int     `yaml:"optimal_active"`
+	StorageGBPerDay float64 `yaml:"storage_gb_per_day"`
 }
 
 type KafkaCeiling struct {
-	ClusterCap      int
-	PerBrokerCap    int
-	FDWarning       bool
-	LatencyWarning  bool
-	Warnings        []string
-	StorageGBPerDay float64
+	ClusterCap      int            `yaml:"cluster_cap"`
+	PerBrokerCap    int            `yaml:"per_broker_cap"`
+	FDWarning       bool           `yaml:"fd_warning"`
+	LatencyWarning  bool           `yaml:"latency_warning"`
+	Warnings        []string       `yaml:"warnings,omitempty"`
+	StorageGBPerDay float64        `yaml:"storage_gb_per_day"`
+	Topics          map[string]int `yaml:"topics,omitempty"`
 }
 
 type RedisCeiling struct {
-	Node           int
-	MaxMemoryBytes int64
-	StorageGB      float64
+	Node           int     `yaml:"node"`
+	MaxMemoryBytes int64   `yaml:"max_memory_bytes"`
+	StorageGB      float64 `yaml:"storage_gb"`
 }
 
 type Derived struct {
-	Name                    string
-	PoolSize                int
-	Workers                 int
-	MinReplicas             int
-	MaxReplicas             int
-	MaxReplicasCap          int
-	Partitions              map[string]int
-	LagThreshold            int
-	HTTPPool                int
-	HTTPPerHost             int
-	HTTPPerHostCap          int
-	RelayReplicas           int
-	RelayFetchBatch         int
-	RelayPoolIntervalMS     int
-	RelayBatchTimeoutMS     int
-	SessionMs               int
-	HeartbeatMs             int
-	MaxRetries              int
-	BackoffBaseMS           int
-	BackoffCapMS            int
-	CPURequest              int
-	MemRequest              int
-	LatencyMS               map[string]float64
-	InstDemand              map[string]int // per-instance total connection demand
-	WebhookMaxConcurrency   int
-	BreakerEvictionTTLMS    int
-	ProcessTimeoutMs        int
-	CircuitBreakerTimeoutMs int
-	ShutdownTimeoutMs       int
-	DLQMaxRetries           int
-	DLQBaseDelayMs          int
-	DLQCapDelayMs           int
-	PerShardRW              map[string]int // per-pod, per-shard RW cap (keyed by shard ID)
-	PerShardRO              map[string]int // per-pod, per-shard RO cap (keyed by shard ID)
-	DLQWriteTimeoutMs       int            // outer DLQ write deadline (== total DLQ retry time, ≤ ProcessTimeoutMs)
-	FastLaneWorkerPoolSize  int            // engine-derived fast lane HTTP delivery pool size (webhook workers)
-	RetryBudgetMinTokens    int            // engine-derived cold-start retry token floor
-	RetryBudgetMaxTokens    int            // engine-derived peak volume retry token ceiling
+	Name                    string             `yaml:"name"`
+	PoolSize                int                `yaml:"pool_size"`
+	Workers                 int                `yaml:"workers"`
+	MinReplicas             int                `yaml:"min_replicas"`
+	MaxReplicas             int                `yaml:"max_replicas"`
+	MaxReplicasCap          int                `yaml:"max_replicas_cap"`
+	Partitions              map[string]int     `yaml:"partitions,omitempty"`
+	LagThreshold            int                `yaml:"lag_threshold"`
+	HTTPPool                int                `yaml:"http_pool"`
+	HTTPPerHost             int                `yaml:"http_per_host"`
+	HTTPPerHostCap          int                `yaml:"http_per_host_cap"`
+	RelayReplicas           int                `yaml:"relay_replicas"`
+	RelayFetchBatch         int                `yaml:"relay_fetch_batch"`
+	RelayPoolIntervalMS     int                `yaml:"relay_pool_interval_ms"`
+	RelayBatchTimeoutMS     int                `yaml:"relay_batch_timeout_ms"`
+	SessionMs               int                `yaml:"session_ms"`
+	HeartbeatMs             int                `yaml:"heartbeat_ms"`
+	MaxRetries              int                `yaml:"max_retries"`
+	BackoffBaseMS           int                `yaml:"backoff_base_ms"`
+	BackoffCapMS            int                `yaml:"backoff_cap_ms"`
+	CPURequest              int                `yaml:"cpu_request"`
+	MemRequest              int                `yaml:"mem_request"`
+	LatencyMS               map[string]float64 `yaml:"latency_ms"`
+	InstDemand              map[string]int     `yaml:"inst_demand,omitempty"` // per-instance total connection demand
+	WebhookMaxConcurrency   int                `yaml:"webhook_max_concurrency"`
+	BreakerEvictionTTLMS    int                `yaml:"breaker_eviction_ttl_ms"`
+	ProcessTimeoutMs        int                `yaml:"process_timeout_ms"`
+	CircuitBreakerTimeoutMs int                `yaml:"circuit_breaker_timeout_ms"`
+	ShutdownTimeoutMs       int                `yaml:"shutdown_timeout_ms"`
+	DLQMaxRetries           int                `yaml:"dlq_max_retries"`
+	DLQBaseDelayMs          int                `yaml:"dlq_base_delay_ms"`
+	DLQCapDelayMs           int                `yaml:"dlq_cap_delay_ms"`
+	PerShardRW              map[string]int     `yaml:"per_shard_rw,omitempty"`
+	PerShardRO              map[string]int     `yaml:"per_shard_ro,omitempty"`
+	DLQWriteTimeoutMs       int                `yaml:"dlq_write_timeout_ms"`
+	FastLaneWorkerPoolSize  int                `yaml:"fast_lane_worker_pool_size"`
+	RetryBudgetMinTokens    int                `yaml:"retry_budget_min_tokens"`
+	RetryBudgetMaxTokens    int                `yaml:"retry_budget_max_tokens"`
 }
 
 type EngineOutput struct {
-	Ceilings []PGCeiling
-	KafkaCap KafkaCeiling
-	RedisCap []RedisCeiling
-	Services map[string]Derived
-	Failures []string
-	Warnings []string
+	Ceilings    map[string]PGCeiling `yaml:"ceilings"`
+	KafkaCap    KafkaCeiling         `yaml:"kafka_cap"`
+	RedisCap    []RedisCeiling       `yaml:"redis_cap"`
+	Services    map[string]Derived   `yaml:"services"`
+	Failures    []string             `yaml:"failures,omitempty"`
+	Warnings    []string             `yaml:"warnings,omitempty"`
 }
