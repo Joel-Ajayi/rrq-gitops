@@ -1,3 +1,5 @@
 .env
 *.env
-secret.plain.yaml
+*.plain.yaml
+q_decisions/
+charts/
