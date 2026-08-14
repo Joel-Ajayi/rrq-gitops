@@ -8,27 +8,29 @@ This document provides the canonical technical specification for the **RRQ Infra
 
 RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **Argo CD**.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          rrq-gitops Repository                          │
-│                                                                         │
-│  apps/ (App of Apps)                                                    │
-│    ├── root-app.yaml ───► Discovers all environment apps               │
-│    └── environments/                                                    │
-│          ├── dev.yaml    ───► Syncs rrq/overlays/dev/                  │
-│          └── prod.yaml   ───► Syncs rrq/overlays/prod/                 │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     │ Argo CD Pull (Polling & Webhooks)
-                                     v
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Target Kubernetes Cluster                      │
-│                                                                         │
-│  Argo CD Application Controller                                         │
-│    ├── Applies Kustomize Overlays                                       │
-│    ├── Enforces Sync Waves (-2 to 2)                                    │
-│    └── Reconciles Drift Automatically                                   │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+  subgraph GitOps Source Control
+    repo["rrq-gitops Repository"]
+    rootApp["apps/root-app.yaml<br/>(Discovers environment apps)"]
+    devApp["apps/dev-app.yaml<br/>(Syncs rrq/overlays/dev)"]
+    prodApp["apps/prod-app.yaml<br/>(Syncs rrq/overlays/prod)"]
+
+    repo --> rootApp
+    rootApp --> devApp
+    rootApp --> prodApp
+  end
+
+  subgraph Target Kubernetes Cluster
+    argocd["Argo CD Application Controller"]
+    kustomize["Kustomize Overlay Processor"]
+    clusterState[("Live Cluster State<br/>(Sync Waves -2 to 2)")]
+
+    devApp -.->|Poll & Sync| argocd
+    prodApp -.->|Poll & Sync| argocd
+    argocd --> kustomize
+    kustomize -->|Reconcile & Self-Heal| clusterState
+  end
 ```
 
 ### Core Operating Principles

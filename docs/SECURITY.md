@@ -6,30 +6,22 @@ This document details the security posture, network isolation boundaries, RBAC p
 
 ## 1. Multi-Layer Security Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: Edge Security (Envoy Gateway)                     │
-│  - TLS Termination                                          │
-│  - Edge JWT Signature Verification (SecurityPolicy)         │
-│  - Rate Limiting                                            │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 2: Network Isolation (Kubernetes NetworkPolicies)    │
-│  - Default-Deny Ingress across all namespaces               │
-│  - Explicit pod-to-pod ingress allow rules                  │
-│  - Default-Deny Egress in Production                        │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 3: Pod Security Standards (Restricted Profile)       │
-│  - runAsNonRoot: true (UID 1000)                            │
-│  - readOnlyRootFilesystem: true                             │
-│  - allowPrivilegeEscalation: false                          │
-│  - capabilities: drop [ALL]                                 │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+  subgraph Layer 1: Edge Security
+    gateway["Envoy Gateway<br/>(TLS Termination · Edge JWT SecurityPolicy · Rate Limiting)"]
+  end
+
+  subgraph Layer 2: Network Isolation
+    netpol["Kubernetes NetworkPolicies<br/>(Default-Deny Ingress & Egress · Pod-Level Allow Rules)"]
+  end
+
+  subgraph Layer 3: Workload Security Context
+    pod["Pod Security Standards (Restricted Profile)<br/>(runAsNonRoot · readOnlyRootFilesystem · drop ALL capabilities)"]
+  end
+
+  gateway --> netpol
+  netpol --> pod
 ```
 
 ---
