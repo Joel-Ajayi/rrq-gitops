@@ -20,10 +20,10 @@ import (
 //   - base/config/<svc>-configmap.yaml : derived env vars
 //   - base/postgres/shards.yaml   : PG Cluster spec.postgresql.parameters.max_connections
 func renderManifests(svcs map[string]Derived, pg map[string]PGCeiling, input *SLOInput, rootDir string) error {
-	svcDir := filepath.Join(rootDir, "rrq", "base", "services")
-	topicFile := filepath.Join(rootDir, "rrq", "base", "kafka", "topics.yaml")
-	configDir := filepath.Join(rootDir, "rrq", "base", "config")
-	pgFile := filepath.Join(rootDir, "rrq", "base", "postgres", "shards.yaml")
+	svcDir := filepath.Join(rootDir, "base", "services")
+	topicFile := filepath.Join(rootDir, "base", "kafka", "topics.yaml")
+	configDir := filepath.Join(rootDir, "base", "config")
+	pgFile := filepath.Join(rootDir, "base", "postgres", "shards.yaml")
 
 	// 1. Patch KEDA ScaledObject maxReplicaCount and lagThreshold
 	for name, d := range svcs {

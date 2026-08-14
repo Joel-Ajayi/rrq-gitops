@@ -20,13 +20,14 @@ build:
 	$(GO) build -o $(BINARY) .
 
 verify: run
-	@echo "Engine run complete; check exit code and ../rrq/base/config/ for output"
+	@echo "Engine run complete; check exit code and ../../base/config/ for output"
 
 fmt:
 	gofmt -w *.go
 
-clean:
+.PHONY: clean
+clean: ## Remove generated files
 	rm -f $(BINARY)
-	rm -f ../rrq/base/config/capacity-output.yaml
-	rm -f ../rrq/base/config/rrq-platform-config.yaml
-	rm -f ../rrq/base/config/*-configmap.yaml
+	rm -f ../../base/config/capacity-output.yaml
+	rm -f ../../base/config/rrq-platform-config.yaml
+	rm -f ../../base/config/*-configmap.yaml

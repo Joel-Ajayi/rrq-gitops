@@ -22,12 +22,6 @@ func render(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, r
 			return err
 		}
 	}
-	if err := renderRRQConfig(dir, svcs, input); err != nil {
-		return err
-	}
-	if err := renderKafka(dir, svcs, input); err != nil {
-		return err
-	}
 	return renderReport(dir, svcs, pg, kc, rc, fails, warns)
 }
 
@@ -135,18 +129,18 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		"DB_POOL_SIZE":     fmt.Sprintf("%d", d.PoolSize),
 		"WORKER_POOL_SIZE": fmt.Sprintf("%d", d.Workers),
 		// ProcessTimeout (per-message deadline, SLO-derived via Kingman)
-		"REQUEST_TIMEOUT_MS":     fmt.Sprintf("%d", d.ProcessTimeoutMs),
-		"SERVER_TIMEOUT_MS":      fmt.Sprintf("%d", d.SessionMs),
-		"SHUTDOWN_TIMEOUT_MS":    fmt.Sprintf("%d", d.ShutdownTimeoutMs),
-		"SERVER_IDLE_TIMEOUT_MS": fmt.Sprintf("%d", serverIdleTimeout(d.SessionMs, d.HeartbeatMs)),
-		"MAX_RETRIES":            fmt.Sprintf("%d", d.MaxRetries),
-		"BACKOFF_BASE_MS":        fmt.Sprintf("%d", d.BackoffBaseMS),
-		"BACKOFF_CAP_MS":         fmt.Sprintf("%d", d.BackoffCapMS),
-		"DLQ_MAX_RETRIES":        fmt.Sprintf("%d", d.DLQMaxRetries),
-		"DLQ_BASE_DELAY_MS":      fmt.Sprintf("%d", d.DLQBaseDelayMs),
-		"DLQ_CAP_DELAY_MS":       fmt.Sprintf("%d", d.DLQCapDelayMs),
-		"DLQ_WRITE_TIMEOUT_MS":   fmt.Sprintf("%d", d.DLQWriteTimeoutMs),
-		"POD_MEM_REQUEST_MIB":    fmt.Sprintf("%d", d.MemRequest),
+		"REQUEST_TIMEOUT_MS":      fmt.Sprintf("%d", d.ProcessTimeoutMs),
+		"SERVER_TIMEOUT_MS":       fmt.Sprintf("%d", d.SessionMs),
+		"SHUTDOWN_TIMEOUT_MS":     fmt.Sprintf("%d", d.ShutdownTimeoutMs),
+		"SERVER_IDLE_TIMEOUT_MS":  fmt.Sprintf("%d", serverIdleTimeout(d.SessionMs, d.HeartbeatMs)),
+		"MAX_RETRIES":             fmt.Sprintf("%d", d.MaxRetries),
+		"BACKOFF_BASE_MS":         fmt.Sprintf("%d", d.BackoffBaseMS),
+		"BACKOFF_CAP_MS":          fmt.Sprintf("%d", d.BackoffCapMS),
+		"DLQ_MAX_RETRIES":         fmt.Sprintf("%d", d.DLQMaxRetries),
+		"DLQ_BASE_DELAY_MS":       fmt.Sprintf("%d", d.DLQBaseDelayMs),
+		"DLQ_CAP_DELAY_MS":        fmt.Sprintf("%d", d.DLQCapDelayMs),
+		"DLQ_WRITE_TIMEOUT_MS":    fmt.Sprintf("%d", d.DLQWriteTimeoutMs),
+		"POD_MEM_REQUEST_MIB":     fmt.Sprintf("%d", d.MemRequest),
 		"RETRY_BUDGET_MIN_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMinTokens),
 		"RETRY_BUDGET_MAX_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMaxTokens),
 		"RETRY_BUDGET_FRACTION":   fmt.Sprintf("%g", input.Defaults.RetryBudgetFraction),
@@ -284,19 +278,6 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		prefixed[prefix+"_"+k] = v
 	}
 	return writeYAML(dir+"/"+name+"-configmap.yaml", configMap(name+"-config", prefixed))
-}
-
-func renderRRQConfig(dir string, svcs map[string]Derived, input *SLOInput) error {
-	m := platformData(input, svcs)
-	for name, d := range svcs {
-		svc := findService(input, name)
-		if svc != nil {
-			for k, v := range serviceValues(name, d, svc, input) {
-				m[k] = v
-			}
-		}
-	}
-	return writeYAML(dir+"/rrq-config.yaml", configMap("rrq-config", m))
 }
 
 func platformData(input *SLOInput, svcs map[string]Derived) map[string]string {
@@ -486,26 +467,6 @@ func findService(input *SLOInput, name string) *Service {
 	return nil
 }
 
-func renderKafka(dir string, svcs map[string]Derived, input *SLOInput) error {
-	uniq := map[string]int{}
-	for _, d := range svcs {
-		for t, p := range d.Partitions {
-			if e, ok := uniq[t]; !ok || p > e {
-				uniq[t] = p
-			}
-		}
-	}
-	m := map[string]string{}
-	for t, p := range uniq {
-		m["topic."+t+".partitions"] = fmt.Sprintf("%d", p)
-		m["topic."+t+".replicas"] = fmt.Sprintf("%d", input.Infra.Kafka.ReplicationFactor)
-	}
-	if len(m) == 0 {
-		return nil
-	}
-	return writeYAML(dir+"/kafka-topics-configmap.yaml", configMap("rrq-kafka-topics", m))
-}
-
 func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string) error {
 	uniqTopics := map[string]int{}
 	for _, d := range svcs {
@@ -519,12 +480,12 @@ func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, 
 	kc.Topics = uniqTopics
 
 	out := EngineOutput{
-		Ceilings:    pg,
-		KafkaCap:    kc,
-		RedisCap:    rc,
-		Services:    svcs,
-		Failures:    fails,
-		Warnings:    warns,
+		Ceilings: pg,
+		KafkaCap: kc,
+		RedisCap: rc,
+		Services: svcs,
+		Failures: fails,
+		Warnings: warns,
 	}
 	return writeYAML("capacity-output.yaml", out)
 }
