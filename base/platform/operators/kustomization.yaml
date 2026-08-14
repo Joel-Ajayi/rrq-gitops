@@ -1,0 +1,92 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources: []
+
+helmCharts:
+  - name: sealed-secrets
+    repo: https://bitnami.github.io/sealed-secrets
+    version: 2.19.1
+    releaseName: sealed-secrets
+    namespace: kube-system
+
+  - name: cloudnative-pg
+    repo: https://cloudnative-pg.github.io/charts
+    version: 0.29.0
+    releaseName: cnpg
+    namespace: cnpg-system
+
+  - name: strimzi-kafka-operator
+    repo: https://strimzi.io/charts/
+    version: 1.1.0
+    releaseName: strimzi
+    namespace: strimzi-system
+    valuesInline:
+      watchAnyNamespace: true
+
+  - name: gateway-helm
+    repo: oci://registry-1.docker.io/envoyproxy
+    version: v1.8.2
+    releaseName: envoy-gateway
+    namespace: envoy-gateway-system
+
+  - name: keda
+    repo: https://kedacore.github.io/charts
+    version: 2.20.1
+    releaseName: keda
+    namespace: keda
+
+  - name: cert-manager
+    repo: https://charts.jetstack.io
+    version: v1.21.0
+    releaseName: cert-manager
+    namespace: cert-manager
+    valuesInline:
+      crds:
+        enabled: true
+
+  - name: eck-operator
+    repo: https://helm.elastic.co
+    version: 3.4.1
+    releaseName: eck-operator
+    namespace: elastic-system
+    valuesInline:
+      installCRDs: true
+      logLevel: info
+
+  - name: kube-prometheus-stack
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 87.17.0
+    releaseName: kube-prometheus-stack
+    namespace: observability
+    valuesInline:
+      grafana:
+        grafana.ini:
+          auth.anonymous:
+            enabled: true
+            org_role: Viewer
+        env:
+          JAEGER_AGENT_PORT: ""
+      prometheusOperator:
+        tls:
+          enabled: false
+        admissionWebhooks:
+          enabled: false
+      alertmanager:
+        alertmanagerSpec:
+          alertmanagerConfigSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: rrq
+
+  - name: opentelemetry-operator
+    repo: https://open-telemetry.github.io/opentelemetry-helm-charts
+    version: 0.120.0
+    releaseName: opentelemetry-operator
+    namespace: observability
+    valuesInline:
+      admissionWebhooks:
+        certManager:
+          enabled: true
+      manager:
+        collectorImage:
+          repository: otel/opentelemetry-collector-contrib
