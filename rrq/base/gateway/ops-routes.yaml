@@ -34,14 +34,12 @@ spec:
   hostnames:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
-    - "growth.127.0.0.1.nip.io"
-    - "growth.rrq.yotstack.tech"
   rules:
     # Tier 1: Business & SLOs Overview
     - matches:
         - path:
             type: Exact
-            value: /executive
+            value: /executive2
       filters:
         - type: RequestRedirect
           requestRedirect:
@@ -49,6 +47,15 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
             statusCode: 302
+    # Prometheus Route under /execute
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /execute
+      backendRefs:
+        - name: kube-prometheus-stack-prometheus
+          namespace: observability
+          port: 9090
     # Tier 2: User Journeys & Flows
     - matches:
         - path:
@@ -106,29 +113,6 @@ spec:
         - name: kube-prometheus-stack-grafana
           namespace: observability
           port: 80
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: prometheus-route
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  parentRefs:
-    - name: rrq-gateway
-  hostnames:
-    - "prometheus.127.0.0.1.nip.io"
-    - "prometheus.rrq.yotstack.tech"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: kube-prometheus-stack-prometheus
-          namespace: observability
-          port: 9090
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
