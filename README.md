@@ -34,19 +34,20 @@ For production Kubernetes environments (e.g. DigitalOcean DOKS, EKS, GKE):
    ```bash
    kubectl apply -f apps/root-app.yaml
    ```
-3. **Configure DNS & LoadBalancer Hostnames**:
-   Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
-   ```bash
-   kubectl get svc -n envoy-gateway-system
-   ```
-   Point your domain's wildcard A record (`*.rrq.yotstack.tech`) to the LoadBalancer IP address. Production endpoints will be automatically routed and secured via Let's Encrypt TLS:
-   - **API Core Gateway**: `https://api.rrq.yotstack.tech/v1/transfers`
-   - **Executive Dashboard**: `https://cluster.rrq.yotstack.tech`
-   - **User Journeys Dashboard**: `https://growth.rrq.yotstack.tech`
-   - **Service Health RED Dashboard**: `https://metrics.rrq.yotstack.tech`
-   - **Middleware USE Dashboard**: `https://logs.rrq.yotstack.tech`
-   - **Infrastructure USE Dashboard**: `https://traces.rrq.yotstack.tech`
-   - **Prometheus UI**: `https://prometheus.rrq.yotstack.tech`
+3. **Configure Custom Production Domain**:
+   - Update `hostname` attributes in `rrq/overlays/prod/services/gateway.yaml` replacing `<your-domain.com>` with your production domain.
+   - Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
+     ```bash
+     kubectl get svc -n envoy-gateway-system
+     ```
+   - Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP address. Production endpoints will be automatically routed and secured via Let's Encrypt TLS:
+     - **API Core Gateway**: `https://api.<your-domain.com>/v1/transfers`
+     - **Executive Dashboard**: `https://cluster.<your-domain.com>`
+     - **User Journeys Dashboard**: `https://growth.<your-domain.com>`
+     - **Service Health RED Dashboard**: `https://metrics.<your-domain.com>`
+     - **Middleware USE Dashboard**: `https://logs.<your-domain.com>`
+     - **Infrastructure USE Dashboard**: `https://traces.<your-domain.com>`
+     - **Prometheus UI**: `https://prometheus.<your-domain.com>`
 
 ---
 
