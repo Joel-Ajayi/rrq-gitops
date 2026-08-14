@@ -10,81 +10,84 @@ RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **
 
 ```mermaid
 graph TD
-  subgraph GitOps Source Control
-    repo["rrq-gitops Repository"]
-    rootApp["apps/root-app.yaml<br/>(Discovers environment apps)"]
-    devApp["apps/dev-app.yaml<br/>(Syncs rrq/overlays/dev)"]
-    prodApp["apps/prod-app.yaml<br/>(Syncs rrq/overlays/prod)"]
+  subgraph "Git Repository (rrq-gitops)"
+    rootApp["bootstrap/root-app-prod.yaml<br/>(Root Application)"]
+    apps["apps/<br/>(4 child Application manifests)"]
+    overlays["overlays/prod/<br/>(Kustomize overlays)"]
 
-    repo --> rootApp
-    rootApp --> devApp
-    rootApp --> prodApp
+    rootApp -->|"points to"| apps
+    apps -->|"each Application points to"| overlays
   end
 
-  subgraph Target Kubernetes Cluster
-    argocd["Argo CD Application Controller"]
-    kustomize["Kustomize Overlay Processor"]
-    clusterState[("Live Cluster State<br/>(Sync Waves -2 to 2)")]
+  subgraph "Target Kubernetes Cluster"
+    argocd["Argo CD Controller"]
+    waves["Sync Wave Engine<br/>(Strict ordering -2 → 0 → 1 → 2)"]
+    cluster[("Live Cluster State")]
 
-    devApp -.->|Poll & Sync| argocd
-    prodApp -.->|Poll & Sync| argocd
-    argocd --> kustomize
-    kustomize -->|Reconcile & Self-Heal| clusterState
+    rootApp -.->|"kubectl apply"| argocd
+    argocd --> waves
+    waves -->|"Reconcile & Self-Heal"| cluster
   end
 ```
 
 ### Core Operating Principles
 1. **Pull-Based Synchronization**: Argo CD runs inside the cluster, polling Git for desired state changes. No CI runner or developer holds static cluster admin credentials.
-2. **Kustomize Overlays**: Infrastructure bases (`rrq/base/`) are customized for `dev` and `prod` using Kustomize overlays (`rrq/overlays/`).
+2. **Kustomize Overlays**: Infrastructure bases (`base/`) are customized for `dev` and `prod` using Kustomize overlays (`overlays/`).
 3. **Automated Self-Healing**: Live cluster resources that drift from Git are automatically overwritten to match the declared Git state.
+4. **Strict Operator/CR Separation**: All CRD-installing operators deploy in Wave -2. Custom Resources that depend on those CRDs deploy in later waves, guaranteeing zero race conditions.
 
 ---
 
-## 2. Argo CD "App of Apps" Pattern
+## 2. App-of-Apps Pattern
 
-The infrastructure uses a single root Application (`apps/root-app.yaml`) that monitors the `apps/` directory and automatically instantiates environment-specific sub-applications:
+The production infrastructure uses a **Root Application** (`bootstrap/root-app-prod.yaml`) that points at the `apps/` directory. Inside `apps/`, four child `Application` manifests define the deployment cascade:
 
-- **`apps/dev-app.yaml`**: Manages the local Kind development cluster workloads.
-- **`apps/prod-app.yaml`**: Manages DigitalOcean Kubernetes (DOKS) production workloads.
+| File | Application Name | Sync Wave | Target Overlay |
+|------|-----------------|-----------|----------------|
+| `apps/00-operators.yaml` | `operators` | `-2` | `overlays/prod/operators` |
+| `apps/01-datastores.yaml` | `datastores` | `0` | `overlays/prod/datastores` |
+| `apps/01-observability.yaml` | `observability` | `1` | `overlays/prod/observability` |
+| `apps/02-workloads.yaml` | `workloads` | `2` | `overlays/prod/workloads` |
+
+Argo CD reads the `sync-wave` annotations and deploys them sequentially, **waiting for each wave to become fully Healthy** before proceeding to the next.
+
+### Local Dev Bypass
+In local development, Argo CD is **not used**. Running `make bootstrap ENV=dev` directly applies overlays via sequential `kubectl apply -k` calls, preserving the same strict ordering while allowing uncommitted local changes to take effect immediately.
 
 ---
 
 ## 3. Sync Wave Execution Order
 
-Argo CD Sync Waves guarantee that resources are created in strict dependency order during cluster provisioning:
+| Wave | Phase | What Deploys | Why This Order |
+|------|-------|-------------|----------------|
+| **`-2`** | Operators | Sealed Secrets, CloudNativePG, Strimzi Kafka, Envoy Gateway, KEDA, cert-manager, ECK, kube-prometheus-stack, OpenTelemetry Operator | Registers all CRDs first. Must be healthy before any CR is created. |
+| **`0`** | Datastores | PostgreSQL Clusters (`merchants-db`, `shard-a`, `shard-b`), Kafka Cluster & Topics, Redis | Stateful services depend on CNPG and Strimzi operators from Wave -2. |
+| **`1`** | Observability | OTel Collectors, Grafana Dashboards, ServiceMonitors, PrometheusRules, AlertmanagerConfig, Jaeger, Elasticsearch, Kibana, Portainer, Gateway ops-routes | Monitoring depends on kube-prometheus-stack and ECK operators from Wave -2. |
+| **`2`** | Workloads | core-api, ledger-worker, outbox-relay, webhook-worker, fraud-worker, Gateway, HTTPRoutes, SecurityPolicies, Migrations | Application services depend on databases (Wave 0) and Gateway operator (Wave -2). |
 
-| Wave | Phase / Target | Responsibilities & Resources |
-|---|---|---|
-| **`-2`** | Core Security | **Sealed Secrets Controller**. Must run before any encrypted secrets are applied. |
-| **`-1`** | Infrastructure Operators | **CloudNativePG**, **Strimzi Kafka**, **KEDA**, **Envoy Gateway**, **cert-manager**, **OTel Operator**. |
-| **`0`** | Stateful Clusters & Ops | **PostgreSQL Clusters** (`merchants-db`, `shard-a`, `shard-b`), **Strimzi Kafka Cluster**, **Redis Sentinel**, **kube-prometheus-stack**. |
-| **`1`** | Data Provisioning | **Database Migration Jobs** & Seed Data Scripts. Depend on Postgres HA readiness. |
-| **`2`** | Microservices | **Application Deployments** (`core-api`, `ledger-worker`, `outbox-relay`, `webhook-worker`, `fraud-worker`, `recon-worker`). |
+### Critical Design Rule: Operator/CR Separation
+
+**All Helm charts that install CRDs live exclusively in `base/platform/operators/`** (Wave -2). Custom Resources that consume those CRDs (e.g., `ServiceMonitor`, `Gateway`, `Cluster`, `Kafka`, `ScaledObject`, `Instrumentation`) live in `observability`, `datastores`, or `workloads` (Waves 0–2).
+
+This eliminates the most dangerous class of GitOps race conditions: attempting to create a Custom Resource before the Kubernetes API has registered its CRD.
 
 ---
 
 ## 4. Managed Infrastructure Operators
 
-### 4.1 CloudNativePG (PostgreSQL 17 HA)
-- **Clusters**:
-  - `merchants-db`: Global merchant directory & routing table.
-  - `shard-a`, `shard-b`: Sharded financial ledger databases.
-- **High Availability**: 3 instances per cluster (1 Primary, 2 Standbys) with synchronous WAL replication.
-- **Backup Strategy**: Continuous Barman ObjectStore WAL streaming to S3 with 30-day retention for Point-in-Time Recovery (PITR).
+All operators are installed as Helm charts in `base/platform/operators/kustomization.yaml`:
 
-### 4.2 Strimzi Kafka (KRaft Mode)
-- **Version**: Kafka 3.9+ running in KRaft mode (no ZooKeeper dependency).
-- **Topology**: 3 dual-role replicas (`controller` + `broker`).
-- **Topics**:
-  - `jobs`: Microservice job execution events.
-  - `notify`: Webhook event stream (partitioned by `merchant_id` for strict sequence delivery).
-
-### 4.3 Envoy Gateway (Kubernetes Gateway API)
-- **Standard**: Implements `gateway.networking.k8s.io` specifications.
-- **Capabilities**: Edge TLS termination, HTTPRoute path routing, and edge JWT signature verification (`SecurityPolicy`).
-
-### 4.4 KEDA (Kubernetes Event-Driven Autoscaling)
-- **Scaling Triggers**: Scales worker deployment replicas (`ledger-worker`, `webhook-worker`) dynamically based on Kafka topic consumer group lag.
+| Operator | Helm Chart | CRDs Registered | Namespace |
+|----------|-----------|-----------------|-----------|
+| Sealed Secrets | `sealed-secrets` | `SealedSecret` | `kube-system` |
+| CloudNativePG | `cloudnative-pg` | `Cluster`, `Pooler`, `Backup` | `cnpg-system` |
+| Strimzi Kafka | `strimzi-kafka-operator` | `Kafka`, `KafkaTopic`, `KafkaNodePool` | `strimzi-system` |
+| Envoy Gateway | `gateway-helm` | `GatewayClass`, `Gateway`, `HTTPRoute` | `envoy-gateway-system` |
+| KEDA | `keda` | `ScaledObject`, `TriggerAuthentication` | `keda` |
+| cert-manager | `cert-manager` | `ClusterIssuer`, `Certificate` | `cert-manager` |
+| ECK Operator | `eck-operator` | `Elasticsearch`, `Kibana` | `elastic-system` |
+| kube-prometheus-stack | `kube-prometheus-stack` | `ServiceMonitor`, `PrometheusRule`, `AlertmanagerConfig` | `observability` |
+| OpenTelemetry Operator | `opentelemetry-operator` | `Instrumentation`, `OpenTelemetryCollector` | `observability` |
 
 ---
 
@@ -99,4 +102,8 @@ Argo CD Sync Waves guarantee that resources are created in strict dependency ord
 | `strimzi-system` | Strimzi operator | Kafka broker manager |
 | `envoy-gateway-system` | Envoy Gateway controller | Ingress proxy manager |
 | `keda` | KEDA operator | Kafka autoscaler |
-| `sealed-secrets` | Sealed Secrets controller | Decrypts in-cluster secrets |
+| `kube-system` | Sealed Secrets controller | Decrypts in-cluster secrets |
+| `cert-manager` | cert-manager | TLS certificate automation |
+| `elastic-system` | ECK operator | Elasticsearch cluster manager |
+| `redis` | Redis Sentinel | In-memory cache & idempotency store |
+| `portainer` | Portainer | Kubernetes cluster management UI |

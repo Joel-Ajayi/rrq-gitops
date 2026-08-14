@@ -1,114 +1,98 @@
-# Technical Interview Q&A: Core System Architecture & Ledger Design
+# Questioning Decisions: Core Architecture & Ledger Design
 
-This document contains deep-dive interview questions and rigorous architectural explanations covering RRQ's closed-loop ledger design, transaction boundaries, database sharding, cross-shard clearing sagas, and idempotency guarantees.
-
----
-
-## Q1: Why build RRQ as a closed-loop ledger instead of integrating directly with external banking or card networks?
-
-### Answer:
-In payment systems engineering, **external leg integrations** (card networks, bank APIs, clearing houses) and **correctness-critical core ledgers** have fundamentally different failure characteristics:
-
-1. **Failure Domain Isolation**: External bank leg integrations require managing regulatory compliance (KYC/AML), PCI-DSS tokenization, ISO 8583 message parsing, and external network timeouts. These integrations are prone to transient external outages, network drops, and non-deterministic third-party responses.
-2. **Deterministic Correctness Core**: Money is lost silently when distributed state changes are split across network boundaries without strict transactional boundaries. Scoping RRQ as a **closed-loop ledger** means value moves exclusively between internal merchant wallets inside the system. 
-3. **Single Transaction Boundary**: Because both the source and target wallets share internal database storage, intra-shard transfers execute in **one serializable PostgreSQL transaction**. This completely eliminates distributed sagas, compensating undo operations, and distributed locks for over 85% of system traffic.
+This document explicitly questions every major architectural choice made in RRQ's core engine, detailing **why X was chosen**, **why alternative Y was rejected**, **what trade-offs were accepted**, and **when the decision would be wrong**.
 
 ---
 
-## Q2: How does RRQ enforce "Conservation of Value" (Invariant I1) under high concurrency and node crashes?
+## Decision 1: Closed-Loop Ledger vs Open-Loop / External Settlement Core
 
-### Answer:
-Conservation of value guarantees that every transfer posts exactly one debit leg and one credit leg of equal magnitude ($| \text{debit} | = \text{credit}$), and money is never created or destroyed.
+### Question:
+Why build RRQ as a **closed-loop ledger** where money only moves internally between system wallets, rather than integrating external bank and card network settlement directly into the core execution engine?
 
-1. **Single Transaction Commit**: The debit leg (`-amount`) and credit leg (`+amount`) are inserted into `ledger_entries` within the **same PostgreSQL transaction**. If the worker process dies mid-operation or the database connection drops, PostgreSQL rolls back the entire transaction. A "half-posted" transfer cannot exist on disk.
-2. **Constraint Enforcement**: A `UNIQUE (transfer_id, leg)` constraint on the `ledger_entries` table prevents message redeliveries (from Kafka or retries) from inserting duplicate legs.
-3. **Audit Verification**: The `recon-worker` executes a nightly batch job that re-derives balances by summing all append-only `ledger_entries` rows ($\sum \text{amount}$) per wallet and asserts that the net global sum matches opening balances.
+### Why Closed-Loop Core (Chosen):
+1. **Single Database Transaction**: Because both source and destination wallets reside on system-controlled storage, common intra-shard transfers execute in **one serializable PostgreSQL transaction**.
+2. **Elimination of Distributed Sagas for 85%+ Traffic**: Eliminates distributed locks, 2PC network round-trips, and complex compensation sagas for intra-shard transfers.
+3. **Deterministic Failure Domain**: External bank API drops, ISO 8583 timeouts, and PCI-DSS card network delays are isolated outside the core execution loop.
+
+### Why Open-Loop Integration in Core (Rejected):
+Integrating external banking APIs directly inside the transfer loop forces every payment to wait on non-deterministic external network calls ($1\text{s} - 30\text{s}$ latency), introduces non-atomic failure states (bank debited, database crashed), and requires managing complex distributed saga locks across external networks.
+
+### Accepted Trade-offs:
+- Money must be deposited into the system (via operator wallet funding) before transfers can occur.
+- External payout legs must be handled by separate downstream integration services.
+
+### When this Decision is WRONG:
+If the platform's primary requirement is processing direct credit card processing (e.g. Stripe checkout) or instant external wire transfers where money must land in an external bank account synchronously within the primary request latency budget.
 
 ---
 
-## Q3: How do intra-shard transfers differ from cross-shard transfers in RRQ?
+## Decision 2: 2-Phase Clearing Account Saga vs 2PC / XA Distributed Transactions for Cross-Shard Transfers
 
-### Answer:
-The system balances write scalability and correctness by separating intra-shard transfers from cross-shard transfers based on database sharding:
+### Question:
+When a transfer crosses database shards, why use an **asynchronous 2-Phase Clearing Account Saga** instead of two-phase commit (2PC / XA) to atomically update both shards?
 
+### Why 2-Phase Clearing Account Saga (Chosen):
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SA as Shard A (Source Wallet)
+    participant K as Kafka Outbox
+    participant SB as Shard B (Destination Wallet)
+
+    SA->>SA: Debit Wallet & Credit Clearing Account (Local Tx 1)
+    SA->>K: Produce xshard.transfer.requested
+    K->>SB: Consume xshard.transfer.requested
+    SB->>SB: Debit Clearing Account & Credit Target Wallet (Local Tx 2)
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-|                              SHARD ROUTING RING                             |
-|                           (merchant_id hash ring)                           |
-└──────────────────────┬──────────────────────────────┬───────────────────────┘
-                       │                              │
-                       v                              v
-            ┌──────────────────────┐      ┌──────────────────────┐
-            │       SHARD A        │      │       SHARD B        │
-            │  (Merchant 101, 102) │      │  (Merchant 201, 202) │
-            └──────────────────────┘      └──────────────────────┘
-```
+1. **No Distributed Lock Across Network**: Phase 1 locks only Shard A. Phase 2 locks only Shard B. Neither transaction holds database row locks across the network.
+2. **High Availability**: If Shard B is temporarily undergoing failover, Shard A still completes Phase 1 cleanly and queues Phase 2 in Kafka.
 
-| Dimension | Intra-Shard Transfer | Cross-Shard Transfer |
-|---|---|---|
-| **Condition** | `from_wallet` and `to_wallet` belong to merchants on the **same DB shard**. | `from_wallet` and `to_wallet` belong to merchants on **different DB shards**. |
-| **Transaction Model** | Single `SERIALIZABLE` local transaction. | 2-Phase Clearing Account Saga. |
-| **Latency Profile** | Low latency (<20ms). Single DB commit. | Asynchronous 2-phase commit (<500ms). |
-| **Locking** | `SELECT ... FOR UPDATE` on both wallet rows. | Phase 1 local lock on source shard; Phase 2 local lock on dest shard. No cross-network lock. |
-| **Compensation Path** | None needed (local rollback on error). | Reversal transaction on source shard if Phase 2 fails. |
+### Why 2PC / XA (Rejected):
+Two-phase commit holds row locks on Shard A while negotiating network consensus with Shard B. If Shard B drops connection or experiences a disk stall during Phase 2, Shard A remains locked indefinitely, cascading lock starvation across the entire cluster.
+
+### Accepted Trade-offs:
+- Transfers across shards are **eventually consistent** (Phase 2 completes in $<500\text{ms}$).
+- Funds temporarily reside in system clearing accounts during transit.
+
+### When this Decision is WRONG:
+If strict real-time ACID consistency across distinct physical database servers is required such that a user must observe the target wallet credited in the exact same database microsecond as the debit.
 
 ---
 
-## Q4: How does the 2-Phase Clearing Account Saga handle cross-shard transfer failures?
+## Decision 3: Postgres `UNIQUE (merchant_id, idempotency_key)` vs Volatile Redis Idempotency Cache
 
-### Answer:
-When a transfer crosses database shards, a single ACID transaction cannot span both databases without 2PC network locks (which introduce severe latency and lock starvation). RRQ uses an asynchronous 2-phase clearing protocol with an intermediate clearing account:
+### Question:
+Why enforce idempotency using PostgreSQL database constraints rather than a high-performance Redis key-value store?
 
-1. **Phase 1 (Source Shard)**:
-   - Debit source wallet ($-\text{amount}$).
-   - Credit source shard's system clearing account ($+\text{amount}$).
-   - Insert `cross_shard_transfer` record with status `pending`.
-   - Emit `xshard.transfer.requested` to Kafka outbox.
-2. **Phase 2 (Destination Shard)**:
-   - Consumer reads `xshard.transfer.requested`.
-   - Debit destination shard clearing account ($-\text{amount}$).
-   - Credit target wallet ($+\text{amount}$).
-   - Emit `xshard.transfer.confirmed`.
-3. **Compensation (If Target Wallet Closed/Frozen)**:
-   - Destination shard emits `xshard.transfer.rejected`.
-   - Source shard consumer catches rejection and executes a compensation transaction: credit source wallet ($+\text{amount}$), debit clearing account ($-\text{amount}$), and mark transfer status as `reversed`.
-   - **Key Principle**: No database lock is ever held across the network.
+### Why PostgreSQL Constraint (Chosen):
+1. **Durability**: Idempotency records in PostgreSQL are written to write-ahead logs (WAL) and replicated synchronously across HA standby nodes.
+2. **ACID Claim**: `INSERT INTO jobs ... ON CONFLICT DO NOTHING` guarantees that idempotency claim and job creation happen in the exact same atomic disk operation.
+
+### Why Volatile Redis Cache (Rejected):
+Redis stores keys in memory. During a Redis master crash, failover, or memory eviction under pressure, idempotency keys can be lost. A lost idempotency key causes duplicate payment processing if a merchant retries a request.
+
+### Accepted Trade-offs:
+- Idempotency checks require a database disk write/index lookup rather than an in-memory Redis lookup (~2ms vs ~0.2ms).
+
+### When this Decision is WRONG:
+If API ingress throughput exceeds 50,000 requests/second and database write capacity is the absolute global system bottleneck.
 
 ---
 
-## Q5: How does RRQ guarantee "At-Most-Once" execution per Idempotency Key (Invariant I3)?
+## Decision 4: Row-Level `SELECT ... FOR UPDATE` Locking vs Distributed Redis Redlock
 
-### Answer:
-Idempotency in distributed payment systems must be **durable** and **database-enforced**, not stored in volatile caches like Redis (which can lose keys during failovers):
+### Question:
+Why serialize concurrent access to a wallet using PostgreSQL `SELECT ... FOR UPDATE` row locks instead of a distributed locking algorithm like Redis Redlock?
 
-1. **Database Constraint**: The `jobs` table enforces `UNIQUE (merchant_id, idempotency_key)`.
-2. **Atomic Ingress Claim**: The API Gateway issues:
-   ```sql
-   INSERT INTO jobs (id, merchant_id, idempotency_key, request_hash, status)
-   VALUES ($1, $2, $3, $4, 'pending')
-   ON CONFLICT (merchant_id, idempotency_key) DO NOTHING;
-   ```
-3. **Conflict Handling**:
-   - If 100 identical requests hit the gateway concurrently, exactly one row is inserted.
-   - The remaining 99 requests trigger a conflict lookup, fetch the existing `job_id` and status, and return `HTTP 202 Accepted` with the original `job_id`.
-   - If the request body differs for an existing key, the gateway rejects it with `HTTP 422 Unprocessable Entity`.
+### Why In-Transaction Database Locks (Chosen):
+1. **Engine Enforced**: PostgreSQL guarantees that only one transaction can modify a locked wallet row at a time. The lock releases automatically when the transaction commits or aborts.
+2. **No Lock Leakage**: If the worker process crashes, PostgreSQL automatically rolls back the transaction and releases the row lock. Redlock requires explicit TTL expiration, which risks either releasing too early (causing race conditions) or hanging too long after a crash.
 
----
+### Why Redis Redlock (Rejected):
+Redlock relies on clock synchronization across independent Redis nodes. Clock drift or garbage collection pauses in the lock holder can cause Redlock to grant duplicate locks, leading to negative balance race conditions.
 
-## Q6: Why use the Transactional Outbox pattern instead of publishing directly to Kafka after database writes?
+### Accepted Trade-offs:
+- High transaction velocity against a single popular wallet (e.g. platform fee wallet) creates database lock contention.
 
-### Answer:
-Directly publishing to Kafka after a database commit introduces a classic distributed systems bug known as the **dual-write failure mode**:
-
-```
-[ Dual-Write Failure ]
-1. DB Transaction Commits   -->  SUCCESS
-2. App Process Crashes      -->  CRASH! (Kafka publish never executes)
-Result: Database state changed, but downstream workers never notified (Message Loss).
-```
-
-**The RRQ Solution**:
-1. Application writes business state changes (`jobs`, `ledger_entries`) AND inserts an event record into the `events` outbox table within the **same local database transaction**.
-2. The event and the state change are equally durable on disk.
-3. The `outbox-relay` background worker polls unpublished events (`WHERE published_at IS NULL`), produces them to Kafka, and stamps `published_at` upon broker acknowledgment.
-4. If the relay dies, it resumes from the last unpublished `events.id`. Kafka redeliveries are made idempotent downstream via `UNIQUE (transfer_id, leg)`.
+### When this Decision is WRONG:
+If lock acquisition needs to span non-database resources (e.g. third-party rate limiters or external physical hardware).

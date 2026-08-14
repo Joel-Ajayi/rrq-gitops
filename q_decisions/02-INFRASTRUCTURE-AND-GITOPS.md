@@ -1,109 +1,106 @@
-# Technical Interview Q&A: Infrastructure & GitOps Architecture
+# Questioning Decisions: Infrastructure & GitOps Architecture
 
-This document contains deep-dive interview questions, operational design rationales, and infrastructure trade-off analyses covering RRQ's GitOps operating model, Argo CD setup, Kubernetes operators, and Gateway API choices.
-
----
-
-## Q1: Why separate the GitOps infrastructure repository (`rrq-gitops`) from the application repository (`river-rust-queue`)?
-
-### Answer:
-Decoupling application code from declarative infrastructure state enforces clear operational boundaries:
-
-1. **Separation of Concerns & Access Control**: Application developers push code changes to `river-rust-queue`. Platform SREs manage cluster manifests, scaling limits, and security policies in `rrq-gitops`. Merge rules and RBAC policies can be enforced independently.
-2. **CI/CD Pipeline Decoupling**: App CI runs unit tests, linters, and image builds. GitOps CI validates Kustomize syntax. Operations teams can update HPA thresholds or Prometheus alerts without triggering application image rebuilds.
-3. **Clean Audit Log**: `git log` in `rrq-gitops` provides an immutable history strictly reflecting cluster state modifications.
+This document explicitly questions every major infrastructure choice made in RRQ's deployment model, detailing **why X was chosen**, **why alternative Y was rejected**, **what trade-offs were accepted**, and **when the decision would be wrong**.
 
 ---
 
-## Q2: Why use Argo CD's "App of Apps" pattern instead of manual `kubectl apply` commands in CI?
+## Decision 1: Two-Repository GitOps Split vs Monorepo
 
-### Answer:
-Manual `kubectl apply` in CI pipelines uses a **push-based deployment model**, which has severe security and reliability drawbacks:
+### Question:
+Why split the system into two repositories (`river-rust-queue` for app code, `rrq-gitops` for infrastructure) instead of keeping everything in a single monorepo?
 
-```
-[ Push Model (CI -> Cluster) ]
-CI Runner holds Admin K8s Credentials --> Applies YAML --> Security Risk & Flaky Network
+### Why Two-Repo Split (Chosen):
+1. **Access Control & RBAC**: Developers push app logic to `river-rust-queue`. SREs manage production scaling, secrets, and NetworkPolicies in `rrq-gitops`.
+2. **CI Pipeline Isolation**: App CI builds images and executes unit tests. GitOps CI validates Kustomize YAML. Updating a Grafana dashboard or HPA config in `rrq-gitops` does NOT trigger application image rebuilds.
+3. **Clean Audit Log**: `git log` in `rrq-gitops` reflects pure production state modifications.
 
-[ Pull Model (Argo CD inside Cluster) ]
-Argo CD Controller watches Git Repo --> Synchronizes Cluster --> Self-Healing & Secure
-```
+### Why Monorepo (Rejected):
+Keeping Kubernetes manifests alongside app code in a single repo creates noisy CI cycles (every documentation edit triggers image build steps) and risks accidental modifications to production manifests during feature development.
 
-1. **Pull-Based Security**: Argo CD runs inside the Kubernetes cluster. The CI pipeline never requires cluster admin credentials; it only updates image tags in Git.
-2. **Declarative Hierarchy**: The root `infrastructure.yaml` Application manages all operator sub-applications (CloudNativePG, Strimzi, KEDA, Envoy Gateway). Adding an operator means committing a manifest, not running manual commands.
-3. **Automated Self-Healing**: If an operator manually edits a deployment in the cluster (`kubectl edit`), Argo CD detects drift and overwrites the live state to match Git.
+### Accepted Trade-offs:
+- Requires a multi-repository promotion step in CI (`gitops-promote` job using Personal Access Tokens).
 
----
-
-## Q3: Why choose CloudNativePG (CNPG) over Patroni or Zalando Postgres Operator?
-
-### Answer:
-CloudNativePG was selected for managing production PostgreSQL clusters (`merchants-db`, `shard-a`, `shard-b`) based on strict architectural evaluation:
-
-| Evaluation Metric | CloudNativePG (RRQ Choice) | Patroni + Etcd | Zalando Postgres Operator |
-|---|---|---|---|
-| **DCS Dependency** | **None** (Uses native K8s CRDs) | Requires external Etcd/Consul cluster | Uses ConfigMaps/Etcd |
-| **Backup Integration** | Native Barman-cloud S3 integration in CRD | External pgBackRest sidecar setup | External Spilo sidecar setup |
-| **Kubernetes Integration** | Native `Cluster` CRD | Custom Patroni wrapper scripts | Custom `postgresql` CRD |
-| **Update Safety** | `supervised` primary switchover strategy | Automated failover | Automated failover |
-
-**Key Rationale**: Patroni requires managing an independent Etcd cluster for Distributed Consensus Store (DCS). If Etcd experiences network partition, Patroni cannot manage failover. CNPG uses Kubernetes API primitives natively, removing Etcd operational overhead.
+### When this Decision is WRONG:
+In small early-stage teams with 1-2 engineers where managing multi-repo CI secrets and promotion scripts adds unnecessary overhead.
 
 ---
 
-## Q4: Why deploy Kafka with Strimzi in KRaft mode instead of ZooKeeper?
+## Decision 2: Kustomize vs Helm for Application Manifest Overlays
 
-### Answer:
-Strimzi manages Kafka brokers using modern **KRaft (Kafka Raft Metadata)** mode (Kafka 3.9+):
+### Question:
+Why use Kustomize for application environment overlays (`dev`, `prod`) instead of Helm charts?
 
-1. **Zero ZooKeeper Overhead**: Replaces the ZooKeeper cluster with internal Kafka Raft controller quorum nodes, eliminating ZooKeeper pod management, dual-cluster backup complexity, and synchronization bugs.
-2. **Faster Leader Election**: KRaft metadata is stored in-memory across controller nodes. Partition leader re-elections complete in $<100\text{ms}$ during broker restarts, compared to multi-second ZooKeeper metadata syncs.
-3. **Simplified Storage & Scaling**: Strimzi `KafkaNodePool` allows combined `controller` and `broker` roles in unified node pools for development and dedicated node pools for production.
+### Why Kustomize (Chosen):
+1. **Pure Declarative Overlays**: Kustomize uses pure YAML patch transformations (`kustomize build`). What you see in the overlay is deterministic.
+2. **Native Kubernetes Tooling**: Built directly into `kubectl` (`kubectl apply -k`). No Tiller, no Helm release history ConfigMaps, and no template syntax bugs.
 
----
+### Why Helm (Rejected):
+Helm charts use string-based Go templating (`{{ if .Values.enabled }}`). Complex control logic in Helm charts makes manifests difficult to diff, debug locally, and validate cleanly in CI before deployment.
 
-## Q5: Why Envoy Gateway (Gateway API) over traditional NGINX Ingress Controller?
+### Accepted Trade-offs:
+- Parameterizing deep values across dozens of microservices requires managing YAML patch files rather than changing a single `values.yaml` variable.
 
-### Answer:
-Envoy Gateway implements the Kubernetes **Gateway API** standard (`gateway.networking.k8s.io`), replacing legacy annotation-heavy Ingress resources:
-
-1. **Role-Oriented CRDs**: Standardizes infrastructure responsibilities (`GatewayClass` for platform team, `Gateway` for cluster ops, `HTTPRoute` for application developers).
-2. **Edge JWT Validation**: Envoy Gateway handles JWT signature verification natively at the edge via `SecurityPolicy` CRDs:
-   ```yaml
-   spec:
-     jwt:
-       providers:
-         - name: rrq-core-api
-           issuer: rrq-core-api
-           remoteJWKS:
-             uri: http://core-api.rrq.svc.cluster.local:8080/.well-known/jwks.json
-           claimToHeaders:
-             - claim: sub
-               header: X-Merchant-Id
-   ```
-   Invalid requests are rejected in $<1\text{ms}$ at the proxy edge before ever reaching `core-api` pods.
-3. **C++ Performance**: Envoy proxy handles high-concurrency connection multiplexing with sub-millisecond latency.
+### When this Decision is WRONG:
+When packaging software for distribution to third-party external customers who need to install your software in diverse Kubernetes clusters with arbitrary customization requirements.
 
 ---
 
-## Q6: How do Argo CD Sync Waves prevent service dependency crashes during cluster bootstrapping?
+## Decision 3: CloudNativePG Operator vs Patroni or Managed Cloud Postgres
 
-### Answer:
-Sync waves enforce strict sequential rollout order during cluster provisioning:
+### Question:
+Why use CloudNativePG (CNPG) to run PostgreSQL inside Kubernetes instead of Patroni or a managed cloud database like AWS RDS / GCP Cloud SQL?
 
-```
-Wave -2: Sealed Secrets Controller
-   │
-   ▼
-Wave -1: Operators (CloudNativePG, Strimzi, KEDA, Envoy Gateway)
-   │
-   ▼
-Wave  0: Stateful Clusters (Postgres HA, Kafka Brokers, Redis)
-   │
-   ▼
-Wave  1: DB Schema Migrations & Seeding Jobs
-   │
-   ▼
-Wave  2: Microservice Deployments (core-api, ledger-worker, etc.)
-```
+### Why CloudNativePG (Chosen):
+1. **Zero External DCS Dependency**: Patroni requires an independent Etcd or Consul cluster for Distributed Consensus Store (DCS). CNPG uses native Kubernetes API primitives (`Cluster` CRD), eliminating Etcd operational overhead.
+2. **Native S3 Barman Backups**: Backup and Point-In-Time Recovery (PITR) are declared directly in the CRD and streamed continuously to S3.
+3. **Multi-Cloud Portability**: Identical Postgres setup runs locally in Kind, on DigitalOcean DOKS, or on AWS EKS without vendor lock-in.
 
-**Init Container Safety**: Microservice deployments also incorporate `busybox` init containers that probe backend endpoints via `nc -z` prior to launching main application containers. If Postgres or Kafka is restarting, the init container blocks, preventing pod `CrashLoopBackOff` spirals.
+### Why Patroni or Managed Cloud Postgres (Rejected):
+- **Patroni**: Managing an independent Etcd cluster just for database leader election adds high operational complexity.
+- **Managed RDS**: Introduces cloud vendor lock-in, higher cost at scale, and lacks local development parity with Kind.
+
+### Accepted Trade-offs:
+- SRE team bears full responsibility for storage volume IOPS monitoring and database operator upgrades.
+
+### When this Decision is WRONG:
+If the organization lacks in-house database administration skills and requires a 24/7 cloud vendor SLA guarantee for database engine maintenance.
+
+---
+
+## Decision 4: Strimzi KRaft Kafka vs ZooKeeper-based Kafka
+
+### Question:
+Why run Strimzi Kafka in KRaft mode (Kafka Raft Metadata) instead of traditional ZooKeeper mode?
+
+### Why KRaft Mode (Chosen):
+1. **Eliminates ZooKeeper Cluster**: Saves 3 stateful nodes, simplifies backup strategies, and reduces cluster memory overhead by ~3GB.
+2. **Sub-Second Leader Re-election**: Partition leader re-elections complete in $<100\text{ms}$ during broker restarts, compared to multi-second ZooKeeper metadata sync stalls.
+
+### Why ZooKeeper Mode (Rejected):
+ZooKeeper introduces dual-cluster maintenance bugs, complex quorum recovery during network partitions, and is officially deprecated in modern Kafka versions.
+
+### Accepted Trade-offs:
+- KRaft mode in older Kafka versions (<3.0) was less battle-tested than ZooKeeper. (RRQ uses Kafka 3.9+).
+
+### When this Decision is WRONG:
+Only when maintaining legacy Kafka clusters (<2.8) where KRaft mode is unavailable or marked experimental.
+
+---
+
+## Decision 5: Envoy Gateway (Gateway API) vs Traditional NGINX Ingress Controller
+
+### Question:
+Why choose Envoy Gateway implementing the Kubernetes Gateway API standard over NGINX Ingress Controller?
+
+### Why Envoy Gateway (Chosen):
+1. **Edge JWT Offloading**: Envoy Gateway handles JWT signature verification at the proxy edge via `SecurityPolicy` CRDs, dropping invalid requests in $<1\text{ms}$ before reaching application pods.
+2. **Standardized Role-Oriented CRDs**: Separates `GatewayClass` (platform), `Gateway` (ops), and `HTTPRoute` (app developers).
+
+### Why NGINX Ingress (Rejected):
+NGINX Ingress relies on non-standard, annotation-heavy configuration (`nginx.ingress.kubernetes.io/*`), Lua plugin scripts for custom auth, and monolithic proxy reloads that drop active connections under heavy configuration churn.
+
+### Accepted Trade-offs:
+- Envoy Gateway CRDs (`gateway.networking.k8s.io`) are newer than legacy Ingress resources.
+
+### When this Decision is WRONG:
+Simple legacy Kubernetes clusters where basic host-based HTTP routing is sufficient and Gateway API controllers are not installed.

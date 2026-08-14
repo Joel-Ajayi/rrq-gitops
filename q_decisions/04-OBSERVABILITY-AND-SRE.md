@@ -1,91 +1,80 @@
-# Technical Interview Q&A: Observability Architecture & SRE Practice
+# Questioning Decisions: Observability & SRE Practice
 
-This document contains deep-dive interview questions, telemetry design rationales, and SRE operational explanations covering RRQ's 3-tier OpenTelemetry collector topology, RED/USE metrics, trace-log correlation, and Prometheus alert rules.
+This document explicitly questions every major observability choice made in RRQ, detailing **why X was chosen**, **why alternative Y was rejected**, **what trade-offs were accepted**, and **when the decision would be wrong**.
 
 ---
 
-## Q1: Why adopt a 3-Tier OpenTelemetry Collector topology instead of a single-agent collector?
+## Decision 1: Three-Tier OpenTelemetry Collector Topology vs Single-Agent Collector
 
-### Answer:
-RRQ deploys OpenTelemetry across three distinct tiers to balance resource efficiency, data reliability, and metadata enrichment:
+### Question:
+Why deploy a **3-tier OpenTelemetry collector topology** (SDK $\rightarrow$ DaemonSet Agent $\rightarrow$ Deployment Gateway $\rightarrow$ Backends) instead of sending telemetry directly from application pods to Prometheus and Jaeger?
 
+### Why 3-Tier Topology (Chosen):
+```mermaid
+graph TD
+  sdk["App Pod (Go SDK)"]
+  agent["OTel Agent DaemonSet<br/>(Node Local Buffer)"]
+  gateway["OTel Gateway Deployment<br/>(k8sattributes & spanmetrics)"]
+
+  sdk -->|OTLP gRPC| agent
+  agent -->|OTLP gRPC| gateway
+  gateway --> jaeger[("Jaeger v2 (Traces)")]
+  gateway --> elastic[("Elasticsearch (Logs)")]
+  gateway --> prom[("Prometheus (Metrics)")]
 ```
-┌─────────────────────────────────────────────────────────────┐
-| TIER 1: Application SDKs (Go / Rust)                       │
-| Emits OTLP traces & canonical log events                    │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ (OTLP gRPC local socket)
-                               v
-┌─────────────────────────────────────────────────────────────┐
-| TIER 2: OTel Agent DaemonSet (1 Pod per K8s Node)          │
-| Receives OTLP, collects hostmetrics & container logs        │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ (OTLP gRPC batched)
-                               v
-┌─────────────────────────────────────────────────────────────┐
-| TIER 3: OTel Gateway Deployment (HA In-Cluster Collector)   │
-| k8sattributes enrichment, spanmetrics RED connector, fanout  │
-└──────┬───────────────────────┬──────────────────────┬───────┘
-       │                       │                      │
-       v                       v                      v
-┌──────────────┐        ┌──────────────┐       ┌──────────────┐
-|  Jaeger v2   |        |Elasticsearch |       |  Prometheus  |
-|  (Traces)    |        | (Log Events) |       |  (Metrics)   |
-└──────────────┘        └──────────────┘       └──────────────┘
-```
+1. **Local Node Buffering**: DaemonSet agents run on every K8s node. If the central gateway or storage backend experiences an outage, local agents buffer spans in memory on the node without causing memory pressure inside application containers.
+2. **Centralized Metadata Enrichment**: The gateway deployment enriches spans with Kubernetes pod labels, namespace names, and node IPs centrally, avoiding expensive CPU overhead in every application container.
+3. **Derived RED Metrics**: The gateway uses the `spanmetrics` connector to derive Rate, Errors, and Duration metrics from trace spans automatically, guaranteeing RED metrics for 100% of endpoints.
 
-1. **Local Node Buffering**: Tier 2 DaemonSet agents buffer telemetry locally per node. If the central OTel Gateway is restarting or experiencing backpressure, node agents queue spans in memory without dropping application telemetry or causing Go SDK memory leaks.
-2. **Cluster Metadata Enrichment**: Tier 3 Gateway Deployment executes `k8sattributes` processors, injecting pod labels, container IDs, and namespace names into spans centrally rather than wasting CPU on every node.
-3. **Derived RED Metrics**: The OTel Gateway uses the `spanmetrics` connector to automatically derive Rate, Errors, and Duration metrics directly from trace spans, providing zero-code RED metrics for every endpoint.
+### Why Direct Export / Single Agent (Rejected):
+- **Direct App Export**: App containers must manage retry buffers and backend connection pools, risking `OOMKilled` crashes if Jaeger or Elasticsearch is slow.
+- **Single Agent**: If the single collector crashes, telemetry from all cluster nodes is immediately lost with no node-level buffering.
+
+### Accepted Trade-offs:
+- Managing two OTel collector Kubernetes resources (DaemonSet + Deployment).
+
+### When this Decision is WRONG:
+In small, single-node development clusters (e.g. Kind) where running two collector layers consumes node RAM unnecessarily.
 
 ---
 
-## Q2: How does RED Method differ from USE Method across RRQ's dashboard taxonomy?
+## Decision 2: Spanmetrics Connector RED Metrics vs Manual Custom Prometheus Instrumentation
 
-### Answer:
-SRE observability requires matching telemetry methodologies to resource types:
+### Question:
+Why use OpenTelemetry's **`spanmetrics` connector** to derive RED metrics from traces instead of manually instrumenting Prometheus metrics in every HTTP handler?
 
-- **RED Method (Rate, Errors, Duration)**: Applied to **stateless microservices** (`core-api`, `ledger-worker`, `webhook-worker`):
-  - **Rate**: Request QPS or Kafka consumption rate.
-  - **Errors**: HTTP 5xx rates or failed transaction ratios.
-  - **Duration**: P50, P95, and P99 processing latency percentiles.
-- **USE Method (Utilization, Saturation, Errors)**: Applied to **stateful middleware & compute infrastructure** (PostgreSQL, Kafka, Redis, K8s Nodes):
-  - **Utilization**: CPU core usage %, Postgres buffer cache hit ratio, memory fill ratio.
-  - **Saturation**: PostgreSQL connection pool wait queues, Kafka consumer group lag, CPU throttling.
-  - **Errors**: Disk write failures, deadlocks, OOMKilled events.
+### Why Spanmetrics Connector (Chosen):
+1. **Zero Application Boilerplate**: Automatically generates request rate counters, error counters, and duration histograms for every HTTP route and gRPC method from trace spans.
+2. **Guaranteed Metric-Trace Alignment**: Metric labels (`http_route`, `service_name`, `status_code`) match trace span attributes 1:1, ensuring seamless drill-down from Grafana metric panels to Jaeger traces.
 
----
+### Why Manual App Metrics (Rejected):
+Manual metric instrumentation requires developers to add custom Prometheus code to every new endpoint, maintain label consistency across services, and risk label cardinality explosions if un-sanitized parameters are passed to metric labels.
 
-## Q3: How is Trace-Log Correlation implemented in Go microservices?
+### Accepted Trade-offs:
+- Derived metrics are subject to OpenTelemetry trace sampling rates (10% sampling in production).
 
-### Answer:
-When debugging an incident, an engineer must move seamlessly between logs and distributed traces without guessing timestamps:
-
-1. **Context Propagation**: OpenTelemetry trace context (`trace_id` and `span_id`) is extracted from incoming HTTP headers or Kafka message headers and attached to `context.Context`.
-2. **Logger Integration**: Custom `zap` logger core wrappers retrieve `trace_id` and `span_id` from `ctx` on every log call:
-   ```json
-   {
-     "level": "error",
-     "ts": "2026-08-14T13:30:00Z",
-     "logger": "ledger-worker",
-     "msg": "insufficient funds",
-     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
-     "span_id": "00f067aa0ba902b7",
-     "merchant_id": "m_live_101",
-     "job_id": "job_998231"
-   }
-   ```
-3. **UI Drilldown**: In Grafana / Kibana, clicking a log line parses `trace_id` and immediately opens the exact Jaeger trace spanning all microservices.
+### When this Decision is WRONG:
+For custom high-cardinality business metrics (e.g., `rrq_business_gtv_total` by currency) that are not naturally captured in HTTP span attributes.
 
 ---
 
-## Q4: What is the 5-Tier Grafana Dashboard Taxonomy in RRQ?
+## Decision 3: Persona-Driven 5-Tier Grafana Taxonomy vs Monolithic Dashboard
 
-### Answer:
-To prevent dashboard sprawl, RRQ organizes Grafana dashboards into a persona-driven 5-tier structure:
+### Question:
+Why structure Grafana dashboards into a **5-tier persona-driven taxonomy** instead of a single comprehensive dashboard?
 
-1. **Tier 1 (Business & SLOs)**: High-level GTV (Gross Transaction Value), total transfers, Transfer Success Rate (TSR %), and business invariants.
-2. **Tier 2 (User Journeys & Flows)**: Asynchronous data flow, cross-shard saga completion rates, DLQ churn, and idempotency conflicts.
-3. **Tier 3 (Service Health - RED)**: Single dynamic dashboard (`tier3-service-health`) with `$service_name` dropdown covering throughput, error rate, P99 latency, and circuit breaker states for all microservices.
-4. **Tier 4 (Middleware & Data Stores - USE)**: PostgreSQL connection starvation, autovacuum dead tuples, Strimzi Kafka partition lag, and Redis memory fragmentation.
-5. **Tier 5 (Compute & Infrastructure - USE)**: Kubernetes node pressure, pod restart loops, PVC storage saturation, and network drop rates.
+### Why 5-Tier Taxonomy (Chosen):
+1. **Targeted Information Density**:
+   - **Tier 1 (NOC / Exec)**: High-level GTV, TSR %, active alerts.
+   - **Tier 3 (On-Call SRE)**: Single RED dashboard with `$service_name` variable dropdown.
+   - **Tier 5 (Infra SRE)**: Node CPU/Memory, PVC disk utilization.
+2. **Sub-Second Dashboard Rendering**: Smaller, tier-focused dashboards query only relevant metrics, keeping dashboard render times under $500\text{ms}$.
+
+### Why Monolithic Dashboard (Rejected):
+Monolithic dashboards attempt to render 100+ panels simultaneously, causing browser freeze, heavy Prometheus query load, and visual confusion during 3am incident response.
+
+### Accepted Trade-offs:
+- SREs must navigate between tier dashboards when investigating complex cross-tier incidents.
+
+### When this Decision is WRONG:
+In small monolithic applications with only 1-2 services where a single 10-panel dashboard covers the entire system footprint.

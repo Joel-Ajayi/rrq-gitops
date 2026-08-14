@@ -50,7 +50,7 @@ This document provides step-by-step operational runbooks for infrastructure SREs
    Recall rule: $\text{Workers} \le \text{Partitions}$. If `jobs` topic has 30 partitions, `ledger-worker` can scale up to at most 30 active replica pods.
 
 2. **Increase Topic Partitions in Git**:
-   Edit `rrq/base/kafka/topics.yaml`:
+   Edit `base/platform/datastores/kafka/topics.yaml`:
    ```yaml
    apiVersion: kafka.strimzi.io/v1beta2
    kind: KafkaTopic
@@ -74,24 +74,28 @@ This document provides step-by-step operational runbooks for infrastructure SREs
 ## RB-INFRA-03: Rotating Sealed Secrets & Platform Keys
 
 ### Procedure
-1. **Create Fresh Plain Secret**:
-   Create a temporary `secret.plain.yaml` file locally (never commit this file).
-
-2. **Encrypt with `kubeseal`**:
+1. **Create Fresh Plaintext Secret**:
+   Create or update a `*.plain.yaml` file in `secrets/<env>/` (these files are git-ignored):
    ```bash
-   kubeseal --scope cluster-wide --format yaml < secret.plain.yaml > rrq/secrets/prod/secret.sealed.yaml
+   # Example: secrets/prod/workloads.plain.yaml
    ```
+
+2. **Encrypt with `make seal`**:
+   ```bash
+   make seal ENV=prod
+   ```
+   This runs `kubeseal` against each plaintext file and writes the encrypted `SealedSecret` to the corresponding overlay directory.
 
 3. **Commit & Push Sealed Secret**:
    ```bash
-   git add rrq/secrets/prod/secret.sealed.yaml
+   git add overlays/prod/*/secrets.yaml
    git commit -m "security(secrets): rotate platform secrets"
    git push origin main
    ```
 
-4. **Clean Up Local Plaintext File**:
+4. **Clean Up Local Plaintext Files** (optional — they are already git-ignored):
    ```bash
-   rm secret.plain.yaml
+   rm secrets/prod/*.plain.yaml
    ```
 
 ---
@@ -99,24 +103,19 @@ This document provides step-by-step operational runbooks for infrastructure SREs
 ## RB-INFRA-04: Running Capacity Planning Engine
 
 ### Procedure
-1. **Navigate to Capacity Directory**:
+1. **Edit Model Inputs (`slo-input.yaml`)**:
+   Update target QPS, latency SLOs, or node CPU limits in `tools/capacity-engine/slo-input.yaml`.
+
+2. **Execute Capacity Engine**:
    ```bash
-   cd capacity
+   make capacity
    ```
 
-2. **Edit Model Inputs (`slo-input.yaml`)**:
-   Update target QPS, latency SLOs ($W$), or node CPU limits.
+3. **Inspect Generated Outputs**:
+   - Review console summary & `tools/capacity-engine/capacity-output.yaml`.
+   - Verify generated Kustomize ConfigMaps in `base/workloads/config/`.
 
-3. **Execute Capacity Engine**:
-   ```bash
-   go run . slo-input.yaml
-   ```
-
-4. **Inspect Generated Outputs**:
-   - Review console summary & `capacity-output.yaml`.
-   - Verify generated Kustomize ConfigMaps in `../rrq/base/config/`.
-
-5. **Commit ConfigMap Updates**:
+4. **Commit ConfigMap Updates**:
    ```bash
    git commit -am "capacity: re-derive infrastructure limits from slo-input.yaml"
    git push origin main

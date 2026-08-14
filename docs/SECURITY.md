@@ -8,15 +8,15 @@ This document details the security posture, network isolation boundaries, RBAC p
 
 ```mermaid
 graph TD
-  subgraph Layer 1: Edge Security
+  subgraph "Layer 1: Edge Security"
     gateway["Envoy Gateway<br/>(TLS Termination · Edge JWT SecurityPolicy · Rate Limiting)"]
   end
 
-  subgraph Layer 2: Network Isolation
+  subgraph "Layer 2: Network Isolation"
     netpol["Kubernetes NetworkPolicies<br/>(Default-Deny Ingress & Egress · Pod-Level Allow Rules)"]
   end
 
-  subgraph Layer 3: Workload Security Context
+  subgraph "Layer 3: Workload Security Context"
     pod["Pod Security Standards (Restricted Profile)<br/>(runAsNonRoot · readOnlyRootFilesystem · drop ALL capabilities)"]
   end
 
@@ -42,15 +42,20 @@ RRQ applies a **Default-Deny Ingress** policy across all namespaces (`rrq`, `obs
 
 ## 3. Secret Management & Encryption at Rest
 
-1. **Sealed Secrets**: Secret manifests are encrypted using the cluster's public asymmetric sealing key via `kubeseal`.
-2. **Git Safety**: Encrypted `SealedSecret` manifests are safe to commit to Git. Plaintext secrets (`secret.plain.yaml`) and `.env` files are ignored by `.gitignore`.
-3. **In-Cluster Decryption**: The Sealed Secrets controller running in `sealed-secrets` decrypts `SealedSecret` resources into native Kubernetes `Secret` objects inside the destination namespace.
+### Workflow
+1. **Plaintext secrets** are created in `secrets/<env>/*.plain.yaml` (git-ignored via `.gitignore`).
+2. **Encryption** is performed by `make seal ENV=<env>`, which runs `kubeseal` against the cluster's public sealing key.
+3. **Encrypted `SealedSecret` manifests** are written to `overlays/<env>/<component>/secrets.yaml` and are safe to commit to Git.
+4. **In-cluster decryption**: The Sealed Secrets controller (deployed in Wave -2) decrypts `SealedSecret` resources into native Kubernetes `Secret` objects inside the target namespace.
+
+### Key Constraint
+The Sealed Secrets operator **must be healthy** before any `SealedSecret` can be applied. This is guaranteed by the sync wave architecture: the operator deploys in Wave -2, and secrets are sealed only after `kubectl rollout status` confirms the deployment is ready.
 
 ---
 
 ## 4. Pod Security Context Standard
 
-All microservices declared in `rrq/base/services/` conform to the Kubernetes **Restricted Pod Security Standard**:
+All microservices declared in `base/workloads/services/` conform to the Kubernetes **Restricted Pod Security Standard**:
 
 ```yaml
 securityContext:

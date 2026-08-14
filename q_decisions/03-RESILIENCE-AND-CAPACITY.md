@@ -1,107 +1,90 @@
-# Technical Interview Q&A: Resilience Engineering & Capacity Sizing
+# Questioning Decisions: Resilience Engineering & Capacity Modeling
 
-This document contains deep-dive interview questions, mathematical derivations, and resilience engineering explanations covering RRQ's failsafe-go primitives, token bucket retry budgets, backoff algorithms, and capacity engine formulas.
-
----
-
-## Q1: Why does pure exponential backoff fail during database outages, and how does Full Jitter solve it?
-
-### Answer:
-During a backend database or network outage, hundreds of clients fail simultaneously. If retries use pure exponential backoff ($T_{\text{base}} \cdot 2^{n-1}$), all clients sleep for identical durations and retry at the **exact same millisecond**:
-
-```
-[ Pure Exponential Backoff ]
-Client 1: ---- [Retry 1] -------- [Retry 2] ------------------------ [Retry 3]
-Client 2: ---- [Retry 1] -------- [Retry 2] ------------------------ [Retry 3]
-Client 3: ---- [Retry 1] -------- [Retry 2] ------------------------ [Retry 3]
-               ▲                  ▲                                  ▲
-            SPIKE 1            SPIKE 2                            SPIKE 3
-```
-
-This creates **retry storms** (thundering herd waves) that repeatedly crush the recovering database.
-
-**The Full Jitter Solution** (AWS Builder's Library specification):
-$$
-t_{\text{exponential}}(n) = \min \left( T_{\text{max\_backoff}}, \; T_{\text{base}} \cdot 2^{n-1} \right)
-$$
-$$
-t_{\text{sleep}}(n) = \text{UniformRandom}\left( 0, \; t_{\text{exponential}}(n) \right)
-$$
-
-By picking a uniform random delay between $0$ and the exponential cap, Full Jitter spreads retry attempts uniformly over time. The expected delay is $E[t_{\text{sleep}}] = \frac{1}{2} t_{\text{exponential}}$, while retry collision probability drops to near zero ($P(\text{collision}) \approx 0$).
+This document explicitly questions every resilience mechanism and capacity sizing formula used in RRQ, detailing **why X was chosen**, **why alternative Y was rejected**, **what trade-offs were accepted**, and **when the decision would be wrong**.
 
 ---
 
-## Q2: How does the Token Bucket Retry Budget prevent load amplification during systemic outages?
+## Decision 1: Full Jitter Exponential Backoff vs Fixed or Pure Exponential Backoff
 
-### Answer:
-Naive retry policies execute $N$ retries for every failed request. Under a 100% outage, a 3-retry policy multiplies traffic by **$4\times$** ($1 \text{ original} + 3 \text{ retries}$), ensuring a struggling system can never recover.
+### Question:
+During a backend database or network outage, why use **Full Jitter Exponential Backoff** instead of fixed retries or pure exponential backoff?
 
-RRQ implements a volume-derived **Token Bucket Retry Budget** (`platform.RetryBudget`):
-1. **Token Refill**: Successful operations deposit tokens into the bucket (e.g. 1 token per 10 successes for a 10% budget fraction).
-2. **Token Spend**: Every retry attempt must acquire a token via `TryAcquire()`.
-3. **Fail Fast to DLQ**: When an outage occurs, retry tokens drain rapidly. Once the bucket hits `0`, `TryAcquire()` returns `false`, causing the worker to fail fast and route the failed payload directly to `dlq_entries` without attempting network retries.
+### Why Full Jitter (Chosen):
+$$
+t_{\text{sleep}}(n) = \text{UniformRandom}\left(0, \; \min\left(T_{\text{max}}, T_{\text{base}} \cdot 2^{n-1}\right)\right)
+$$
+1. **Prevents Thundering Herd Retry Storms**: If 500 clients fail simultaneously, pure exponential backoff causes all 500 clients to retry at the exact same millisecond. Full Jitter spreads retry attempts uniformly over time $[0, t_{\text{exponential}}]$.
+2. **Zero Collision Spike Probability**: Desynchronizes worker retries, allowing a recovering PostgreSQL database pool to process retries smoothly.
+
+### Why Fixed / Pure Exponential Backoff (Rejected):
+- **Fixed Backoff** (e.g. sleep 1s): Creates massive repeating spike waves that re-crush the database every 1 second.
+- **Pure Exponential Backoff** (e.g. 1s, 2s, 4s): Spreads out spike waves over time, but every single retry point is still a synchronized thundering herd wave.
+
+### Accepted Trade-offs:
+- Random sleep delays mean some retries wait longer than the theoretical minimum exponential delay.
+
+### When this Decision is WRONG:
+In interactive, synchronous UI progress indicators where the user interface requires a deterministic minimum retry interval (e.g. polling a status progress bar every exact 2.0 seconds).
 
 ---
 
-## Q3: How is Bulkhead Semaphore capacity derived using Little's Law?
+## Decision 2: Token Bucket Retry Budget vs Fixed Retry Count (e.g. `MaxRetries = 3`)
 
-### Answer:
-A Bulkhead limits maximum concurrent requests ($L_{\text{inflight}}$) executing in a service handler to prevent thread pool and memory exhaustion.
+### Question:
+Why use a **Token Bucket Retry Budget** (`platform.RetryBudget`) to limit retries system-wide instead of a static per-request retry count like `MaxRetries = 3`?
 
-**Little's Law Equation**:
-$$
-L = \lambda \cdot W
-$$
-Where:
-- $\lambda$ = Peak target QPS ($5,000\text{ TPS}$)
-- $W$ = Target p99 processing latency ($0.05\text{s} = 50\text{ms}$)
+### Why Token Bucket Retry Budget (Chosen):
+1. **Sheds Retries During Severe Outages**: When error rates spike (e.g. database down), retry tokens drain rapidly. Once tokens hit `0`, `TryAcquire()` returns `false`, failing retries fast to the Dead Letter Queue (DLQ) without sending requests over the network.
+2. **Prevents Traffic Amplification**: Under a total outage, static `MaxRetries = 3` multiplies inbound traffic by **$4\times$** ($1 \text{ original} + 3 \text{ retries}$), guaranteeing that a struggling database will never recover. The retry budget caps total retries to a fixed fraction (e.g. 10%) of total successful volume.
 
-$$
-L_{\text{nominal\_peak}} = 5,000 \cdot 0.05 = 250 \text{ concurrent requests}
-$$
+### Why Static Retry Count (Rejected):
+Static retry counts unconditionally retry $N$ times regardless of whether the system is experiencing a transient glitch or a massive multi-hour outage.
 
-Applying a $1.0$ micro-burst headroom coefficient ($\alpha_{\text{burst}} = 1.0 \implies 100\%$ extra capacity):
-$$
-B_{\text{limit}} = L_{\text{nominal\_peak}} \cdot (1 + \alpha_{\text{burst}}) = 250 \cdot 2.0 = 500 \text{ concurrent in-flight requests}
-$$
+### Accepted Trade-offs:
+- During a major outage, transient requests that might have succeeded on a late retry are shed to DLQ early once the token bucket is exhausted.
 
-If concurrent requests exceed 500, the 501st request is shed immediately with `HTTP 429 Too Many Requests` in $<1\text{ms}$, protecting memory buffers.
+### When this Decision is WRONG:
+In offline batch processing jobs where a job MUST retry indefinitely until manual intervention, regardless of how long the outage lasts.
 
 ---
 
-## Q4: How does Kingman's Formula model queueing delay under non-Poisson traffic variance in the capacity engine?
+## Decision 3: Kingman's Queueing Formula vs M/M/1 Poisson Approximations in Capacity Planning
 
-### Answer:
-Standard M/M/1 queueing models assume Poisson arrivals and exponential service times ($C_a^2 = 1, C_s^2 = 1$). Real payment traffic exhibits bursty arrival variance ($C_a^2 > 1$) and multi-modal SQL execution variance ($C_s^2 > 1$).
+### Question:
+Why use **Kingman's Formula** in the capacity planning engine to derive queueing latency $W_q$ instead of standard M/M/1 queueing models?
 
-The capacity engine uses **Kingman's Formula Approximation** to calculate expected queue waiting time $W_q$:
-
+### Why Kingman's Formula (Chosen):
 $$
 W_q \approx \left( \frac{\rho}{1 - \rho} \right) \cdot \left( \frac{C_a^2 + C_s^2}{2} \right) \cdot \tau
 $$
+1. **Accounts for Arrival & Service Variance**: M/M/1 assumes Poisson arrivals ($C_a^2 = 1$) and exponential service times ($C_s^2 = 1$). Real payment traffic exhibits bursty arrival variance ($C_a^2 > 1$) and multi-modal database query variance ($C_s^2 > 1$).
+2. **Accurate Queue Delay Calculation**: Accurately predicts latency degradation as CPU utilization $\rho \to 0.70$, preventing under-provisioning.
 
-Where:
-- $\rho$ = Target CPU utilization (e.g. 0.70 for 70%)
-- $C_a^2$ = Coefficient of variation of inter-arrival times
-- $C_s^2$ = Coefficient of variation of service times
-- $\tau$ = Mean service processing time
+### Why M/M/1 Poisson Model (Rejected):
+M/M/1 severely underestimates queueing latency when traffic is bursty, causing the capacity engine to recommend dangerously small pod counts that crash during real-world QPS spikes.
 
-This formula allows the capacity engine to accurately predict queue latency spikes under high utilization and automatically size `REQUEST_TIMEOUT_MS` and HPA replica bounds.
+### Accepted Trade-offs:
+- Requires measuring and supplying variance parameters ($C_a^2, C_s^2$) in `slo-input.yaml`.
+
+### When this Decision is WRONG:
+For perfectly periodic cron-triggered arrival patterns where $C_a^2 = 0$ (zero arrival variance).
 
 ---
 
-## Q5: How does Deadline Propagation prevent "zombie transactions"?
+## Decision 4: Bulkhead Semaphore Limits vs Unbounded In-Flight Request Queuing
 
-### Answer:
-In a multi-layer architecture (`Gateway` $\rightarrow$ `Core API` $\rightarrow$ `Postgres`), setting fixed independent timeouts at each layer creates **zombie transactions**—where an upstream caller times out and returns an error to the client, but downstream database queries keep executing for seconds, wasting CPU and lock capacity.
+### Question:
+Why limit in-flight HTTP requests using a counting **Bulkhead Semaphore** (`BulkheadLimit = 500`) instead of allowing unbounded request queuing?
 
-**Golden Inequality for Timeout Alignment**:
-$$
-T_{\text{Postgres Query}} (500\text{ms}) < T_{\text{Core API}} (2.0\text{s}) < T_{\text{Envoy Gateway}} (2.5\text{s}) < T_{\text{Client}} (5.0\text{s})
-$$
+### Why Bulkhead Semaphore (Chosen):
+1. **Memory Bound Guarantee**: Little's Law ($L = \lambda W$) proves that memory allocation scales directly with concurrent in-flight requests. Bounding $L \le 500$ guarantees that memory consumption stays strictly under container limits (`512Mi`), preventing Pod `OOMKilled` crashes.
+2. **Fast Shedding**: The 501st concurrent request is rejected in $<1\text{ms}$ with `HTTP 429`, allowing upstream load balancers to route traffic to alternative replicas.
 
-**Deadline Propagation Implementation**:
-1. Gateway creates a root context deadline $t_{\text{deadline}} = t_{\text{start}} + T_{\text{budget}}$.
-2. The remaining timeout $T_{\text{remaining}} = t_{\text{deadline}} - t_{\text{current}} - \sigma_{\text{slack}}$ is passed downstream in headers/contexts.
-3. If $T_{\text{remaining}} \le 0$, downstream handlers cancel database execution immediately.
+### Why Unbounded Request Queuing (Rejected):
+Unbounded queues accumulate memory during slow database queries until the Go runtime runs out of heap space, causing `OOMKilled` container restarts that drop ALL in-flight requests.
+
+### Accepted Trade-offs:
+- Requests exceeding the bulkhead limit are shed immediately during sudden extreme QPS surges.
+
+### When this Decision is WRONG:
+In low-throughput asynchronous background workers where requests can be buffered on disk indefinitely without memory bounds.

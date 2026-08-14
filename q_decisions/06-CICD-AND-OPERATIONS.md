@@ -1,83 +1,55 @@
-# Technical Interview Q&A: CI/CD & Operations Pipeline
+# Questioning Decisions: CI/CD & Operations Pipeline
 
-This document contains deep-dive interview questions, deployment pipeline rationales, and operational explanations covering RRQ's two-repository CI/CD workflow, image promotion, DLQ replay procedures, and disaster recovery.
+This document explicitly questions every major deployment choice made in RRQ's CI/CD workflow, detailing **why X was chosen**, **why alternative Y was rejected**, **what trade-offs were accepted**, and **when the decision would be wrong**.
 
 ---
 
-## Q1: How does the cross-repository CI/CD promotion flow work between `river-rust-queue` and `rrq-gitops`?
+## Decision 1: Direct Push to GitOps Repo in CI vs PR-Based Image Promotion
 
-### Answer:
-The two-repository model separates application code integration from GitOps cluster state promotion:
+### Question:
+Why does the `gitops-promote` job push image tag changes **directly to `main` on `rrq-gitops`** instead of opening a Pull Request for manual merge?
 
+### Why Direct Push to Main (Chosen):
+```mermaid
+graph TD
+  devCommit["1. Developer pushes commit to river-rust-queue/main"]
+  appCI["2. App CI builds Docker image tagged with commit SHA"]
+  promote["3. gitops-promote job pushes updated tag to rrq-gitops/main"]
+  argoSync["4. Argo CD polls rrq-gitops & triggers rolling update"]
+
+  devCommit --> appCI
+  appCI --> promote
+  promote --> argoSync
 ```
-┌─────────────────────────────────────────────────────────────┐
-| 1. Developer pushes commit to river-rust-queue/main         |
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────┐
-| 2. App CI (app-ci.yml)                                      |
-|    - Runs Go, Rust, and Buf Protobuf checks in parallel     |
-|    - Builds Docker images tagged with git commit SHA        |
-|    - Pushes images to GitHub Container Registry (GHCR)      |
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────┐
-| 3. Promote Step (gitops-promote)                            |
-|    - App CI updates kustomization.yaml image tags in        |
-|      rrq-gitops overlay using yq                             |
-|    - Commits and pushes to rrq-gitops/main                  |
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────┐
-| 4. Argo CD Sync                                             |
-|    - Argo CD controller detects git commit in rrq-gitops     |
-|    - Synchronizes cluster manifests via rolling updates     |
-└─────────────────────────────────────────────────────────────┘
-```
+1. **Sub-2-Minute Deployment Velocity**: Pushing directly to `rrq-gitops` triggers Argo CD sync immediately. The entire pipeline from app commit to live deployment completes in $<2\text{ minutes}$.
+2. **Immutable Commit SHA Tags**: Container images are tagged with full Git commit SHAs (`ghcr.io/...:abc123...`). There is zero ambiguity about what code is running in production.
+3. **Automated Validation Guardrails**: All Go, Rust, and Protobuf breaking tests MUST pass in App CI BEFORE `gitops-promote` executes.
 
-1. **Commit SHA Tagging**: Container images are tagged with the full 40-character Git commit SHA (`ghcr.io/joel-ajayi/core-api-go:abc123...`). Tags are immutable; no `latest` tags are used in production.
-2. **Kustomize Image Overrides**: The `gitops-promote` job uses `yq` to update the `newTag` field in `rrq/overlays/prod/kustomization.yaml`.
-3. **Auditability**: Every deployment commit in `rrq-gitops` explicitly links to the application commit SHA that generated the container build.
+### Why PR-Based Promotion (Rejected):
+Opening a Pull Request (via Renovate or Dependabot) for every image build adds 15 to 30 minutes of PR approval latency and developer manual overhead for every single deployment.
+
+### Accepted Trade-offs:
+- Manifest changes bypass manual PR review on `rrq-gitops`.
+
+### When this Decision is WRONG:
+In regulated banking or medical environments requiring explicit manual dual-signoff on every production deployment PR for compliance.
 
 ---
 
-## Q2: Why run Go, Rust, and Protobuf linting/testing in parallel during CI?
+## Decision 2: Commit SHA Image Tags vs Semantic Versioning Tags
 
-### Answer:
-1. **Zero Cross-Dependency**: Go service code, Rust prototype code, and Protobuf schemas are structurally decoupled. Running `go test`, `cargo test`, and `buf lint` in parallel reduces overall App CI duration from ~12 minutes down to ~3 minutes.
-2. **Buf Breaking Change Detection**: Protobuf changes are evaluated against `main` using `buf breaking --against '.git#branch=main'`. This prevents developers from pushing breaking schema changes to event payloads or gRPC interfaces.
-3. **Sequential Promotion Gate**: The `images` build job requires `needs: [go, rust, buf]`. If any linters, unit tests, or Protobuf breaking checks fail, image building and GitOps promotion are immediately halted.
+### Question:
+Why tag container images using **Git Commit SHAs** (`ghcr.io/joel-ajayi/core-api-go:01905335...`) instead of semantic versioning (`v1.2.3`)?
 
----
+### Why Commit SHA Tags (Chosen):
+1. **Immutable Traceability**: Every container image points 1:1 to the exact line of code that compiled it.
+2. **Eliminates Manual Version Bump Friction**: Developers do not need to manage `VERSION` files or git tags for routine continuous deployment commits.
 
-## Q3: How does automated DLQ Replay work without creating double-posting risks?
+### Why Semantic Versioning (Rejected):
+Semantic versioning requires manual tag management, risks mutable tag overwrites (`v1.0.0` pushed twice), and provides less precision than exact Git commit hashes.
 
-### Answer:
-When a transaction or webhook exhausts its retry budget, it is persisted to `dlq_entries`. An operator triggers replay via the Admin API (`POST /v1/admin/dlq/{id}/replay`).
+### Accepted Trade-offs:
+- Commit SHAs are 40-character non-human-readable strings (`019053358000...`).
 
-**Idempotency Safety During Replay**:
-1. **Ledger DLQ Replay**: The DLQ replay fetches the `original_payload` and re-injects the job. Because the job retains its original `transfer_id`, the database constraint `UNIQUE (transfer_id, leg)` on `ledger_entries` guarantees that even if the original transaction completed late, the replayed transaction cannot insert duplicate debit or credit legs.
-2. **Webhook DLQ Replay**: Webhook deliveries are idempotent on `(merchant_id, delivery_id)`. Replaying a failed webhook re-uses the original event payload and HMAC signature.
-
----
-
-## Q4: What is the emergency rollback strategy if a faulty deployment reaches production?
-
-### Answer:
-1. **Standard GitOps Rollback (Preferred)**:
-   Revert the last commit in `rrq-gitops`:
-   ```bash
-   cd rrq-gitops
-   git revert HEAD
-   git push origin main
-   ```
-   Argo CD immediately detects the revert commit and performs a rolling update to restore the previous container image tags.
-2. **Emergency Hot-Patch (Bypass GitOps temporarily)**:
-   If Git access is unavailable during an active outage, run `kubectl set image`:
-   ```bash
-   kubectl set image deployment/core-api core-api=ghcr.io/joel-ajayi/core-api-go:<PREVIOUS_GOOD_SHA> -n rrq
-   ```
-   *Note*: Argo CD self-healing should be briefly paused (`Auto-Sync: Disabled`) during emergency manual overrides to prevent Argo CD from overwriting the manual fix before Git is updated.
+### When this Decision is WRONG:
+When publishing library packages or public Docker images intended for external third-party consumer consumption.

@@ -11,83 +11,118 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 
 ## Documentation Quick Links
 
-- [GitOps Architecture Specification](docs/ARCHITECTURE.md) — Detailed guide on Argo CD "App of Apps", sync waves, namespace isolation, and operators.
-- [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup instructions for production DOKS and local Kind dev environments.
+- [GitOps Architecture Specification](docs/ARCHITECTURE.md) — Argo CD App-of-Apps, sync waves, operator/CR separation, and namespace isolation.
+- [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup for production and local Kind dev environments.
 - [Infrastructure Operational Runbooks](docs/RUNBOOKS.md) — SRE procedures for database failovers, Kafka partition scaling, and secret rotation.
 - [Security & Network Policy Matrix](docs/SECURITY.md) — Multi-layer security model, default-deny ingress/egress, and sealed secret standards.
-- [Capacity Planning Engine Guide](capacity/README.md) — Capacity model inputs (`slo-input.yaml`), formulas, and generated outputs.
+- [Observability Stack Guide](base/observability/README.md) — OTel agents/gateway, trace, metrics, log pipelines, and architecture diagram.
+- [Grafana Dashboards Guide](base/observability/dashboards/README.md) — Persona-driven 5-Tier dashboard taxonomy (RED/USE methodology).
+- [Capacity Planning Engine Guide](tools/capacity-engine/README.md) — Capacity model inputs, formulas, and generated outputs.
 
 ---
 
-## Deployment & Development
+## Repository Structure
 
-### 1. Production Kubernetes Deployment (DOKS / Production Cluster)
-
-For production Kubernetes environments (e.g. DigitalOcean DOKS, EKS, GKE):
-
-1. **Deploy Sealed Secrets Controller**:
-   ```bash
-   kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
-   ```
-2. **Apply Root App-of-Apps Manifest**:
-   Apply the root Argo CD Application:
-   ```bash
-   kubectl apply -f apps/root-app.yaml
-   ```
-3. **Configure Custom Production Domain**:
-   - Update `hostname` attributes in `rrq/overlays/prod/services/gateway.yaml` replacing `<your-domain.com>` with your production domain.
-   - Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
-     ```bash
-     kubectl get svc -n envoy-gateway-system
-     ```
-   - Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP address. Production endpoints will be automatically routed and secured via Let's Encrypt TLS:
-     - **API Core Gateway**: `https://api.<your-domain.com>/v1/transfers`
-     - **Portainer Cluster UI**: `https://cluster.<your-domain.com>`
-     - **User Journeys Dashboard**: `https://growth.<your-domain.com>`
-     - **Service Health RED Dashboard**: `https://metrics.<your-domain.com>`
-     - **Middleware USE Dashboard**: `https://logs.<your-domain.com>`
-     - **Infrastructure USE Dashboard**: `https://traces.<your-domain.com>`
-     - **Prometheus UI**: `https://prometheus.<your-domain.com>`
+```
+rrq-gitops/
+├── apps/                          # Argo CD Application manifests (production)
+│   ├── 00-operators.yaml          #   Wave -2: CRD-installing operators
+│   ├── 01-datastores.yaml         #   Wave  0: Stateful data clusters
+│   ├── 01-observability.yaml      #   Wave  1: Monitoring & telemetry
+│   └── 02-workloads.yaml          #   Wave  2: Application microservices
+├── bootstrap/
+│   └── root-app-prod.yaml         # Root App-of-Apps (points to apps/)
+├── base/                          # Shared base manifests (environment-agnostic)
+│   ├── platform/
+│   │   ├── operators/             #   All Helm operator charts (CRD installers)
+│   │   └── datastores/            #   Postgres clusters, Kafka cluster & topics
+│   ├── observability/             #   OTel collectors, dashboards, ServiceMonitors
+│   │   ├── README.md              #   Observability stack & architecture diagram
+│   │   └── dashboards/
+│   │       └── README.md          #   5-Tier Grafana dashboard taxonomy
+│   └── workloads/                 #   Microservice deployments, Gateway CRs, migrations
+├── overlays/                      # Environment-specific customizations
+│   ├── dev/                       #   Local Kind cluster overrides
+│   └── prod/                      #   Production cluster overrides
+├── secrets/                       # Plaintext secrets (git-ignored, used by `make seal`)
+│   ├── dev/
+│   └── prod/
+├── kind/                          # Kind cluster configuration
+├── tools/
+│   ├── capacity-engine/           # Go-based capacity planning tool
+│   │   └── README.md              #   Engine input, formulas & file index
+│   └── load-tests/                # k6 load test scenarios
+└── Makefile                       # All GitOps operations
+```
 
 ---
 
-### 2. Local Development Quickstart (Kind)
+## Quick Start
 
-For local development on a 3-worker Kind cluster:
+### Production Deployment
 
-#### Prerequisites
-- **Docker Engine**
-- **Kind** (`v0.31.0+`), **kubectl** (`v1.31+`), **Helm** (`v3.17+`), **Kustomize** (`v5.6+`)
+For production Kubernetes environments (DOKS, EKS, GKE):
 
-#### Step-by-Step Local Setup
+```bash
+# 1. Configure kubectl to point at your production cluster
+doctl kubernetes cluster kubeconfig save rrq-prod
+
+# 2. Bootstrap (installs Argo CD, applies Root App, seals secrets)
+make bootstrap ENV=prod
+```
+
+Argo CD will automatically reconcile the entire cluster using sync waves:
+
+| Wave | Phase | What Deploys |
+|------|-------|-------------|
+| `-2` | Operators | Sealed Secrets, CNPG, Strimzi, Envoy Gateway, KEDA, cert-manager, ECK, kube-prometheus-stack, OTel Operator |
+| `0`  | Datastores | PostgreSQL clusters, Kafka cluster & topics, Redis |
+| `1`  | Observability | OTel collectors, Grafana dashboards, ServiceMonitors, Portainer, Elasticsearch, Kibana |
+| `2`  | Workloads | core-api, ledger-worker, outbox-relay, webhook-worker, fraud-worker, Gateway & HTTPRoutes |
+
+### Local Development (Kind)
+
+Local dev **bypasses Argo CD entirely** — `kubectl apply -k` is used directly against local files so uncommitted changes are immediately reflected:
+
 ```bash
 # 1. Create 3-worker local Kind cluster
 make cluster-up
 
-# 2. Install Argo CD
-make argocd
-
-# 3. Bootstrap local dev infrastructure & operators
-make bootstrap-dev
+# 2. Bootstrap local dev (sequential kubectl apply, no Argo CD)
+make bootstrap ENV=dev
 ```
 
-#### Local Endpoints & Hostnames
+#### Local Endpoints
 Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS):
-- **API Gateway Endpoint**: `http://localhost:8080/v1/transfers`
-- **Portainer Cluster Management**: `http://cluster.127.0.0.1.nip.io:8080`
-- **Ops Redirect Routes**: `http://localhost:8080/executive`, `/journeys`, `/services`, `/middleware`, `/infrastructure`
-- *(Optional)* Map `127.0.0.1 api.rrq.dev` in `/etc/hosts` for domain resolution testing.
+- **API Gateway**: `http://localhost:8080/v1/transfers`
+- **Portainer**: `http://cluster.127.0.0.1.nip.io:8080`
+- **Grafana**: `http://metrics.127.0.0.1.nip.io:8080/services`
+
+---
+
+## Makefile Targets
+
+| Target | Description |
+|--------|-------------|
+| `make tools` | Install all GitOps CLIs (kubectl, helm, kind, kubeseal, argocd, skaffold, k6, jq, yq) |
+| `make cluster-up` | Create local Kind cluster |
+| `make cluster-down` | Delete local Kind cluster |
+| `make bootstrap ENV=<dev\|prod>` | Full cluster bootstrap (dispatches to dev or prod) |
+| `make argocd` | Install Argo CD via Helm |
+| `make seal ENV=<dev\|prod>` | Encrypt plaintext secrets into SealedSecrets |
+| `make render ENV=<dev\|prod>` | Dry-run: print fully-rendered Kustomize manifests |
+| `make capacity` | Regenerate GitOps manifests from capacity models |
+| `make bench SCENARIO=<name>` | Run a k6 load test scenario |
 
 ---
 
 ## Core Philosophy
 
-We strictly adhere to the GitOps operating model:
-
-1. **Declarative**: The entire system (from databases to Kafka brokers to microservice replicas) is described declaratively in Kubernetes YAML and Kustomize overlays.
+1. **Declarative**: The entire system is described declaratively in Kubernetes YAML and Kustomize overlays.
 2. **Versioned**: Every change to the infrastructure is a Git commit. Git is the authoritative control plane.
-3. **Automated (Pull)**: **Argo CD** constantly monitors this repository and pulls changes into the cluster, applying them automatically.
-4. **Self-Healing**: If state in the cluster drifts from this repository, Argo CD automatically overwrites the cluster to match Git.
+3. **Automated (Pull)**: Argo CD constantly monitors this repository and pulls changes into the cluster.
+4. **Self-Healing**: If cluster state drifts from this repository, Argo CD automatically overwrites it to match Git.
+5. **Operator/CR Separation**: All CRD-installing operators deploy in Wave -2. Custom Resources that depend on those CRDs deploy in later waves, guaranteeing zero race conditions.
 
 ---
 

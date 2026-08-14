@@ -6,10 +6,15 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 
 ## 1. Production Cluster Provisioning (DOKS / Production K8s)
 
+### Prerequisites
+- A managed Kubernetes cluster with at least 3 worker nodes (`s-4vcpu-8gb` minimum).
+- `kubectl` configured to point at the cluster.
+- All GitOps tools installed (`make tools`).
+
 ### Step-by-Step Execution
 
 1. **Provision Managed Kubernetes Cluster**:
-   Create a production DOKS cluster via DigitalOcean CLI or Terraform with at least 3 worker nodes (`s-4vcpu-8gb` minimum):
+   Create a production DOKS cluster via DigitalOcean CLI or Terraform:
    ```bash
    doctl kubernetes cluster create rrq-prod --count 3 --size s-4vcpu-8gb --region fra1
    ```
@@ -19,54 +24,55 @@ This document provides step-by-step instructions for provisioning, bootstrapping
    doctl kubernetes cluster kubeconfig save rrq-prod
    ```
 
-3. **Deploy Sealed Secrets Controller**:
+3. **Prepare Plaintext Secrets**:
+   Create plaintext secret files in `secrets/prod/` (these are git-ignored):
    ```bash
-   kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
+   # Example: secrets/prod/workloads.plain.yaml
+   # Contains database passwords, JWT keys, Redis credentials, etc.
    ```
 
-4. **Encrypt Production Secrets**:
-   Encrypt production credentials using `kubeseal`:
+4. **Bootstrap the Cluster**:
+   A single command installs Argo CD, applies the Root App-of-Apps, waits for the Sealed Secrets operator, and encrypts secrets:
    ```bash
-   kubeseal --scope cluster-wide --format yaml < secret.plain.yaml > rrq/secrets/prod/secret.sealed.yaml
+   make bootstrap ENV=prod
    ```
 
-5. **Configure Production Domain in Manifests**:
-   Edit `rrq/overlays/prod/services/gateway.yaml` and set the `hostname` attributes to match your production domain (`<your-domain.com>`):
-   ```yaml
-   listeners:
-     - name: api-https
-       hostname: "api.<your-domain.com>"
-     - name: cluster-https
-       hostname: "cluster.<your-domain.com>"
-   ```
+   This executes the following sequence:
+   1. Installs Argo CD via Helm (`helm upgrade --install argocd`)
+   2. Applies `bootstrap/root-app-prod.yaml` (Root Application)
+   3. Waits for `sealed-secrets` deployment to become healthy
+   4. Runs `make seal ENV=prod` to encrypt all plaintext secrets
 
-6. **Apply Root Argo CD Application**:
-   ```bash
-   kubectl apply -f apps/root-app.yaml
-   ```
-   Argo CD will automatically discover, fetch, and synchronize all operator components and microservices declared in `rrq/overlays/prod/` across sync waves `-2` through `2`.
+   Argo CD then takes over and reconciles the entire cluster through sync waves:
+   - **Wave -2**: All operators (Sealed Secrets, CNPG, Strimzi, Envoy Gateway, KEDA, cert-manager, ECK, kube-prometheus-stack, OTel Operator)
+   - **Wave 0**: Datastores (PostgreSQL clusters, Kafka, Redis)
+   - **Wave 1**: Observability (OTel collectors, dashboards, ServiceMonitors, Portainer)
+   - **Wave 2**: Workloads (microservices, Gateway routes, migrations)
 
-7. **Configure Production DNS A Records**:
-   Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
+5. **Configure Production DNS**:
+   Retrieve the external IP of the Envoy Gateway LoadBalancer:
    ```bash
    kubectl get svc -n envoy-gateway-system
    ```
-   Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP address. The HTTPRoutes and cert-manager ClusterIssuer will automatically terminate SSL/TLS via Let's Encrypt for:
-   - `api.<your-domain.com>` $\rightarrow$ Core API Ingress Gateway
-   - `cluster.<your-domain.com>` $\rightarrow$ Portainer (Kubernetes Cluster Management UI)
-   - `growth.<your-domain.com>` $\rightarrow$ Grafana User Journeys Dashboard (Tier 2)
-   - `metrics.<your-domain.com>` $\rightarrow$ Grafana Service Health RED Dashboard (Tier 3)
-   - `logs.<your-domain.com>` $\rightarrow$ Kibana Log Analytics UI (Tier 4)
-   - `traces.<your-domain.com>` $\rightarrow$ Jaeger Distributed Tracing UI (Tier 5)
-   - `prometheus.<your-domain.com>` $\rightarrow$ Prometheus UI
+   Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP. Production endpoints:
+   - `https://api.<your-domain.com>/v1/transfers` — Core API Gateway
+   - `https://cluster.<your-domain.com>` — Portainer Cluster Management UI
+   - `https://metrics.<your-domain.com>` — Grafana Dashboards
+   - `https://logs.<your-domain.com>` — Kibana Log Analytics
+   - `https://traces.<your-domain.com>` — Jaeger Distributed Tracing
+   - `https://prometheus.<your-domain.com>` — Prometheus UI
 
 ---
 
 ## 2. Local Development Bootstrap (Kind)
 
+### Key Difference from Production
+Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a remote Git repo, `make bootstrap ENV=dev` directly applies Kustomize overlays via sequential `kubectl apply -k` calls. This allows uncommitted local changes to take effect immediately.
+
 ### Prerequisites
 - **Docker Engine** (running)
-- **Kind** (`v0.31.0+`), **kubectl** (`v1.31+`), **Helm** (`v3.17+`), **Kustomize** (`v5.6+`)
+- **Kind** (`v0.31.0+`), **kubectl** (`v1.31+`), **Helm** (`v3.17+`)
+- Install all tools: `make tools`
 
 ### Step-by-Step Execution
 
@@ -77,45 +83,72 @@ This document provides step-by-step instructions for provisioning, bootstrapping
    ```
 
 2. **Create Local Kind Cluster**:
-   Creates a 3-worker node Kind cluster configured for port forwarding (host port 8080/8443):
+   Creates a 3-worker node Kind cluster with port forwarding (host ports 8080/8443):
    ```bash
    make cluster-up
    ```
 
-3. **Install Argo CD**:
-   Deploys Argo CD into the `argocd` namespace:
+3. **Bootstrap Dev Infrastructure**:
+   Sequentially applies all overlays in strict wave order without Argo CD:
    ```bash
-   make argocd
+   make bootstrap ENV=dev
    ```
 
-4. **Bootstrap Dev Infrastructure**:
-   Applies Sealed Secrets, infrastructure operators (CNPG, Strimzi, Redis, Envoy Gateway), and waits for pod readiness:
-   ```bash
-   make bootstrap-dev
-   ```
+   This executes:
+   1. `kubectl apply -k overlays/dev/operators` — Installs all operators
+   2. Waits for `sealed-secrets` to become healthy
+   3. `make seal ENV=dev` — Encrypts dev secrets
+   4. `kubectl apply -k overlays/dev/datastores` — Deploys databases
+   5. `kubectl apply -k overlays/dev/observability` — Deploys monitoring
+   6. `kubectl apply -k overlays/dev/workloads` — Deploys microservices
 
-5. **Verify Running Services & Endpoints**:
+4. **Verify Running Services**:
    Local Envoy Gateway exposes traffic on host ports `8080` (HTTP) and `8443` (HTTPS):
    - `http://localhost:8080/v1/transfers` — Core API Endpoint
-   - `http://cluster.127.0.0.1.nip.io:8080` — Portainer Cluster Management UI
-   - `http://metrics.127.0.0.1.nip.io:8080/services` — Grafana Services RED Dashboard
+   - `http://cluster.127.0.0.1.nip.io:8080` — Portainer
+   - `http://metrics.127.0.0.1.nip.io:8080/services` — Grafana
    - *(Optional)* Add `127.0.0.1 api.rrq.dev` to `/etc/hosts` for domain resolution.
 
 ---
 
-## 3. Useful Operational Commands
+## 3. Secrets Workflow
 
-- **Check Argo CD App Sync Status**:
-  ```bash
-  kubectl get applications -n argocd
-  ```
+Secrets are managed via the `make seal` target:
 
-- **Force Manual Argo CD Sync**:
-  ```bash
-  argocd app sync rrq-prod --prune
-  ```
+1. **Create plaintext secret files** in `secrets/<env>/`:
+   ```
+   secrets/dev/workloads.plain.yaml
+   secrets/dev/datastores.plain.yaml
+   secrets/prod/workloads.plain.yaml
+   secrets/prod/datastores.plain.yaml
+   ```
+   These files are git-ignored (`.gitignore` contains `*.plain.yaml`).
 
-- **Inspect Postgres Cluster Status**:
-  ```bash
-  kubectl cnpg status shard-a -n rrq
-  ```
+2. **Encrypt with `make seal`**:
+   ```bash
+   make seal ENV=dev   # or ENV=prod
+   ```
+   This runs `kubeseal` against each plaintext file and writes the encrypted `SealedSecret` to the corresponding overlay directory (e.g., `overlays/dev/workloads/secrets.yaml`).
+
+3. **Commit the encrypted SealedSecrets** — they are safe to push to Git.
+
+---
+
+## 4. Useful Operational Commands
+
+```bash
+# Check Argo CD application sync status
+kubectl get applications -n argocd
+
+# Force manual Argo CD sync
+argocd app sync operators --prune
+
+# Inspect Postgres cluster status
+kubectl cnpg status shard-a -n rrq
+
+# Dry-run: render all manifests without applying
+make render ENV=prod
+
+# Tear down local cluster
+make cluster-down
+```
