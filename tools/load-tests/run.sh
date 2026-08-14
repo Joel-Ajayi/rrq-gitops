@@ -12,7 +12,6 @@
 # Environment Variables:
 #   ENV            - Environment profile: dev or prod (default: dev)
 #   BASE_URL       - Target API Gateway URL override
-#   PROMETHEUS_URL - Prometheus remote write endpoint
 
 set -euo pipefail
 
@@ -71,12 +70,6 @@ echo "════════════════════════�
 echo ""
 
 K6_FLAGS="--env ENV=${TARGET_ENV}"
-
-# Stream to Prometheus Remote Write if URL is provided or running in cluster
-if [ -n "${K6_PROMETHEUS_RW_SERVER_URL:-}" ]; then
-  K6_FLAGS="$K6_FLAGS --out experimental-prometheus-rw"
-  echo "Streaming real-time metrics to Prometheus: ${K6_PROMETHEUS_RW_SERVER_URL}"
-fi
 
 k6 run \
   $K6_FLAGS \
