@@ -1,7 +1,5 @@
 # RRQ GitOps Infrastructure
 
-<!-- [![GitOps CI](https://github.com/Joel-Ajayi/rrq-gitops/actions/workflows/gitops-ci.yaml/badge.svg)](https://github.com/Joel-Ajayi/rrq-gitops/actions/workflows/gitops-ci.yaml) -->
-
 [![Argo CD](https://img.shields.io/badge/managed_by-Argo_CD-blue?logo=argo)](https://argoproj.github.io/cd/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
@@ -11,7 +9,17 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 
 ---
 
-## Philosophy
+## Documentation Quick Links
+
+- [GitOps Architecture Specification](docs/ARCHITECTURE.md) — Detailed guide on Argo CD "App of Apps", sync waves, namespace isolation, and operators.
+- [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup instructions for local Kind dev and production DOKS environments.
+- [Infrastructure Operational Runbooks](docs/RUNBOOKS.md) — SRE procedures for database failovers, Kafka partition scaling, and secret rotation.
+- [Security & Network Policy Matrix](docs/SECURITY.md) — Multi-layer security model, default-deny ingress/egress, and sealed secret standards.
+- [Capacity Planning Engine Guide](capacity/README.md) — Capacity model inputs (`slo-input.yaml`), formulas, and generated outputs.
+
+---
+
+## Core Philosophy
 
 We strictly adhere to the GitOps operating model:
 
@@ -22,109 +30,25 @@ We strictly adhere to the GitOps operating model:
 
 ---
 
-## Architecture Overview
+## Quickstart
 
-This repository uses the **"App of Apps"** pattern for Argo CD and leverages **Kustomize** to manage environment overlays cleanly.
+### Prerequisites
+- Docker Engine
+- Kind (`v0.31.0+`)
+- kubectl (`v1.31+`), Helm (`v3.17+`), Kustomize (`v5.6+`)
 
-```mermaid
-graph TD
-    subgraph "rrq-gitops Repository"
-        Apps["apps/ <br> (App of Apps)"]
-        Base["rrq/base/ <br> (Common Infrastructure)"]
-        Dev["rrq/overlays/dev/ <br> (Dev Configurations)"]
-        Prod["rrq/overlays/prod/ <br> (Prod Configurations)"]
+### Bootstrap Local Dev Cluster
 
-        Apps -->|Defines Environments| Dev
-        Apps -->|Defines Environments| Prod
-        Dev -.->|Inherits| Base
-        Prod -.->|Inherits| Base
-    end
+```bash
+# 1. Create Kind cluster
+make cluster-up
 
-    subgraph "Dev Cluster"
-        ArgoDev["Argo CD"]
-        ArgoDev -->|Syncs| DevNS["rrq Namespace (Dev)"]
-    end
+# 2. Install Argo CD
+make argocd
 
-    subgraph "Prod Cluster"
-        ArgoProd["Argo CD"]
-        ArgoProd -->|Syncs| ProdNS["rrq Namespace (Prod)"]
-    end
-
-    ArgoDev -->|Pulls| Dev
-    ArgoProd -->|Pulls| Prod
+# 3. Bootstrap infrastructure & operators
+make bootstrap-dev
 ```
-
-### Directory Structure
-
-| Path                 | Purpose                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------- |
-| `apps/`              | The root Argo CD `Application` manifests that bootstrap the cluster.                                    |
-| `rrq/base/`          | The pure, un-configured infrastructure building blocks (Postgres, Kafka, Microservices, Observability). |
-| `rrq/overlays/dev/`  | Configurations specific to local developer environments (reduced replicas, no TLS).                     |
-| `rrq/overlays/prod/` | Configurations specific to production (HA replicas, Sealed Secrets, TLS ingress).                       |
-| `bootstrap/`         | (Legacy) Reserved for initial cluster setup configurations.                                             |
-| `Makefile`           | Tooling to bootstrap the local GitOps environment.                                                      |
-
-### Core Technologies
-
-The platform relies on the following Kubernetes operators, configured via public Helm charts and customized in this repository:
-
-- **CloudNativePG**: Manages HA PostgreSQL clusters (`merchants-db`, `shard-a`, `shard-b`).
-- **Strimzi**: Manages Kafka brokers using modern KRaft mode.
-- **KEDA**: Event-driven autoscaling based on Kafka consumer lag.
-- **Bitnami Redis**: Ephemeral state for velocity checks.
-- **OpenTelemetry**: Auto-instrumentation and trace collection.
-
----
-
-## Quick Start: Local Development
-
-For the local inner-loop, we run a hybrid model: you use this repository to bootstrap the heavy stateful infrastructure _once_, and then use Skaffold in the application repo to rapidly hot-reload code.
-
-1. **Bootstrap the Platform:**
-
-   ```bash
-   git clone https://github.com/Joel-Ajayi/rrq-gitops.git
-   cd rrq-gitops
-   make bootstrap-dev
-   ```
-
-   This spins up a local `kind` cluster, installs Argo CD, and instructs it to apply the `apps/dev/infrastructure.yaml` manifest. Argo CD will reach out to public Helm registries to install all databases and message brokers.
-
-2. **Run the Application:**
-   ```bash
-   git clone https://github.com/Joel-Ajayi/river-rust-queue.git
-   cd river-rust-queue
-   make dev
-   ```
-   Skaffold will build your Go images, apply database migrations, and hot-load the microservices into the cluster dynamically.
-
----
-
-## Quick Start: Production Setup
-
-For production, you do not need to manually run `kubectl apply`. Instead, you use the Makefile which installs Argo CD into your production cluster and points it at this repository.
-
-**Prerequisites:**
-
-- You have provisioned a production Kubernetes cluster (e.g., EKS, GKE, AKS).
-- Your active `kubectl` context is pointing to that production cluster.
-
-1. **Bootstrap Production:**
-   ```bash
-   cd rrq-gitops
-   make bootstrap-prod
-   ```
-   _This command installs Argo CD, and applies the `apps/prod/infrastructure.yaml` and `apps/prod/rrq-app.yaml` manifests. Argo CD will immediately take over and sync all databases, brokers, and application deployments from this repository._
-
----
-
-## Production CI/CD Deployment Flow
-
-1. **Application CI**: A developer merges code into the `river-rust-queue` repository.
-2. **Image Build**: The CI pipeline builds the Docker image and pushes it to GHCR.
-3. **GitOps Trigger**: The CI pipeline updates the selected image tags in `rrq/overlays/prod/kustomization.yaml` in **this** repository, and pushes a commit.
-4. **Argo CD Sync**: Argo CD detects the new commit in `rrq-gitops`, pulls the Kustomize manifests, and seamlessly performs a rolling update on the production cluster.
 
 ---
 
