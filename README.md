@@ -12,10 +12,52 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 ## Documentation Quick Links
 
 - [GitOps Architecture Specification](docs/ARCHITECTURE.md) — Detailed guide on Argo CD "App of Apps", sync waves, namespace isolation, and operators.
-- [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup instructions for local Kind dev and production DOKS environments.
+- [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup instructions for production DOKS and local Kind dev environments.
 - [Infrastructure Operational Runbooks](docs/RUNBOOKS.md) — SRE procedures for database failovers, Kafka partition scaling, and secret rotation.
 - [Security & Network Policy Matrix](docs/SECURITY.md) — Multi-layer security model, default-deny ingress/egress, and sealed secret standards.
 - [Capacity Planning Engine Guide](capacity/README.md) — Capacity model inputs (`slo-input.yaml`), formulas, and generated outputs.
+
+---
+
+## Deployment & Development
+
+### 1. Production Kubernetes Deployment (DOKS / Production Cluster)
+
+For production Kubernetes environments (e.g. DigitalOcean DOKS, EKS, GKE):
+
+1. **Deploy Sealed Secrets Controller**:
+   ```bash
+   kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
+   ```
+2. **Apply Root App-of-Apps Manifest**:
+   Apply the root Argo CD Application:
+   ```bash
+   kubectl apply -f apps/root-app.yaml
+   ```
+3. **Automated Reconciliation**:
+   Argo CD automatically discovers and reconciles all production overlays (`rrq/overlays/prod/`), bringing database clusters, Strimzi Kafka brokers, KEDA scalers, Envoy Gateway routes, and application workloads to the declared Git state.
+
+---
+
+### 2. Local Development Quickstart (Kind)
+
+For local development on a 3-worker Kind cluster:
+
+#### Prerequisites
+- **Docker Engine**
+- **Kind** (`v0.31.0+`), **kubectl** (`v1.31+`), **Helm** (`v3.17+`), **Kustomize** (`v5.6+`)
+
+#### Step-by-Step Local Setup
+```bash
+# 1. Create 3-worker local Kind cluster
+make cluster-up
+
+# 2. Install Argo CD
+make argocd
+
+# 3. Bootstrap local dev infrastructure & operators
+make bootstrap-dev
+```
 
 ---
 
@@ -25,30 +67,8 @@ We strictly adhere to the GitOps operating model:
 
 1. **Declarative**: The entire system (from databases to Kafka brokers to microservice replicas) is described declaratively in Kubernetes YAML and Kustomize overlays.
 2. **Versioned**: Every change to the infrastructure is a Git commit. Git is the authoritative control plane.
-3. **Automated (Pull)**: **Argo CD** constantly monitors this repository and pulls changes into the cluster, applying them automatically. No human or CI pipeline runs `kubectl apply` in production.
+3. **Automated (Pull)**: **Argo CD** constantly monitors this repository and pulls changes into the cluster, applying them automatically.
 4. **Self-Healing**: If state in the cluster drifts from this repository, Argo CD automatically overwrites the cluster to match Git.
-
----
-
-## Quickstart
-
-### Prerequisites
-- Docker Engine
-- Kind (`v0.31.0+`)
-- kubectl (`v1.31+`), Helm (`v3.17+`), Kustomize (`v5.6+`)
-
-### Bootstrap Local Dev Cluster
-
-```bash
-# 1. Create Kind cluster
-make cluster-up
-
-# 2. Install Argo CD
-make argocd
-
-# 3. Bootstrap infrastructure & operators
-make bootstrap-dev
-```
 
 ---
 
