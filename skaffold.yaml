@@ -5,7 +5,8 @@ metadata:
 manifests:
   kustomize:
     paths:
-      - rrq/overlays/dev
+      - overlays/dev
+    buildArgs: ["--enable-helm"]
 deploy:
   kubectl:
     hooks:
