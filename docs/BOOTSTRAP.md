@@ -51,13 +51,13 @@ This document provides step-by-step instructions for provisioning, bootstrapping
    ```bash
    kubectl get svc -n envoy-gateway-system
    ```
-   Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP. The HTTPRoutes and cert-manager ClusterIssuer will automatically terminate SSL/TLS via Let's Encrypt for:
+   Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP address. The HTTPRoutes and cert-manager ClusterIssuer will automatically terminate SSL/TLS via Let's Encrypt for:
    - `api.<your-domain.com>` $\rightarrow$ Core API Ingress Gateway
-   - `cluster.<your-domain.com>` $\rightarrow$ Grafana Executive Dashboard (Tier 1)
+   - `cluster.<your-domain.com>` $\rightarrow$ Portainer (Kubernetes Cluster Management UI)
    - `growth.<your-domain.com>` $\rightarrow$ Grafana User Journeys Dashboard (Tier 2)
    - `metrics.<your-domain.com>` $\rightarrow$ Grafana Service Health RED Dashboard (Tier 3)
-   - `logs.<your-domain.com>` $\rightarrow$ Grafana Middleware USE Dashboard (Tier 4)
-   - `traces.<your-domain.com>` $\rightarrow$ Grafana Infrastructure USE Dashboard (Tier 5)
+   - `logs.<your-domain.com>` $\rightarrow$ Kibana Log Analytics UI (Tier 4)
+   - `traces.<your-domain.com>` $\rightarrow$ Jaeger Distributed Tracing UI (Tier 5)
    - `prometheus.<your-domain.com>` $\rightarrow$ Prometheus UI
 
 ---
@@ -97,8 +97,8 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 5. **Verify Running Services & Endpoints**:
    Local Envoy Gateway exposes traffic on host ports `8080` (HTTP) and `8443` (HTTPS):
    - `http://localhost:8080/v1/transfers` — Core API Endpoint
-   - `http://localhost:8080/executive` — Grafana Executive Dashboard
-   - `http://localhost:8080/services` — Grafana Services RED Dashboard
+   - `http://cluster.127.0.0.1.nip.io:8080` — Portainer Cluster Management UI
+   - `http://metrics.127.0.0.1.nip.io:8080/services` — Grafana Services RED Dashboard
    - *(Optional)* Add `127.0.0.1 api.rrq.dev` to `/etc/hosts` for domain resolution.
 
 ---

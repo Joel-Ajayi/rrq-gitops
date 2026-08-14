@@ -42,7 +42,7 @@ For production Kubernetes environments (e.g. DigitalOcean DOKS, EKS, GKE):
      ```
    - Point your domain's wildcard A record (`*.<your-domain.com>`) to the LoadBalancer IP address. Production endpoints will be automatically routed and secured via Let's Encrypt TLS:
      - **API Core Gateway**: `https://api.<your-domain.com>/v1/transfers`
-     - **Executive Dashboard**: `https://cluster.<your-domain.com>`
+     - **Portainer Cluster UI**: `https://cluster.<your-domain.com>`
      - **User Journeys Dashboard**: `https://growth.<your-domain.com>`
      - **Service Health RED Dashboard**: `https://metrics.<your-domain.com>`
      - **Middleware USE Dashboard**: `https://logs.<your-domain.com>`
@@ -74,6 +74,7 @@ make bootstrap-dev
 #### Local Endpoints & Hostnames
 Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS):
 - **API Gateway Endpoint**: `http://localhost:8080/v1/transfers`
+- **Portainer Cluster Management**: `http://cluster.127.0.0.1.nip.io:8080`
 - **Ops Redirect Routes**: `http://localhost:8080/executive`, `/journeys`, `/services`, `/middleware`, `/infrastructure`
 - *(Optional)* Map `127.0.0.1 api.rrq.dev` in `/etc/hosts` for domain resolution testing.
 

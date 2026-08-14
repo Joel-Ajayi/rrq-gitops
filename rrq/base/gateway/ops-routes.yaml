@@ -1,7 +1,30 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: grafana-ops-route
+  name: cluster-route
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+spec:
+  parentRefs:
+    - name: rrq-gateway
+  hostnames:
+    - "cluster.127.0.0.1.nip.io"
+    - "cluster.rrq.yotstack.tech"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: portainer
+          namespace: portainer
+          port: 9000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: metrics-route
   namespace: rrq
   labels:
     app.kubernetes.io/part-of: rrq
@@ -11,8 +34,6 @@ spec:
   hostnames:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
-    - "cluster.127.0.0.1.nip.io"
-    - "cluster.rrq.yotstack.tech"
     - "growth.127.0.0.1.nip.io"
     - "growth.rrq.yotstack.tech"
   rules:
@@ -154,6 +175,22 @@ spec:
         - name: jaeger-collector
           namespace: observability
           port: 16686
+---
+# Reference Grant authorizing 'rrq' HTTPRoutes to connect to Portainer
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-rrq-route-to-portainer
+  namespace: portainer
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: rrq
+  to:
+    - group: ""
+      kind: Service
+      name: portainer
 ---
 # Reference Grant authorizing 'rrq' HTTPRoutes to connect to 'observability' backend services
 apiVersion: gateway.networking.k8s.io/v1beta1
