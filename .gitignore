@@ -1,4 +1,3 @@
 .env
 *.env
 secret.plain.yaml
-q_decisions

@@ -1,31 +1,34 @@
-# Capacity Engine
+# Capacity Planning Engine
 
-The capacity engine calculates infrastructure sizing, retry budgets, timeouts, and resource allocations based on SLO targets and infrastructure constraints.
+The capacity planning engine dynamically derives microservice timeouts, token bucket retry budgets, worker concurrency pools, HPA replica bounds, and database connection limits directly from SLO targets and physical infrastructure constraints.
+
+---
 
 ## How to Run
 
-You can run the engine directly using `go run` from this directory:
+Execute the engine directly using `go run`:
 
 ```bash
 go run . slo-input.yaml
 ```
 
-Alternatively, you can build it into an executable first:
+Alternatively, build a standalone binary:
 
 ```bash
 go build -o capacity .
 ./capacity slo-input.yaml
 ```
 
+---
+
 ## Input
 
-- `slo-input.yaml`: The YAML configuration file containing your SLOs, expected peak QPS, average query times, and infrastructure bounds.
+- **`slo-input.yaml`**: Authoritative configuration file declaring target QPS, latency SLOs ($W$), variance parameters ($C_s^2 / C_a^2$), PostgreSQL instance profiles, Kafka broker limits, and pod CPU/memory limits.
+
+---
 
 ## Output
 
-The engine prints a capacity check summary (Supply, Derived limits, and Fit-Check results) to standard output. 
-
-If the capacity check passes, it automatically renders the derived values and patches the Kustomize manifests in your base cluster configuration, typically located in:
-- `../rrq/base/config/` (ConfigMaps)
-- `../rrq/base/services/` (KEDA ScaledObjects, Deployments)
-- `../rrq/base/kafka/` (Topics)
+1. **Terminal Console Report**: Displays infrastructure supply ceilings, per-service derived parameters (latency, CPU requests, retry budgets, session timeouts), and fit-check pass/fail status.
+2. **`capacity-output.yaml`**: Serialized debug output containing snake_case derived properties across `ceilings`, `kafka_cap` (including aggregated `topics`), `redis_cap`, and `services`.
+3. **Kustomize ConfigMaps**: Automatically updates Kustomize environment configuration in `../rrq/base/config/` for GitOps deployment.
