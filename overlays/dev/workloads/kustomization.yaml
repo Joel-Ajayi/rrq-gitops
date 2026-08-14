@@ -1,9 +1,8 @@
-# Dev overlay (kind). Reduces replicas and resources for local development.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../base
-  - ../../base/migrations # Creates local databases on first boot
+  - ../../../base/workloads
+  - secrets.yaml
   - services
 images:
   - name: rrq/core-api
@@ -18,8 +17,6 @@ images:
     newName: rrq/fraud-worker-go
   - name: rrq/migrate
     newName: rrq/migrate
-  - name: rrq/seed-performance
-    newName: rrq/seed-performance
   - name: rrq/webhook-echo
     newName: rrq/webhook-echo-go
 patches:

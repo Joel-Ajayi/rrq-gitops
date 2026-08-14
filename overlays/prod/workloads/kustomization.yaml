@@ -1,10 +1,8 @@
-# Prod overlay (delivered by Argo CD). Base is already prod-shaped (HA backends);
-# this adds secrets, the cert-manager issuer, TLS, scale-up, and the migration hook.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../base
-  - ../../base/migrations
+  - ../../../base/workloads
+  - secrets.yaml
   - services # prod-specific service overlays (tls, gateways,network policies)
 images:
   - name: rrq/core-api
@@ -19,15 +17,10 @@ images:
     newName: ghcr.io/Joel-Ajayi/fraud-worker-go
   - name: rrq/migrate
     newName: ghcr.io/Joel-Ajayi/migrate
-  - name: rrq/seed-performance
-    newName: ghcr.io/Joel-Ajayi/seed-performance
   - name: rrq/webhook-echo
     newName: ghcr.io/Joel-Ajayi/webhook-echo-go
 patches:
-  - path: patches/scale-up.yaml
   - path: patches/sync-waves.yaml
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
   - path: services/scale-patch.yaml
-
-# CI promotes the selected prod images by updating the image tags only.

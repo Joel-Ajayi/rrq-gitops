@@ -1,0 +1,27 @@
+architecture: replication
+auth:
+  enabled: true
+  existingSecret: redis-secret
+  existingSecretPasswordKey: redis-password
+sentinel:
+  enabled: true
+master:
+  resources:
+    requests:
+      cpu: "2"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+replica:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: "2"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+commonConfiguration: |-
+  appendonly no
+  save ""

@@ -1,0 +1,7 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rrq-seed-performance
+  namespace: rrq
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"

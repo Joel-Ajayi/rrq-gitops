@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../base/platform/datastores
+  - secrets.yaml
+patches:
+  - path: patches/order-seed-performance.yaml
+images:
+  - name: rrq/seed-performance
+    newName: rrq/seed-performance
+helmCharts:
+  - name: redis
+    repo: https://charts.bitnami.com/bitnami
+    version: 27.0.15
+    releaseName: redis
+    namespace: redis
+    valuesFile: redis-values.yaml
