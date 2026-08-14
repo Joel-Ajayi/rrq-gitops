@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - agent-rbac.yaml
+  - agent.yaml
+  - gateway-rbac.yaml
+  - gateway.yaml
+  - instrumentation.yaml
+  - alertmanagerconfig.yaml
+  - servicemonitor.yaml
+  - prometheusrule.yaml
+  - jaeger.yaml
+  - elastic.yaml
+  - ops-routes.yaml
+  - dashboards/
+
+helmCharts:
+  - name: portainer
+    repo: https://portainer.github.io/k8s/
+    version: 1.0.57
+    releaseName: portainer
+    namespace: portainer
+    valuesInline:
+      service:
+        type: ClusterIP
+      ingress:
+        enabled: false
