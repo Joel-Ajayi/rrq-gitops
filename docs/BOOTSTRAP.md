@@ -36,6 +36,20 @@ This document provides step-by-step instructions for provisioning, bootstrapping
    ```
    Argo CD will automatically discover, fetch, and synchronize all operator components and microservices declared in `rrq/overlays/prod/` across sync waves `-2` through `2`.
 
+6. **Configure Production DNS A Records**:
+   Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
+   ```bash
+   kubectl get svc -n envoy-gateway-system
+   ```
+   Point your domain's wildcard A record (`*.rrq.yotstack.tech`) to the LoadBalancer IP. The HTTPRoutes and cert-manager ClusterIssuer will automatically terminate SSL/TLS via Let's Encrypt for:
+   - `api.rrq.yotstack.tech` $\rightarrow$ Core API Ingress Gateway
+   - `cluster.rrq.yotstack.tech` $\rightarrow$ Grafana Executive Dashboard (Tier 1)
+   - `growth.rrq.yotstack.tech` $\rightarrow$ Grafana User Journeys Dashboard (Tier 2)
+   - `metrics.rrq.yotstack.tech` $\rightarrow$ Grafana Service Health RED Dashboard (Tier 3)
+   - `logs.rrq.yotstack.tech` $\rightarrow$ Grafana Middleware USE Dashboard (Tier 4)
+   - `traces.rrq.yotstack.tech` $\rightarrow$ Grafana Infrastructure USE Dashboard (Tier 5)
+   - `prometheus.rrq.yotstack.tech` $\rightarrow$ Prometheus UI
+
 ---
 
 ## 2. Local Development Bootstrap (Kind)
@@ -70,10 +84,12 @@ This document provides step-by-step instructions for provisioning, bootstrapping
    make bootstrap-dev
    ```
 
-5. **Verify Running Services**:
-   ```bash
-   kubectl get pods -A
-   ```
+5. **Verify Running Services & Endpoints**:
+   Local Envoy Gateway exposes traffic on host ports `8080` (HTTP) and `8443` (HTTPS):
+   - `http://localhost:8080/v1/transfers` — Core API Endpoint
+   - `http://localhost:8080/executive` — Grafana Executive Dashboard
+   - `http://localhost:8080/services` — Grafana Services RED Dashboard
+   - *(Optional)* Add `127.0.0.1 api.rrq.dev` to `/etc/hosts` for domain resolution.
 
 ---
 

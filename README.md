@@ -34,8 +34,19 @@ For production Kubernetes environments (e.g. DigitalOcean DOKS, EKS, GKE):
    ```bash
    kubectl apply -f apps/root-app.yaml
    ```
-3. **Automated Reconciliation**:
-   Argo CD automatically discovers and reconciles all production overlays (`rrq/overlays/prod/`), bringing database clusters, Strimzi Kafka brokers, KEDA scalers, Envoy Gateway routes, and application workloads to the declared Git state.
+3. **Configure DNS & LoadBalancer Hostnames**:
+   Retrieve the external IP address of the provisioned Envoy Gateway LoadBalancer:
+   ```bash
+   kubectl get svc -n envoy-gateway-system
+   ```
+   Point your domain's wildcard A record (`*.rrq.yotstack.tech`) to the LoadBalancer IP address. Production endpoints will be automatically routed and secured via Let's Encrypt TLS:
+   - **API Core Gateway**: `https://api.rrq.yotstack.tech/v1/transfers`
+   - **Executive Dashboard**: `https://cluster.rrq.yotstack.tech`
+   - **User Journeys Dashboard**: `https://growth.rrq.yotstack.tech`
+   - **Service Health RED Dashboard**: `https://metrics.rrq.yotstack.tech`
+   - **Middleware USE Dashboard**: `https://logs.rrq.yotstack.tech`
+   - **Infrastructure USE Dashboard**: `https://traces.rrq.yotstack.tech`
+   - **Prometheus UI**: `https://prometheus.rrq.yotstack.tech`
 
 ---
 
@@ -58,6 +69,12 @@ make argocd
 # 3. Bootstrap local dev infrastructure & operators
 make bootstrap-dev
 ```
+
+#### Local Endpoints & Hostnames
+Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS):
+- **API Gateway Endpoint**: `http://localhost:8080/v1/transfers`
+- **Ops Redirect Routes**: `http://localhost:8080/executive`, `/journeys`, `/services`, `/middleware`, `/infrastructure`
+- *(Optional)* Map `127.0.0.1 api.rrq.dev` in `/etc/hosts` for domain resolution testing.
 
 ---
 
