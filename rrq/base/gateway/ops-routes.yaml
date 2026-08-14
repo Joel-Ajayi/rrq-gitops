@@ -1,100 +1,7 @@
-
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: cluster-route
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  parentRefs:
-    - name: rrq-gateway
-  hostnames:
-    - "cluster.127.0.0.1.nip.io"
-    - "cluster.rrq.yotstack.tech"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: portainer
-          namespace: portainer
-          port: 9000
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: logs-route
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  parentRefs:
-    - name: rrq-gateway
-  hostnames:
-    - "logs.127.0.0.1.nip.io"
-    - "logs.rrq.yotstack.tech"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: kibana-kb-http
-          namespace: observability
-          port: 5601
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: traces-route
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  parentRefs:
-    - name: rrq-gateway
-  hostnames:
-    - "traces.127.0.0.1.nip.io"
-    - "traces.rrq.yotstack.tech"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: jaeger-collector
-          namespace: observability
-          port: 16686
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: prometheus-route
-  namespace: rrq
-  labels:
-    app.kubernetes.io/part-of: rrq
-spec:
-  parentRefs:
-    - name: rrq-gateway
-  hostnames:
-    - "prometheus.127.0.0.1.nip.io"
-    - "prometheus.rrq.yotstack.tech"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: kube-prometheus-stack-prometheus
-          namespace: observability
-          port: 9090
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: metrics-route
+  name: grafana-ops-route
   namespace: rrq
   labels:
     app.kubernetes.io/part-of: rrq
@@ -104,6 +11,10 @@ spec:
   hostnames:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
+    - "cluster.127.0.0.1.nip.io"
+    - "cluster.rrq.yotstack.tech"
+    - "growth.127.0.0.1.nip.io"
+    - "growth.rrq.yotstack.tech"
   rules:
     # Tier 1: Business & SLOs Overview
     - matches:
@@ -165,7 +76,7 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier5-compute-infrastructure/tier-5-compute-infrastructure
             statusCode: 302
-    # Default Grafana Backend Route
+    # Default Grafana Dashboard UI
     - matches:
         - path:
             type: PathPrefix
@@ -178,7 +89,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: growth-route
+  name: prometheus-route
   namespace: rrq
   labels:
     app.kubernetes.io/part-of: rrq
@@ -186,48 +97,65 @@ spec:
   parentRefs:
     - name: rrq-gateway
   hostnames:
-    - "growth.127.0.0.1.nip.io"
-    - "growth.rrq.yotstack.tech"
+    - "prometheus.127.0.0.1.nip.io"
+    - "prometheus.rrq.yotstack.tech"
   rules:
-    # Direct Root Landing Page for Business Operations & Growth Dashboard (Tier 1)
-    - matches:
-        - path:
-            type: Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
-            statusCode: 302
-    # Default Grafana Backend Route
     - matches:
         - path:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kube-prometheus-stack-grafana
+        - name: kube-prometheus-stack-prometheus
           namespace: observability
-          port: 80
+          port: 9090
 ---
-# Reference Grants to authorize the 'rrq' namespace routes to connect to these service backends
-
-apiVersion: gateway.networking.k8s.io/v1beta1
-kind: ReferenceGrant
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
-  name: allow-rrq-route-to-portainer
-  namespace: portainer
+  name: logs-route
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
 spec:
-  from:
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      namespace: rrq
-  to:
-    - group: ""
-      kind: Service
-      name: portainer
+  parentRefs:
+    - name: rrq-gateway
+  hostnames:
+    - "logs.127.0.0.1.nip.io"
+    - "logs.rrq.yotstack.tech"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: kibana-kb-http
+          namespace: observability
+          port: 5601
 ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: traces-route
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+spec:
+  parentRefs:
+    - name: rrq-gateway
+  hostnames:
+    - "traces.127.0.0.1.nip.io"
+    - "traces.rrq.yotstack.tech"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: jaeger-collector
+          namespace: observability
+          port: 16686
+---
+# Reference Grant authorizing 'rrq' HTTPRoutes to connect to 'observability' backend services
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
