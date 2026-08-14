@@ -105,7 +105,7 @@ spec:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
   rules:
-    # Executive NOC Overview Shortcuts
+    # Executive NOC & Business Overview Shortcuts
     - matches:
         - path:
             type: Exact
@@ -115,7 +115,19 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-noc-executive/rrq-executive-noc
+              replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
+            statusCode: 302
+    # User Journeys & Flows Shortcuts
+    - matches:
+        - path:
+            type: Exact
+            value: /journeys
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /d/tier2-user-journeys/tier-2-user-journeys-flows
             statusCode: 302
     # Platform Infrastructure Shortcuts
     - matches:
@@ -127,9 +139,21 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-platform-infra/rrq-platform-infrastructure
+              replaceFullPath: /d/tier5-compute-infrastructure/tier-5-compute-infrastructure
             statusCode: 302
-    # Microservice Deep Dives
+    # Middleware & Data Shortcuts
+    - matches:
+        - path:
+            type: Exact
+            value: /middleware
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /d/tier4-middleware-data/tier-4-middleware-data
+            statusCode: 302
+    # Microservice Deep Dives (Tier 3 RED Method with service_name variable)
     - matches:
         - path:
             type: Exact
@@ -139,7 +163,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-core-api/rrq-core-api
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=core-api
             statusCode: 302
     - matches:
         - path:
@@ -150,7 +174,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-outbox-relay/rrq-outbox-relay
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=outbox-relay
             statusCode: 302
     - matches:
         - path:
@@ -161,7 +185,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-ledger-worker/rrq-ledger-worker
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=ledger-worker
             statusCode: 302
     - matches:
         - path:
@@ -172,7 +196,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-webhook-worker/rrq-webhook-worker
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=webhook-worker
             statusCode: 302
     - matches:
         - path:
@@ -183,7 +207,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-fraud-worker/rrq-fraud-worker
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=fraud-worker
             statusCode: 302
     - matches:
         - path:
@@ -194,7 +218,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-svc-recon-worker/rrq-recon-worker
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=recon-worker
             statusCode: 302
     # Default Grafana Backend Route
     - matches:
@@ -220,7 +244,7 @@ spec:
     - "growth.127.0.0.1.nip.io"
     - "growth.rrq.yotstack.tech"
   rules:
-    # Direct Root Landing Page for Business Operations & Growth Dashboard
+    # Direct Root Landing Page for Business Operations & Growth Dashboard (Tier 1)
     - matches:
         - path:
             type: Exact
@@ -230,7 +254,7 @@ spec:
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/rrq-business-ops/rrq-business-operations
+              replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
             statusCode: 302
     # Default Grafana Backend Route
     - matches:

@@ -362,3 +362,27 @@ spec:
             summary: "Consumer spending > 50% of time in backoff"
             description: "Consumers across the system are spending excessive time in backoff. Persistent infrastructure failures likely."
             runbook_url: "https://wiki.rrq.local/runbooks/consumer-backoff"
+
+    - name: rrq.retry.budget
+      rules:
+        - alert: RetryBudgetExhaustedHigh
+          expr: rate(rrq_retry_budget_exhausted_total[5m]) > 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Retry Budget Exhausted across microservices"
+            description: "Token bucket retry budget exhausted for service {{ $labels.service_name }}. Retries failing fast to prevent thundering herd load amplification."
+            runbook_url: "https://wiki.rrq.local/runbooks/retry-budget-exhausted"
+
+    - name: rrq.recon.worker
+      rules:
+        - alert: ReconDiscrepancyDetected
+          expr: increase(rrq_recon_discrepancies_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Reconciliation Discrepancy Detected"
+            description: "Reconciliation worker detected ledger balance drift or posting integrity mismatch across shards."
+            runbook_url: "https://wiki.rrq.local/runbooks/recon-discrepancy"
