@@ -105,7 +105,7 @@ spec:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
   rules:
-    # Executive NOC & Business Overview Shortcuts
+    # Tier 1: Business & SLOs Overview
     - matches:
         - path:
             type: Exact
@@ -117,7 +117,7 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
             statusCode: 302
-    # User Journeys & Flows Shortcuts
+    # Tier 2: User Journeys & Flows
     - matches:
         - path:
             type: Exact
@@ -129,19 +129,19 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier2-user-journeys/tier-2-user-journeys-flows
             statusCode: 302
-    # Platform Infrastructure Shortcuts
+    # Tier 3: Microservice Health (RED Method)
     - matches:
         - path:
-            type: Exact
-            value: /infrastructure
+            type: PathPrefix
+            value: /services
       filters:
         - type: RequestRedirect
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/tier5-compute-infrastructure/tier-5-compute-infrastructure
+              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red
             statusCode: 302
-    # Middleware & Data Shortcuts
+    # Tier 4: Middleware & Data Stores (USE Method)
     - matches:
         - path:
             type: Exact
@@ -153,72 +153,17 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier4-middleware-data/tier-4-middleware-data
             statusCode: 302
-    # Microservice Deep Dives (Tier 3 RED Method with service_name variable)
+    # Tier 5: Compute & Platform Infrastructure (USE Method)
     - matches:
         - path:
             type: Exact
-            value: /services/core-api
+            value: /infrastructure
       filters:
         - type: RequestRedirect
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=core-api
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact
-            value: /services/outbox-relay
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=outbox-relay
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact
-            value: /services/ledger
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=ledger-worker
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact
-            value: /services/webhook
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=webhook-worker
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact
-            value: /services/fraud
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=fraud-worker
-            statusCode: 302
-    - matches:
-        - path:
-            type: Exact
-            value: /services/recon
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /d/tier3-service-health/tier-3-service-health-red?var-service_name=recon-worker
+              replaceFullPath: /d/tier5-compute-infrastructure/tier-5-compute-infrastructure
             statusCode: 302
     # Default Grafana Backend Route
     - matches:
