@@ -1,7 +1,5 @@
 # Runs once per `make dev` (and as an Argo CD PreSync hook in prod): global migrations
 # on the control-plane DB, shard migrations on every shard. URIs come from CNPG secrets.
-# Uses a single container that migrates each DB sequentially to avoid K8s multi-container
-# Job behaviour (all containers restart on any failure).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -22,7 +20,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: migrate
-          image: rrq/migrate:dev
+          image: rrq/migrate
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

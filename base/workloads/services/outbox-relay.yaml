@@ -48,11 +48,13 @@ spec:
               done
       containers:
         - name: outbox-relay
-          image: rrq/outbox-relay:dev
+          image: rrq/outbox-relay
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
+            - configMapRef:
+                name: outbox-relay-config
           env:
             - name: MERCHANTS_DB_URI
               valueFrom:

@@ -48,11 +48,13 @@ spec:
               done
       containers:
         - name: ledger-worker
-          image: rrq/ledger-worker:dev
+          image: rrq/ledger-worker
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
+            - configMapRef:
+                name: ledger-worker-config
           env:
             - name: MERCHANTS_DB_URI
               valueFrom:

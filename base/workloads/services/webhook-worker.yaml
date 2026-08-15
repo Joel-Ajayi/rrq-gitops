@@ -44,11 +44,13 @@ spec:
               done
       containers:
         - name: webhook-worker
-          image: rrq/webhook-worker:dev
+          image: rrq/webhook-worker
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
+            - configMapRef:
+                name: webhook-worker-config
           env:
             - name: MERCHANTS_DB_URI
               valueFrom:

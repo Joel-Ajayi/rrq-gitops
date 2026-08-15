@@ -52,7 +52,7 @@ spec:
               done
       containers:
         - name: fraud-worker
-          image: rrq/fraud-worker:dev
+          image: rrq/fraud-worker
           imagePullPolicy: Never
           lifecycle:
             preStop:
@@ -62,7 +62,9 @@ spec:
                   - "5"
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
+            - configMapRef:
+                name: fraud-worker-config
           env:
             - name: MERCHANTS_DB_URI
               valueFrom:

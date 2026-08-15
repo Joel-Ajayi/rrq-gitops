@@ -44,7 +44,7 @@ spec:
               done
       containers:
         - name: core-api
-          image: rrq/core-api-go
+          image: rrq/core-api
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -57,7 +57,9 @@ spec:
                   - "5"
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
+            - configMapRef:
+                name: core-api-config
           env:
             - name: HTTP_PORT
               value: "8080"

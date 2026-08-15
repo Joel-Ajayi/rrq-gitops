@@ -20,7 +20,7 @@ spec:
       terminationGracePeriodSeconds: 15
       containers:
         - name: webhook-echo
-          image: rrq/webhook-echo:dev
+          image: rrq/webhook-echo
           imagePullPolicy: Never
           ports:
             - name: http
@@ -33,7 +33,7 @@ spec:
                   - "5"
           envFrom:
             - configMapRef:
-                name: rrq-config
+                name: rrq-platform-config
           env:
             - name: HTTP_PORT
               value: "8080"
