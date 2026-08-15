@@ -1,18 +1,21 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: capacity <slo-input.yaml>\n")
-		os.Exit(1)
-	}
-	data, err := os.ReadFile(os.Args[1])
+	inputPath := flag.String("input", "slo-input.yaml", "path to the SLO input YAML")
+	outputPath := flag.String("output", "capacity-output.yaml", "path to write the capacity report YAML")
+	renderRoot := flag.String("render", ".", "rrq-gitops repo root; manifests are patched relative to it")
+	flag.Parse()
+
+	data, err := os.ReadFile(*inputPath)
 	if err != nil {
 		fatalf("read input: %v", err)
 	}
@@ -25,15 +28,19 @@ func main() {
 	svcs := derive(&input)
 	fails, warns := fitcheck(svcs, pg, kc, rc, &input)
 
-	printResults(pg, kc, rc, svcs, fails, warns)
+	printResults(pg, kc, rc, svcs, fails, warns, *outputPath)
 
-	if err := render(svcs, pg, kc, rc, fails, warns, &input); err != nil {
+	rootDir, err := filepath.Abs(*renderRoot)
+	if err != nil {
+		fatalf("resolve render root: %v", err)
+	}
+
+	if err := render(svcs, pg, kc, rc, fails, warns, &input, *outputPath, rootDir); err != nil {
 		fatalf("render: %v", err)
 	}
 
-	// Patch K8s manifests from engine output (KEDA / Kafka / config).
-	// Addresses issues 14, 15, 16, 30.
-	if err := renderManifests(svcs, pg, &input, ".."); err != nil {
+	// Patch K8s manifests from engine output (KEDA / Kafka / PG / resources).
+	if err := renderManifests(svcs, pg, &input, rootDir); err != nil {
 		fatalf("render-manifests: %v", err)
 	}
 
@@ -44,7 +51,7 @@ func main() {
 	fmt.Println("\nCAPACITY CHECK PASSED")
 }
 
-func printResults(pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, svcs map[string]Derived, fails []string, warns []string) {
+func printResults(pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, svcs map[string]Derived, fails []string, warns []string, outputPath string) {
 	fmt.Println("=== SUPPLY ===")
 	for _, c := range pg {
 		fmt.Printf("  PG %s: max_conns=%d optimal=%d storage=%.2f GB/day\n", c.Instance, c.MaxConns, c.OptimalActive, c.StorageGBPerDay)
@@ -84,7 +91,7 @@ func printResults(pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, s
 			fmt.Printf("  HPA: %s maxReplicas capped at %d\n", nameFromMap(svcs, d), d.MaxReplicasCap)
 		}
 	}
-	fmt.Println("ConfigMaps written to ../rrq/base/config/")
+	fmt.Printf("Report written to %s\n", outputPath)
 }
 
 func nameFromMap(m map[string]Derived, d Derived) string {

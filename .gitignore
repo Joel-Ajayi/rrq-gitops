@@ -3,3 +3,5 @@
 *.plain.yaml
 q_decisions/
 charts/
+# Capacity engine binary
+tools/capacity-engine/capacity

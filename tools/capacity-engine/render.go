@@ -3,13 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-func render(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string, input *SLOInput) error {
-	dir := "../rrq/base/config"
+func render(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string, input *SLOInput, outputPath string, rootDir string) error {
+	// Per-service + platform ConfigMaps consumed via envFrom by the
+	// deployments (base/workloads/config, wired in base/workloads).
+	dir := filepath.Join(rootDir, "base", "workloads", "config")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -22,9 +25,11 @@ func render(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, r
 			return err
 		}
 	}
-	return renderReport(dir, svcs, pg, kc, rc, fails, warns)
+	return renderReport(outputPath, svcs, pg, kc, rc, fails, warns)
 }
 
+// renderPlatform writes the shared platform ConfigMap (rrq-platform-config)
+// with infra-level settings every service inherits via envFrom.
 func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, input *SLOInput, svcs map[string]Derived) error {
 	d := input.Defaults
 	k := input.Infra.Kafka
@@ -467,7 +472,7 @@ func findService(input *SLOInput, name string) *Service {
 	return nil
 }
 
-func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string) error {
+func renderReport(path string, svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, rc []RedisCeiling, fails []string, warns []string) error {
 	uniqTopics := map[string]int{}
 	for _, d := range svcs {
 		for t, p := range d.Partitions {
@@ -487,7 +492,7 @@ func renderReport(dir string, svcs map[string]Derived, pg map[string]PGCeiling, 
 		Failures: fails,
 		Warnings: warns,
 	}
-	return writeYAML("capacity-output.yaml", out)
+	return writeYAML(path, out)
 }
 
 func configMap(name string, data map[string]string) map[string]interface{} {

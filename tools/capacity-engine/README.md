@@ -16,12 +16,12 @@ slo-input.yaml
 └─────────┘     └─────────┘     └──────────┘     └────────────────┘
 ```
 
-| Phase | Source File | Description |
-|-------|------------|-------------|
-| **Supply** | `supply.go` | Computes infrastructure ceilings from physical inputs (Postgres max connections, Kafka partition budget, Redis maxmemory). |
-| **Demand** | `demand.go` | Derives per-service parameters from SLO targets via the models below. |
-| **Fit-Check** | `fitcheck.go` | Validates total demand ≤ supply. Emits `FAIL` (blocks deployment) or `WARN` (advisory). |
-| **Render** | `render.go`, `render_manifests.go` | Writes `capacity-output.yaml` and patches Kubernetes manifests. |
+| Phase         | Source File                        | Description                                                                                                                |
+| ------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Supply**    | `supply.go`                        | Computes infrastructure ceilings from physical inputs (Postgres max connections, Kafka partition budget, Redis maxmemory). |
+| **Demand**    | `demand.go`                        | Derives per-service parameters from SLO targets via the models below.                                                      |
+| **Fit-Check** | `fitcheck.go`                      | Validates total demand ≤ supply. Emits `FAIL` (blocks deployment) or `WARN` (advisory).                                    |
+| **Render**    | `render.go`, `render_manifests.go` | Renders per-service + platform ConfigMaps into `base/workloads/config/`, writes `capacity-output.yaml`, and patches Kubernetes manifests.                                                            |
 
 All formulas live in `models.go`. `demand.go` is pure orchestration — no formulas.
 
@@ -31,21 +31,23 @@ All formulas live in `models.go`. `demand.go` is pure orchestration — no formu
 
 ### 1. Queueing Theory — Latency & Worker Sizing
 
-#### Kingman's Formula (G/G/1) — *Kingman, 1961*
+#### Kingman's Formula (G/G/1) — _Kingman, 1961_
+
 The expected waiting time in a single-server queue, the foundation of the entire engine:
 
 ```
 E[W_q] ≈ ( ρ / (1 − ρ) ) × ( (c_a² + c_s²) / 2 ) × τ
 ```
 
-| Variable | Meaning | Typical Value |
-|----------|---------|---------------|
-| `ρ` | Target utilization (from SLO) | 0.60–0.75 |
-| `c_a²` | Squared CV of inter-arrival times | Poisson arrival ≈ `1.0` |
-| `c_s²` | Squared CV of service times | DB queries ≈ `1.5` |
-| `τ` | Mean service time (seconds) | `AvgQueryTimeMS / 1000` |
+| Variable | Meaning                           | Typical Value           |
+| -------- | --------------------------------- | ----------------------- |
+| `ρ`      | Target utilization (from SLO)     | 0.60–0.75               |
+| `c_a²`   | Squared CV of inter-arrival times | Poisson arrival ≈ `1.0` |
+| `c_s²`   | Squared CV of service times       | DB queries ≈ `1.5`      |
+| `τ`      | Mean service time (seconds)       | `AvgQueryTimeMS / 1000` |
 
 #### Erlang C (M/M/c) — Probability of Delay
+
 For `c` parallel workers, offered load `A = c·ρ`:
 
 ```
@@ -54,6 +56,7 @@ P(delay) = (c·B) / (c − A·(1 − B))
 ```
 
 #### Allen–Cunneen Approximation (G/G/c) — **Per-Endpoint Residence Time**
+
 The engine's latency model, combining Erlang C with Kingman's variance term:
 
 ```
@@ -63,6 +66,7 @@ workerConcurrency(): workers = ceil( throughput_per_pod × L(ρ) × worker_amp )
 ```
 
 #### Weighted Average Service Time
+
 Blends per-endpoint query times by their peak traffic share (plus HTTP network I/O if present):
 
 ```
@@ -76,18 +80,22 @@ avgMS = Σ(Sᵢ × λ_peakᵢ) / Σ(λ_peakᵢ)   (+ HTTP.AvgLatencyS × 1000)
 `L = λ × W` applied directly:
 
 #### DB Pool Demand (per instance)
+
 ```
 demand = max over endpoints ( λ_peak_ep × S_ep ) / ρ
 per_pod_pool = max( ceil( maxDemand / minReplicas ), pool_floor )
 ```
-*Pool of 1 serializes — floor exists so pools never collapse to 1 (HikariCP/PG wiki).*
+
+_Pool of 1 serializes — floor exists so pools never collapse to 1 (HikariCP/PG wiki)._
 
 #### KEDA Lag Threshold (acceptable backlog per pod)
+
 ```
 lag_threshold = ceil( SLO_latency_ms / avg_ms ) × workers
 ```
 
 #### HTTP Outbound Pool (Go net/http Transport)
+
 ```
 http_pool = max( ceil( qps × latency_s × headroom ), worker_count )
 per_host   = ceil( http_pool / host_count )
@@ -98,6 +106,7 @@ per_host   = ceil( http_pool / host_count )
 ### 3. PostgreSQL Capacity — Supply Side
 
 #### Max Connections (PG wiki RAM budget)
+
 ```
 shared_buffers   = RAM × shared_buffers_pct    (25% standard)
 OS page cache    = RAM × os_buffer_pct         (25% standard)
@@ -109,20 +118,25 @@ max_conns  = floor( available / per_conn )
 ```
 
 #### Optimal Active Connections
+
 ```
 optimal_active = (db_cores × 2) + effective_spindles
 ```
-*Cores are PHYSICAL (exclude HT); spindles: `0` = cached SSD, `1` = SSD.*
+
+_Cores are PHYSICAL (exclude HT); spindles: `0` = cached SSD, `1` = SSD._
 
 #### Storage Growth
+
 ```
 storage_GB/day = Σ( λ_peak / shards × writes_per_msg ) × 1KB × 86400 / 2³⁰
 ```
 
 #### Per-Shard RW/RO Connection Caps
+
 ```
 per_shard = max( 2, min( pool_demand, ceil( ceiling / services_on_shard / max_replicas ) ) )
 ```
+
 Guarantees total connections at peak (all replicas × all services) fit under the PG hard limit. RW+RO pools are then scaled proportionally down if their sum exceeds `PoolSize`.
 
 ---
@@ -134,6 +148,7 @@ pod_cap    = rps_per_core × cores_per_pod
 min_repl   = max( ceil( λ_nominal / pod_cap ), min_replicas_default )
 max_repl   = min( max( ceil( λ_peak / pod_cap × az_factor ), min_repl ), max_replicas_default )
 ```
+
 `az_factor` = N+1 AZ redundancy; `λ_peak` carries a `(1 + retry_budget_fraction)` amplification.
 
 ---
@@ -148,6 +163,7 @@ base        = max(1, ceil( weighted_avg_ms ))
 ```
 
 Token bucket derived from per-pod peak volume over a 2s burst window:
+
 ```
 max_tokens = max( ceil( peak_qps_per_pod × 2.0s × retry_fraction ), 10 )
 min_tokens = max( ceil( max_tokens × 0.10 ), 2 )
@@ -166,6 +182,7 @@ idle_timeout    = session + heartbeat                              # Go HTTP ser
 ```
 
 #### DLQ Retry Derivation (bounded by Process Timeout)
+
 ```
 dlq_budget = process_timeout / 2
 retries    = 2 (operator-capped)
@@ -179,12 +196,15 @@ worst case = 2 × (base + max) = ¾ × budget ≤ budget ✓
 ### 7. Kafka Models
 
 #### Partition Count
+
 ```
 partitions = ceil( max( ceil( λ_peak / per_partition_consume ), consumers ) × growth_headroom )
 ```
-*Consumers = `min_replicas`; growth headroom covers 1–2 yr traffic growth.*
+
+_Consumers = `min_replicas`; growth headroom covers 1–2 yr traffic growth._
 
 #### Cluster Capacity & File Descriptors
+
 ```
 cluster_cap = min( brokers × per_broker_cap, 200,000 )        (Confluent 2023)
 segments    = ceil( retention_seconds / segment_seconds )
@@ -193,6 +213,7 @@ latency_advisory: cluster_cap ≤ 100 × brokers × replication_factor
 ```
 
 #### Storage Growth
+
 ```
 storage_GB/day = Σ(producer λ_peak) × 1KB × 86400 × replication_factor / 2³⁰
 ```
@@ -213,11 +234,13 @@ fit-check: keyspace ≤ nodes × maxmem
 ### 9. Webhook Fault Tolerance
 
 #### Per-Merchant Bulkhead (multi-tenant isolation)
+
 ```
 per_merchant = max( 1, ceil( fast_lane_workers × 0.10 ) )   # 10% pool per merchant
 ```
 
 #### Breaker Eviction TTL
+
 ```
 eviction_ttl = max( 5 min, 10 × max( delivery_backoff_base, dlq_base_delay ) )
 ```
@@ -243,37 +266,42 @@ cpu_mcores = ceil( (λ_nominal / min_replicas) / rps_per_core × 1000 )
 mem_mib = (pool × 50KB) + (http × 50KB) + 64MiB baseline + kafka_reader_buffer
 relay   = base + staging_KB/1024 + max(1, fetch_batch × max_payload_KB/1024)
 ```
-*Memory constants (`models.go` → `constants.go`): 50 KB per PG conn (pgx), 50 KB per TLS conn (net/http Transport), 64 MiB Go runtime baseline.*
+
+_Memory constants (`models.go` → `constants.go`): 50 KB per PG conn (pgx), 50 KB per TLS conn (net/http Transport), 64 MiB Go runtime baseline._
 
 ---
 
 ### 12. Fit-Check Models — Demand vs Supply
 
 #### Connection Demand & HPA Cap
+
 ```
 connection_demand = pool_size × replicas
 gap               = usable_conns − Σ(j≠i)(pool_j × replicas_j)
 hpa_cap           = max( floor( gap / pool_i ), min_replicas )
 ```
+
 Peak demand > max_conns ⇒ **FAIL**; peak > optimal_active ⇒ **WARN**; minimum-scale demand > max_conns ⇒ **FATAL**. Each service's HPA max is clamped to its fair share of the gap.
 
 #### Kafka Spread
+
 ```
 spread = (total_partitions × replication_factor) / brokers
 ```
+
 `spread > per_broker_cap` or `parts > 200,000` ⇒ **FAIL**; `segment_seconds > retention` breaks deletion policy ⇒ **FAIL**.
 
 ---
 
 ## Physical Constants (`constants.go`)
 
-| Constant | Value | Source |
-|----------|-------|--------|
-| `KafkaClusterMaxParts` | 200,000 | Confluent 2023, KIP-578 |
-| `KafkaLatencyAdvisoryR` | 100 | Confluent 2023 |
-| `PodPGConnMemBytes` | 50 KB | go pgx memory profile |
-| `PodHTTPTLSMemBytes` | 50 KB | net/http Transport |
-| `PodAPPBaselineMemBytes` | 64 MiB | Go runtime + GC + libraries |
+| Constant                 | Value   | Source                      |
+| ------------------------ | ------- | --------------------------- |
+| `KafkaClusterMaxParts`   | 200,000 | Confluent 2023, KIP-578     |
+| `KafkaLatencyAdvisoryR`  | 100     | Confluent 2023              |
+| `PodPGConnMemBytes`      | 50 KB   | go pgx memory profile       |
+| `PodHTTPTLSMemBytes`     | 50 KB   | net/http Transport          |
+| `PodAPPBaselineMemBytes` | 64 MiB  | Go runtime + GC + libraries |
 
 ---
 
@@ -285,8 +313,13 @@ make capacity
 
 # Or directly:
 cd tools/capacity-engine
-go run . slo-input.yaml
+go run . -input slo-input.yaml -output capacity-output.yaml -render ../..
 ```
+
+Flags:
+- `-input` — SLO input YAML (default `slo-input.yaml`)
+- `-output` — capacity report YAML (default `capacity-output.yaml`)
+- `-render` — rrq-gitops repo root; manifests are patched relative to it (default `.`)
 
 Exits `0` on `CAPACITY CHECK PASSED` or `1` on `CAPACITY CHECK FAILED`.
 
@@ -296,35 +329,17 @@ Exits `0` on `CAPACITY CHECK PASSED` or `1` on `CAPACITY CHECK FAILED`.
 
 The sole input file. Every value is either measured from Prometheus/Grafana or defined by a business requirement. No defaults, no fallbacks — the YAML is the single source of truth.
 
-| Annotation Pattern | Meaning |
-|---|---|
-| `Tier 3 \| Panel: ... \| Metric: ...` | Measured from Grafana Service Health RED dashboard |
-| `Tier 4 \| Panel: ... \| Metric: ...` | Measured from Grafana Middleware USE dashboard |
-| `Tier 5 \| Panel: ... \| Metric: ...` | Measured from Grafana Infrastructure USE dashboard |
-| `Product SLO` | Business-defined service level objective |
-| `Capacity Team` / `Security Team` / `Risk/Trust Team` | Policy from the respective team |
-| `k8s ...` / `Terraform ...` | Cluster or IaC provisioned value |
+| Annotation Pattern                                    | Meaning                                            |
+| ----------------------------------------------------- | -------------------------------------------------- |
+| `Tier 3 \| Panel: ... \| Metric: ...`                 | Measured from Grafana Service Health RED dashboard |
+| `Tier 4 \| Panel: ... \| Metric: ...`                 | Measured from Grafana Middleware USE dashboard     |
+| `Tier 5 \| Panel: ... \| Metric: ...`                 | Measured from Grafana Infrastructure USE dashboard |
+| `Product SLO`                                         | Business-defined service level objective           |
+| `Capacity Team` / `Security Team` / `Risk/Trust Team` | Policy from the respective team                    |
+| `k8s ...` / `Terraform ...`                           | Cluster or IaC provisioned value                   |
 
 ## Output
 
 1. **Terminal report** — `SUPPLY` ceilings, `DERIVED` per-service values, `FIT-CHECK` verdict.
 2. **`capacity-output.yaml`** — serialized debug output (do not edit manually).
-3. **Kubernetes manifests** — patches `base/workloads/config/` ConfigMaps, KEDA ScaledObject thresholds, and Kafka topic partition counts, making output immediately deployable via GitOps.
-
----
-
-## File Index
-
-| File | Purpose |
-|------|---------|
-| `models.go` | **All mathematical models** — Kingman, Erlang C, PG connections, Kafka caps, Redis, retry, session, resource sizing |
-| `constants.go` | Physical constants (Kafka partition limits, per-connection memory overhead) |
-| `supply.go` | Computes infrastructure supply ceilings from physical inputs |
-| `demand.go` | Pure orchestration — calls models.go per service |
-| `fitcheck.go` | Validates demand ≤ supply, clamps HPA caps, emits failures/warnings |
-| `render.go` | Writes `capacity-output.yaml` and terminal report |
-| `render_manifests.go` | Patches Kubernetes ConfigMaps, KEDA ScaledObjects, Kafka topic manifests |
-| `main.go` | Entry point: supply → demand → fitcheck → render pipeline |
-| `types.go` | All input (`SLOInput`) and output (`Derived`, `PGCeiling`, etc.) type definitions |
-| `slo-input.yaml` | The authoritative input file (360 lines of annotated infrastructure specs) |
-| `capacity-output.yaml` | Generated debug output (do not edit manually) |
+3. **Kubernetes manifests** — patches `base/workloads/services/` KEDA ScaledObject thresholds, `base/platform/datastores/kafka/topics.yaml` partition counts, `base/platform/datastores/postgres/shards.yaml` max_connections, and per-service Deployment resources, making output immediately deployable via GitOps.

@@ -5,25 +5,20 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
-// renderManifests patches the K8s YAML manifests in rrq-gitops/rrq/base
-// from the values produced by the capacity engine. This addresses
-// issues 14, 15, 16, 30: engine outputs are correct but no render step
-// wires them into the deploy manifests.
+// renderManifests patches the K8s YAML manifests under rootDir
+// (the rrq-gitops repo root) from the values produced by the capacity engine.
 //
 // Files patched:
-//   - base/services/<svc>.yaml    : KEDA ScaledObject maxReplicaCount, lagThreshold
-//   - base/kafka/topics.yaml      : KafkaTopic partitions
-//   - base/config/<svc>-configmap.yaml : derived env vars
-//   - base/postgres/shards.yaml   : PG Cluster spec.postgresql.parameters.max_connections
+//   - base/workloads/services/<svc>.yaml : KEDA ScaledObject maxReplicaCount, lagThreshold
+//   - base/platform/datastores/kafka/topics.yaml : KafkaTopic partitions
+//   - base/platform/datastores/postgres/shards.yaml : PG max_connections
 func renderManifests(svcs map[string]Derived, pg map[string]PGCeiling, input *SLOInput, rootDir string) error {
-	svcDir := filepath.Join(rootDir, "base", "services")
-	topicFile := filepath.Join(rootDir, "base", "kafka", "topics.yaml")
-	configDir := filepath.Join(rootDir, "base", "config")
-	pgFile := filepath.Join(rootDir, "base", "postgres", "shards.yaml")
+	svcDir := filepath.Join(rootDir, "base", "workloads", "services")
+	topicFile := filepath.Join(rootDir, "base", "platform", "datastores", "kafka", "topics.yaml")
+	pgFile := filepath.Join(rootDir, "base", "platform", "datastores", "postgres", "shards.yaml")
 
 	// 1. Patch KEDA ScaledObject maxReplicaCount and lagThreshold
 	for name, d := range svcs {
@@ -61,24 +56,13 @@ func renderManifests(svcs map[string]Derived, pg map[string]PGCeiling, input *SL
 		}
 	}
 
-	// 3. Patch webhook-worker KEDA lagThreshold env (in case HPA+KEDA read it)
-	// Already covered by the ScaledObject patch above; nothing else to do.
-
-	// 4. Patch webhook-worker KEDA KEDA_LAG_THRESHOLD env in configmap
-	if d, ok := svcs["webhook-worker"]; ok && d.LagThreshold > 0 {
-		path := filepath.Join(configDir, "webhook-worker-configmap.yaml")
-		if err := patchConfigEnv(path, "WEBHOOK_WORKER_KEDA_LAG_THRESHOLD", strconv.Itoa(d.LagThreshold)); err != nil {
-			return err
-		}
-	}
-
-	// 5. Patch PG Cluster spec.postgresql.parameters.max_connections
+	// 3. Patch PG Cluster spec.postgresql.parameters.max_connections
 	//     (server-side; the DB's hard limit, engine-derived from RAM)
 	if err := patchPostgresClusters(pgFile, pg); err != nil {
 		return err
 	}
 
-	// 6. Patch per-service Deployment resources (CPU request, memory limit).
+	// 4. Patch per-service Deployment resources (CPU request, memory limit).
 	//     Engine-derived CPU and memory replace stale hardcoded values.
 	for name, d := range svcs {
 		path := filepath.Join(svcDir, name+".yaml")
@@ -160,24 +144,6 @@ func patchKafkaTopics(path string, partitions map[string]int) error {
 		}
 	}
 	return os.WriteFile(path, []byte(strings.Join(blocks, "\n---\n")), 0644)
-}
-
-// patchConfigEnv updates a single env var value in a ConfigMap's data block.
-func patchConfigEnv(path, envName, newValue string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	text := string(data)
-	re := regexp.MustCompile(`(?m)^(\s+)` + regexp.QuoteMeta(envName) + `:\s*"?[^"\n]+"?(\s*)$`)
-	if re.MatchString(text) {
-		text = re.ReplaceAllString(text, fmt.Sprintf(`${1}%s: "%s"${2}`, envName, newValue))
-		return os.WriteFile(path, []byte(text), 0644)
-	}
-	return nil
 }
 
 // patchDeploymentResources updates CPU request and memory limit in a
