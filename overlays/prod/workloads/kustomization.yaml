@@ -19,6 +19,8 @@ images:
     newName: ghcr.io/Joel-Ajayi/migrate
   - name: rrq/webhook-echo
     newName: ghcr.io/Joel-Ajayi/webhook-echo-go
+  - name: rrq/seed-performance
+    newName: ghcr.io/Joel-Ajayi/seed-performance
 patches:
   - path: patches/sync-waves.yaml
   - path: patches/image-pull-policy.yaml

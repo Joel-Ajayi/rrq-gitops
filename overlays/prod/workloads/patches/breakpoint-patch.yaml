@@ -1,7 +1,8 @@
 # Breakpoint Testing Capacity Calibration Patch (Step 2 Sizing Gateway)
 # Purpose: Isolates core-api to a single 1.0 CPU pod (maxReplicas: 1) and scales
 # all background workers (ledger, fraud, webhook, outbox-relay) to 0.
-# This prevents HPA autoscale-out and background worker interference during k6
+# Workers scale via KEDA ScaledObjects, so the patch overrides ScaledObject
+# counts (not HPA) to prevent autoscale-out during k6 breakpoint runs.
 
 apiVersion: apps/v1
 kind: Deployment
@@ -32,13 +33,13 @@ metadata:
 spec:
   replicas: 0
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
   name: fraud-worker
 spec:
-  minReplicas: 0
-  maxReplicas: 0
+  minReplicaCount: 0
+  maxReplicaCount: 0
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -47,13 +48,13 @@ metadata:
 spec:
   replicas: 0
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
   name: ledger-worker
 spec:
-  minReplicas: 0
-  maxReplicas: 0
+  minReplicaCount: 0
+  maxReplicaCount: 0
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -62,13 +63,13 @@ metadata:
 spec:
   replicas: 0
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
   name: outbox-relay
 spec:
-  minReplicas: 0
-  maxReplicas: 0
+  minReplicaCount: 0
+  maxReplicaCount: 0
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -77,10 +78,10 @@ metadata:
 spec:
   replicas: 0
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
   name: webhook-worker
 spec:
-  minReplicas: 0
-  maxReplicas: 0
+  minReplicaCount: 0
+  maxReplicaCount: 0

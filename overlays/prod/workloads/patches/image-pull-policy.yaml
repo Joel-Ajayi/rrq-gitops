@@ -58,6 +58,19 @@ spec:
         - name: fraud-worker
           imagePullPolicy: IfNotPresent
 ---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-echo
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: webhook-echo
+          imagePullPolicy: IfNotPresent
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
