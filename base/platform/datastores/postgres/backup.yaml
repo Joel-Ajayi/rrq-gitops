@@ -1,8 +1,16 @@
-# Scheduled backups for all CNPG clusters.
+# Scheduled backups for all CNPG clusters. Each cluster's spec.backup
+# (barmanObjectStore) points at s3://rrq-postgres-backups/ with a 30-day
+# retention policy and WAL archiving enabled, so these jobs ship both base
+# backups and archived WALs.
+#
 # Requires a Secret `backup-s3-creds` in the rrq namespace with:
 #   access-key-id: <AWS access key>
 #   secret-access-key: <AWS secret key>
 # The S3 bucket must exist before the first backup runs.
+#
+# NOTE: intentionally NOT listed in base/platform/datastores/postgres/kustomization.yaml.
+# Enable backups by uncommenting the `- backup.yaml` resource there once the
+# bucket and credentials are provisioned.
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
