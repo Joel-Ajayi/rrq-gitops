@@ -6,7 +6,10 @@ This document details the security posture, network isolation boundaries, RBAC p
 
 ## 1. Multi-Layer Security Architecture
 
+<div style="overflow-x: auto;">
+
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 graph TD
   subgraph "Layer 1: Edge Security"
     gateway["Envoy Gateway<br/>(TLS Termination · Edge JWT SecurityPolicy · Rate Limiting)"]
@@ -24,6 +27,7 @@ graph TD
   netpol --> pod
 ```
 
+</div>
 ---
 
 ## 2. Network Policy Matrix

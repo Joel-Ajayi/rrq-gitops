@@ -14,7 +14,7 @@ resources:
   - jaeger.yaml
   - elastic.yaml
   - ops-routes.yaml
-  - dashboards/
+  - dashboards
 
 helmCharts:
   - name: portainer

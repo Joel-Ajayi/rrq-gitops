@@ -8,7 +8,10 @@ This document provides the canonical technical specification for the **RRQ Infra
 
 RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **Argo CD**.
 
+<div style="overflow-x: auto;">
+
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 graph TD
   subgraph "Git Repository (rrq-gitops)"
     rootApp["bootstrap/root-app-prod.yaml<br/>(Root Application)"]
@@ -30,6 +33,7 @@ graph TD
   end
 ```
 
+</div>
 ### Core Operating Principles
 1. **Pull-Based Synchronization**: Argo CD runs inside the cluster, polling Git for desired state changes. No CI runner or developer holds static cluster admin credentials.
 2. **Kustomize Overlays**: Infrastructure bases (`base/`) are customized for `dev` and `prod` using Kustomize overlays (`overlays/`).

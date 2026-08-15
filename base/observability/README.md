@@ -6,8 +6,10 @@ This directory contains the complete observability platform for the **RRQ (River
 
 ## Architecture
 
+<div style="overflow-x: auto;">
+
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px", "fontFamily": "Inter, sans-serif", "lineColor": "#5b6472", "edgeLabelBackground": "#ffffff"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px", "fontFamily": "Inter, sans-serif", "lineColor": "#5b6472", "edgeLabelBackground": "#ffffff"}, "flowchart": {"useMaxWidth": false, "nodeSpacing": 40, "rankSpacing": 50}}}%%
 flowchart LR
     classDef app fill:#0d3b66,stroke:#0a2e4d,color:#ffffff,font-weight:bold
     classDef instr fill:#5e548e,stroke:#4b4176,color:#ffffff,font-weight:bold
@@ -92,6 +94,7 @@ flowchart LR
     ALERT -.->|AlertmanagerConfig| SLACK
 ```
 
+</div>
 ### Data Flow Summary
 
 | Signal | Collection | Pipeline | Destination |
