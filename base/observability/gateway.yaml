@@ -8,6 +8,12 @@ spec:
   mode: deployment
   serviceAccount: gateway
   replicas: 1
+  env:
+    - name: ES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: elasticsearch-es-elastic-user
+          key: elastic
   args:
     # Force the span_metrics connector to record durations in seconds (OTel
     # semantic convention) so Prometheus deterministically exposes
@@ -75,6 +81,11 @@ spec:
             default: "unknown"
           - name: db.system.name
             default: "unknown"
+    extensions:
+      basicauth:
+        client_auth:
+          username: elastic
+          password: ${env:ES_PASSWORD}
     exporters:
       otlp/jaeger:
         endpoint: jaeger-collector.observability.svc.cluster.local:4317
@@ -82,12 +93,17 @@ spec:
           insecure: true
       elasticsearch:
         endpoints:
-          ["http://elasticsearch-es-http.observability.svc.cluster.local:9200"]
+          ["https://elasticsearch-es-http.observability.svc.cluster.local:9200"]
         logs_index: "rrq-logs-%{+yyyy.MM.dd}"
+        auth:
+          authenticator: basicauth
+        tls:
+          insecure: true
       prometheus:
         endpoint: 0.0.0.0:8889
         namespace: ""
     service:
+      extensions: [basicauth]
       pipelines:
         traces:
           receivers: [otlp]

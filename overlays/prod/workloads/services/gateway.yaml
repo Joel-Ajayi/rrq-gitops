@@ -6,6 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/part-of: rrq
   annotations:
+    # cert-manager's gateway-shim
+    # For each listener with tls.mode: Terminate + certificateRefs, it auto-creates a Certificate
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   gatewayClassName: envoy-gateway
