@@ -4,15 +4,9 @@ resources:
   - ../../../base/platform/datastores
   - secrets.yaml
 patches:
-  - path: scale-up.yaml
-  - patch: |-
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: rrq-seed-performance
-        namespace: rrq
-        annotations:
-          argocd.argoproj.io/sync-wave: "1"
+  - path: patches/scale-up.yaml
+  - path: patches/sync-wave.yaml
+
 images:
   - name: rrq/seed-performance
     newName: ghcr.io/Joel-Ajayi/seed-performance
