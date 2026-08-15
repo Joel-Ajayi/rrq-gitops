@@ -8,10 +8,13 @@ This document provides the canonical technical specification for the **RRQ Infra
 
 RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **Argo CD**.
 
-<div style="overflow-x: auto;">
+<style>
+  .diagram-container svg { min-width: 1000px !important; }
+</style>
+<div class="diagram-container" style="overflow: auto; max-height: 80vh;">
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 30, "rankSpacing": 40}}}%%
+%%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 graph TD
   subgraph "Git Repository (rrq-gitops)"
     rootApp["bootstrap/root-app-prod.yaml<br/>(Root Application)"]

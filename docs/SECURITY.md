@@ -6,10 +6,13 @@ This document details the security posture, network isolation boundaries, RBAC p
 
 ## 1. Multi-Layer Security Architecture
 
-<div style="overflow-x: auto;">
+<style>
+  .diagram-container svg { min-width: 1000px !important; }
+</style>
+<div class="diagram-container" style="overflow: auto; max-height: 80vh;">
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 30, "rankSpacing": 40}}}%%
+%%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 graph TD
   subgraph "Layer 1: Edge Security"
     gateway["Envoy Gateway<br/>(TLS Termination · Edge JWT SecurityPolicy · Rate Limiting)"]
