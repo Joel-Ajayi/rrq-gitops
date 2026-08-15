@@ -11,6 +11,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: rrq-protected-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rrq-admin-route
   jwt:
     providers:
       - name: merchant-auth
@@ -33,10 +36,37 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: rrq-protected-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rrq-admin-route
 
   rateLimit:
     global:
       rules:
+        # Premium merchants (the platform merchant) get 10x the standard budget.
+        - clientSelectors:
+            - headers:
+                - type: Exact
+                  name: X-Merchant-Tier
+                  value: premium
+                - type: Distinct
+                  name: X-Merchant-Id
+          limit:
+            requests: 1000
+            unit: Minute
+        # Standard merchants.
+        - clientSelectors:
+            - headers:
+                - type: Exact
+                  name: X-Merchant-Tier
+                  value: standard
+                - type: Distinct
+                  name: X-Merchant-Id
+          limit:
+            requests: 100
+            unit: Minute
+        # Catch-all: requests with a missing/unknown tier header are still
+        # rate limited per merchant at the standard budget.
         - clientSelectors:
             - headers:
                 - type: Distinct
