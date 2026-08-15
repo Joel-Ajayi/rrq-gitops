@@ -167,7 +167,7 @@ services:
         avg_query_time_ms: 10 # Tier 4 | Panel: Database Query Latency | Metric: traces_span_metrics_duration_seconds
         c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: variance(duration)/mean(duration)^2
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
-        db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
+        db_instance: merchants # Architecture definition - Target DB cluster
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
     circuit_breaker:
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate

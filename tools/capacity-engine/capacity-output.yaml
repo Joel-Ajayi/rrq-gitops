@@ -3,17 +3,17 @@ ceilings:
         instance: merchants
         max_conns: 239
         optimal_active: 9
-        storage_gb_per_day: 0.823974609375
+        storage_gb_per_day: 1.2359619140625
     shard-a:
         instance: shard-a
         max_conns: 239
         optimal_active: 9
-        storage_gb_per_day: 629.7225952148438
+        storage_gb_per_day: 629.5166015625
     shard-b:
         instance: shard-b
         max_conns: 239
         optimal_active: 9
-        storage_gb_per_day: 629.7225952148438
+        storage_gb_per_day: 629.5166015625
 kafka_cap:
     cluster_cap: 2000
     per_broker_cap: 1000
@@ -254,6 +254,6 @@ services:
         retry_budget_min_tokens: 2
         retry_budget_max_tokens: 15
 warnings:
+    - 'pg/merchants: total peak demand 70 > optimal 9'
     - 'pg/shard-a: total peak demand 112 > optimal 9'
     - 'pg/shard-b: total peak demand 112 > optimal 9'
-    - 'pg/merchants: total peak demand 70 > optimal 9'

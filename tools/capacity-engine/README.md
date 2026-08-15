@@ -181,7 +181,9 @@ shutdown        = max( 30s, session + 15s )
 idle_timeout    = session + heartbeat                              # Go HTTP server
 ```
 
-#### DLQ Retry Derivation (bounded by Process Timeout)
+#### DLQ Retry Derivation & Storage (Global DLQ)
+
+**Note:** All DLQ messages are now written directly to the Global DLQ (`merchants` database). Storage capacity for DLQ is modeled explicitly by the `admin-dlq-replay` endpoint on the `core-api` service, rather than attributing DLQ write overhead to individual worker nodes.
 
 ```
 dlq_budget = process_timeout / 2
