@@ -7,18 +7,28 @@ resources:
 images:
   - name: rrq/core-api
     newName: rrq/core-api-go
+    newTag: dev
   - name: rrq/outbox-relay
     newName: rrq/outbox-relay-go
+    newTag: dev
   - name: rrq/ledger-worker
     newName: rrq/ledger-worker-go
+    newTag: dev
   - name: rrq/webhook-worker
     newName: rrq/webhook-worker-go
+    newTag: dev
   - name: rrq/fraud-worker
     newName: rrq/fraud-worker-go
+    newTag: dev
   - name: rrq/migrate
     newName: rrq/migrate
+    newTag: dev
   - name: rrq/webhook-echo
     newName: rrq/webhook-echo-go
+    newTag: dev
+  - name: rrq/seed-performance
+    newName: rrq/seed-performance
+    newTag: dev
 patches:
   - path: patches/instrumentation.yaml
   - path: patches/breakpoint-patch.yaml
