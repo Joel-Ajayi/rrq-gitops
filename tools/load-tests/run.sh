@@ -22,7 +22,7 @@ if [ "${1:-}" = "seed" ]; then
   echo "══════════════════════════════════════════════════════════════"
   echo "  SEED: Creating 100 merchants & 100,000 wallets in DB"
   echo "══════════════════════════════════════════════════════════════"
-  node "${ROOT}/k6/seed-test-data.mjs"
+  node "${ROOT}/load-tests/seed-test-data.mjs"
   exit 0
 fi
 
@@ -44,19 +44,19 @@ for arg in "$@"; do
   esac
 done
 
-SCRIPT="${ROOT}/k6/scenarios/${SCENARIO}.ts"
+SCRIPT="${ROOT}/load-tests/scenarios/${SCENARIO}.ts"
 if [ ! -f "$SCRIPT" ]; then
-  SCRIPT="${ROOT}/k6/scenarios/${SCENARIO}.js"
+  SCRIPT="${ROOT}/load-tests/scenarios/${SCENARIO}.js"
 fi
 
 if [ ! -f "$SCRIPT" ]; then
   echo "ERROR: Scenario script not found: ${SCENARIO}"
   echo "Available scenarios:"
-  find "${ROOT}/k6/scenarios" -maxdepth 2 -type f \( -name "*.ts" -o -name "*.js" \) | sed "s|${ROOT}/k6/scenarios/||" | sed 's/^/  /'
+  find "${ROOT}/load-tests/scenarios" -maxdepth 2 -type f \( -name "*.ts" -o -name "*.js" \) | sed "s|${ROOT}/load-tests/scenarios/||" | sed 's/^/  /'
   exit 1
 fi
 
-mkdir -p "${ROOT}/k6/reports"
+mkdir -p "${ROOT}/load-tests/reports"
 START_TS=$(date +%s)
 
 echo ""
@@ -74,7 +74,7 @@ K6_FLAGS="--env ENV=${TARGET_ENV}"
 k6 run \
   $K6_FLAGS \
   --compatibility-mode=experimental_enhanced \
-  --summary-export="${ROOT}/k6/reports/${SCENARIO}-${TARGET_ENV}-summary.json" \
+  --summary-export="${ROOT}/load-tests/reports/${SCENARIO}-${TARGET_ENV}-summary.json" \
   "$SCRIPT"
 
 END_TS=$(date +%s)
@@ -85,8 +85,8 @@ echo "  Duration: $((END_TS - START_TS))s"
 echo "══════════════════════════════════════════════════════════════"
 
 # Post-test observability verification
-if [ "$VERIFY" = "true" ] && [ -f "${ROOT}/k6/verify.sh" ]; then
+if [ "$VERIFY" = "true" ] && [ -f "${ROOT}/load-tests/verify.sh" ]; then
   echo ""
   echo "Executing post-test verification..."
-  "${ROOT}/k6/verify.sh" "$SCENARIO" "$START_TS" "$END_TS" || true
+  "${ROOT}/load-tests/verify.sh" "$SCENARIO" "$START_TS" "$END_TS" || true
 fi

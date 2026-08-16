@@ -1,3 +1,12 @@
+/**
+ * SCENARIO: Soak Test (Endurance & Resource Leak Detection)
+ * PRIMARY QUESTION ANSWERED: "Are there slow memory leaks, connection leaks, GC decay, or DB index bloat over extended operation?"
+ * 
+ * Target Traffic Pattern: Sustained moderate load (e.g. 500 RPS) over long duration (1h - 24h)
+ * Target Environment: Staging / Pre-prod
+ * Outputs: Validates max_lifetime_ms, os_buffer_pct, and Redis memory fragmentation stability over time.
+ */
+
 import { Options, ConstantArrivalRateScenario } from 'k6/options';
 import { CONFIG } from '../lib/config.ts';
 import { selectWalletPair, selectDepositWallet, WalletPair, DepositContext } from '../lib/data.ts';

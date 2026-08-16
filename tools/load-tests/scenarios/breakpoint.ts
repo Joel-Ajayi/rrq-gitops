@@ -1,3 +1,12 @@
+/**
+ * SCENARIO: Breakpoint Test (Over-Saturation & Circuit Breaker Fault Injection)
+ * PRIMARY QUESTION ANSWERED: "Where does the cluster collapse, what component fails first, and do circuit breakers trip to isolate DBs?"
+ * 
+ * Target Traffic Pattern: Unlimited continuous ramping (50 -> 1500+ RPS) until error rate hits 100% or system crashes
+ * Target Environment: Isolated Test / Benchmark Env
+ * Outputs for slo-input.yaml: circuit_breaker.error_threshold, min_requests, max_fails, half_open_probes, system recovery time
+ */
+
 import { Options, RampingArrivalRateScenario } from 'k6/options';
 import { CONFIG } from '../lib/config.ts';
 import { selectWalletPair, selectDepositWallet, WalletPair, DepositContext } from '../lib/data.ts';

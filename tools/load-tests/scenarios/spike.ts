@@ -1,3 +1,12 @@
+/**
+ * SCENARIO: Spike Test (Sudden Surge & Buffer Sizing)
+ * PRIMARY QUESTION ANSWERED: "Do in-memory channel buffers and thread headroom absorb sudden 10x traffic surges while pods scale?"
+ * 
+ * Target Traffic Pattern: Sudden violent jump (e.g. 100 RPS -> 2500 RPS in 30s, then dropping back)
+ * Target Environment: Staging / Load Env
+ * Outputs: Validates autoscale lag, http_headroom, and consumer_partition_size buffer depth.
+ */
+
 import { Options, RampingArrivalRateScenario } from 'k6/options';
 import { CONFIG } from '../lib/config.ts';
 import { selectWalletPair, WalletPair } from '../lib/data.ts';

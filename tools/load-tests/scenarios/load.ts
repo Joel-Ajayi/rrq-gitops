@@ -1,3 +1,12 @@
+/**
+ * SCENARIO: Load Test (Steady-State)
+ * PRIMARY QUESTION ANSWERED: "Does the system satisfy latency & availability SLOs under standard nominal daily traffic?"
+ * 
+ * Target Traffic Pattern: Ramping to nominal target (e.g. 1000 RPS) and holding steady for several minutes
+ * Target Environment: Dev / Staging / Production
+ * Outputs for slo-input.yaml: nominal_qps, avg_query_time_ms, partition_consume_rps, session_busy_ratio
+ */
+
 import { Options, RampingArrivalRateScenario } from 'k6/options';
 import { CONFIG } from '../lib/config.ts';
 import { selectWalletPair, selectDepositWallet, WalletPair, DepositContext } from '../lib/data.ts';

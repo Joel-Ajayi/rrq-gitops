@@ -6,6 +6,7 @@ import { ConstantArrivalRateScenario, RampingArrivalRateScenario } from 'k6/opti
 
 export interface WorkloadsConfig {
   smoke: ConstantArrivalRateScenario;
+  full_workload: RampingArrivalRateScenario;
   breakpoint: RampingArrivalRateScenario;
   load: RampingArrivalRateScenario;
   stress: RampingArrivalRateScenario;

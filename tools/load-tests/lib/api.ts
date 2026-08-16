@@ -181,3 +181,53 @@ export function getJobStatus(jobId: string, jwt: string): RefinedResponse<Respon
 
   return http.get(`${CONFIG.baseUrl}/v1/jobs/${jobId}`, params);
 }
+
+/**
+ * Executes a POST /v1/merchants request
+ */
+export function createMerchant(name: string, webhookUrl: string, webhookSecret: string): RefinedResponse<ResponseType> {
+  const payload = JSON.stringify({
+    name: name,
+    webhook_url: webhookUrl,
+    webhook_secret: webhookSecret,
+    tier: 'standard',
+  });
+
+  const params = {
+    headers: { 'Content-Type': 'application/json' },
+    tags: { name: 'POST /v1/merchants', endpoint: 'create_merchant' },
+  };
+
+  return http.post(`${CONFIG.baseUrl}/v1/merchants`, payload, params);
+}
+
+/**
+ * Executes a POST /v1/wallets request
+ */
+export function createWallet(currency: string, jwt: string): RefinedResponse<ResponseType> {
+  const payload = JSON.stringify({
+    currency: currency || 'NGN',
+  });
+
+  const params = {
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    },
+    tags: { name: 'POST /v1/wallets', endpoint: 'create_wallet' },
+  };
+
+  return http.post(`${CONFIG.baseUrl}/v1/wallets`, payload, params);
+}
+
+/**
+ * Executes a POST /v1/admin/dlq/replay request
+ */
+export function replayDLQ(jwt: string): RefinedResponse<ResponseType> {
+  const params = {
+    headers: { Authorization: `Bearer ${jwt}` },
+    tags: { name: 'POST /v1/admin/dlq/replay', endpoint: 'admin_dlq_replay' },
+  };
+
+  return http.post(`${CONFIG.baseUrl}/v1/admin/dlq/replay`, '', params);
+}
