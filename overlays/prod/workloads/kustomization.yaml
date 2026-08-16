@@ -25,4 +25,3 @@ patches:
   - path: patches/sync-waves.yaml
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
-  - path: services/scale-patch.yaml

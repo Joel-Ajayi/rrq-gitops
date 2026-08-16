@@ -8,3 +8,5 @@ resources:
   - fraud-worker.yaml
   - webhook-echo.yaml
   - network-policies.yaml
+patches:
+  - path: per-core.yaml

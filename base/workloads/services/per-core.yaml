@@ -1,0 +1,123 @@
+# Single-Pod Single-Core Calibration Patch
+# Purpose: Pins every service (core-api, fraud-worker, ledger-worker, outbox-relay, webhook-worker)
+# to exactly 1 pod replica constrained to 1.0 vCPU (requests/limits: cpu "1").
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: core-api
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  minReplicas: 1
+  maxReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: fraud-worker
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: ledger-worker
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: outbox-relay
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: webhook-worker
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 1

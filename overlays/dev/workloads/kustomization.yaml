@@ -31,4 +31,3 @@ images:
     newTag: dev
 patches:
   - path: patches/instrumentation.yaml
-  - path: patches/breakpoint-patch.yaml
