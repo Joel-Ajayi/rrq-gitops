@@ -5,15 +5,7 @@ resources:
   - secrets.yaml
 patches:
   - path: patches/scale-up.yaml
-  - path: patches/sync-wave.yaml
 
 images:
   - name: rrq/seed-performance
     newName: ghcr.io/Joel-Ajayi/seed-performance
-helmCharts:
-  - name: redis
-    repo: https://charts.bitnami.com/bitnami
-    version: 27.0.15
-    releaseName: redis
-    namespace: redis
-    valuesFile: redis-values.yaml

@@ -22,6 +22,5 @@ images:
   - name: rrq/seed-performance
     newName: ghcr.io/Joel-Ajayi/seed-performance
 patches:
-  - path: patches/sync-waves.yaml
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
