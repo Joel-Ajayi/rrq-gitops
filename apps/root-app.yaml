@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/Joel-Ajayi/rrq-gitops.git" # Placeholder URL, change as needed
+    repoURL: "https://github.com/Joel-Ajayi/rrq-gitops.git"
     targetRevision: HEAD
     path: apps
   destination:
