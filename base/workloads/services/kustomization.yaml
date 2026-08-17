@@ -1,5 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "2"
+
 resources:
   - core-api.yaml
   - outbox-relay.yaml
@@ -8,5 +12,6 @@ resources:
   - fraud-worker.yaml
   - webhook-echo.yaml
   - network-policies.yaml
+
 patches:
   - path: per-core.yaml

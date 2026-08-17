@@ -1,7 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "0"
+
 resources:
   - postgres
   - kafka
 
+helmCharts:
+  - name: redis
+    repo: https://charts.bitnami.com/bitnami
+    version: 27.0.15
+    releaseName: redis
+    namespace: rrq
+    valuesFile: redis-values.yaml

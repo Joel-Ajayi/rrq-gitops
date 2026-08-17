@@ -1,6 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-2"
+
 resources: []
 
 helmCharts:
@@ -68,7 +71,6 @@ helmCharts:
           auth.basic:
             enabled: true
           auth.disable_login_form: "false"
-        # Credentials live in the sealed secret grafana-admin (secrets/*/observability.plain.yaml).
         admin:
           existingSecret: grafana-admin
           userKey: admin-user
