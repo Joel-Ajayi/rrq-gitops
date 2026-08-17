@@ -15,9 +15,6 @@ spec:
           name: elasticsearch-es-elastic-user
           key: elastic
   args:
-    # Force the span_metrics connector to record durations in seconds (OTel
-    # semantic convention) so Prometheus deterministically exposes
-    # traces_span_metrics_duration_seconds_* (not ..._milliseconds_*).
     - --feature-gates=connector.spanmetrics.useSecondAsDefaultMetricsUnit
   resources:
     limits:

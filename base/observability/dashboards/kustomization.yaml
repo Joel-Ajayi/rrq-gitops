@@ -1,6 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
   - tier1-business-slos.yaml
   - tier2-user-journeys.yaml
   - tier3-service-health.yaml
   - tier4-middleware-data.yaml
   - tier5-compute-infrastructure.yaml
+
+helmCharts:
+  - name: portainer
+    repo: https://portainer.github.io/k8s/
+    version: 1.0.57
+    releaseName: portainer
+    namespace: portainer
+    valuesInline:
+      service:
+        type: ClusterIP
+      ingress:
+        enabled: false
