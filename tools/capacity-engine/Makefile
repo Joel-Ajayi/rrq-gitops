@@ -11,7 +11,7 @@ GO      ?= go
 BINARY  := capacity
 INPUT   := slo-input.yaml
 OUTPUT  := capacity-output.yaml
-RENDER  := ..
+RENDER  := ../..
 
 .PHONY: run build verify fmt clean
 

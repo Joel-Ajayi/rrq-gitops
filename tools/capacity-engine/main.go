@@ -35,6 +35,17 @@ func main() {
 		fatalf("resolve render root: %v", err)
 	}
 
+	// Auto-detect rrq-gitops repo root if rootDir is "tools" or base/workloads doesn't exist at rootDir
+	if filepath.Base(rootDir) == "tools" {
+		rootDir, _ = filepath.Abs(filepath.Join(rootDir, ".."))
+	} else if _, err := os.Stat(filepath.Join(rootDir, "base", "workloads")); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(rootDir, "..", "base", "workloads")); err == nil {
+			rootDir, _ = filepath.Abs(filepath.Join(rootDir, ".."))
+		} else if _, err := os.Stat(filepath.Join(rootDir, "..", "..", "base", "workloads")); err == nil {
+			rootDir, _ = filepath.Abs(filepath.Join(rootDir, "..", ".."))
+		}
+	}
+
 	if err := render(svcs, pg, kc, rc, fails, warns, &input, *outputPath, rootDir); err != nil {
 		fatalf("render: %v", err)
 	}

@@ -25,7 +25,23 @@ func render(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling, r
 			return err
 		}
 	}
+	if err := renderKustomization(dir, svcs); err != nil {
+		return err
+	}
 	return renderReport(outputPath, svcs, pg, kc, rc, fails, warns)
+}
+
+func renderKustomization(dir string, svcs map[string]Derived) error {
+	resources := []string{"platform-configmap.yaml"}
+	for name := range svcs {
+		resources = append(resources, name+"-configmap.yaml")
+	}
+	kust := map[string]interface{}{
+		"apiVersion": "kustomize.config.k8s.io/v1beta1",
+		"kind":       "Kustomization",
+		"resources":  resources,
+	}
+	return writeYAML(filepath.Join(dir, "kustomization.yaml"), kust)
 }
 
 // renderPlatform writes the shared platform ConfigMap (rrq-platform-config)
