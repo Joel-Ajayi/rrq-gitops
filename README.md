@@ -31,7 +31,7 @@ rrq-gitops/
 │   ├── 01-observability.yaml      #   Wave  1: Monitoring & telemetry
 │   └── 02-workloads.yaml          #   Wave  2: Application microservices
 ├── bootstrap/
-│   └── root-app-prod.yaml         # Root App-of-Apps (points to apps/)
+│   └── root-app.yaml              # Root App-of-Apps (points to apps/)
 ├── base/                          # Shared base manifests (environment-agnostic)
 │   ├── platform/
 │   │   ├── operators/             #   All Helm operator charts (CRD installers)

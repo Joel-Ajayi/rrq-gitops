@@ -39,7 +39,7 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 
    This executes the following sequence:
    1. Installs Argo CD via Helm (`helm upgrade --install argocd`)
-   2. Applies `bootstrap/root-app-prod.yaml` (Root Application)
+   2. Applies `bootstrap/root-app.yaml` (Root Application)
    3. Waits for `sealed-secrets` deployment to become healthy
    4. Runs `make seal ENV=prod` to encrypt all plaintext secrets
 

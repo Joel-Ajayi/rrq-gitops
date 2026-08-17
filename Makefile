@@ -147,7 +147,7 @@ bootstrap-dev: ## Local dev bootstrap: Manual kubectl apply of overlays to bypas
 .PHONY: bootstrap-prod
 bootstrap-prod: argocd ## Prod bootstrap: Argo CD App-of-Apps GitOps
 	@echo "Deploying Root Application to Argo CD..."
-	kubectl apply -f bootstrap/root-app-prod.yaml
+	kubectl apply -f bootstrap/root-app.yaml
 	@echo "Waiting for Argo CD to deploy sealed-secrets operator (Wave -2)..."
 	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=120s
 	@echo "Sealing initial prod secrets..."

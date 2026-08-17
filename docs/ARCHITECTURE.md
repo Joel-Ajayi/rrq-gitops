@@ -17,7 +17,7 @@ RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **
 %%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 graph TD
   subgraph "Git Repository (rrq-gitops)"
-    rootApp["bootstrap/root-app-prod.yaml<br/>(Root Application)"]
+    rootApp["bootstrap/root-app.yaml<br/>(Root Application)"]
     apps["apps/<br/>(4 child Application manifests)"]
     overlays["overlays/prod/<br/>(Kustomize overlays)"]
 
@@ -47,7 +47,7 @@ graph TD
 
 ## 2. App-of-Apps Pattern
 
-The production infrastructure uses a **Root Application** (`bootstrap/root-app-prod.yaml`) that points at the `apps/` directory. Inside `apps/`, four child `Application` manifests define the deployment cascade:
+The production infrastructure uses a **Root Application** (`bootstrap/root-app.yaml`) that points at the `apps/` directory. Inside `apps/`, four child `Application` manifests define the deployment cascade:
 
 | File | Application Name | Sync Wave | Target Overlay |
 |------|-----------------|-----------|----------------|
