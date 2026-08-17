@@ -264,6 +264,14 @@ services:
         c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 8 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
+      - name: dlq-ingest
+        nominal_qps: 1 # Ingestion of dead-lettered ledger jobs to global DLQ
+        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        avg_query_time_ms: 10 # DB write latency to dlq_messages table
+        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
+        writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
       - xshard.shard-a # Architecture definition - Consumer topic subscriptions
@@ -296,6 +304,14 @@ services:
         c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 2 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
+      - name: dlq-ingest
+        nominal_qps: 1 # Ingestion of dead-lettered webhook deliveries to global DLQ
+        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        avg_query_time_ms: 10 # DB write latency to dlq_messages table
+        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
+        writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
     topics:
       - notify # Architecture definition - Consumer topic subscriptions
     http_outbound:
@@ -346,6 +362,14 @@ services:
         c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
+      - name: dlq-ingest
+        nominal_qps: 1 # Ingestion of dead-lettered fraud checks to global DLQ
+        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        avg_query_time_ms: 10 # DB write latency to dlq_messages table
+        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
+        db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
+        writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:

@@ -93,10 +93,10 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 164m
+              cpu: 165m
               memory: 67Mi
             limits:
-              cpu: 164m
+              cpu: 165m
               memory: 67Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -137,7 +137,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: ledger-worker
         topic: jobs
-        lagThreshold: "810"
+        lagThreshold: "816"
         offsetResetPolicy: earliest
 
 ---
