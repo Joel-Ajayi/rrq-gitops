@@ -1,7 +1,8 @@
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
-  name: elasticsearch
+  # <clustername-name>-es-elastic-user secret is expected
+  name: elasticsearch # <clustername-name>
   namespace: observability
 spec:
   version: 8.17.0
@@ -23,13 +24,13 @@ spec:
                   memory: 1536Mi
       volumeClaimTemplates:
         - metadata:
-            name: elasticsearch-data
+            name: elasticsearch-data # elasticsearch-data-elasticsearch-es-default-0/1
           spec:
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 10Gi
+                storage: 20Gi
 ---
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana

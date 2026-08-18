@@ -28,9 +28,7 @@ help: ## List GitOps targets
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| sort | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# ==========================================
 # 1. TOOLS INSTALLATION
-# ==========================================
 .PHONY: tools
 tools: $(BIN) tools-kubectl tools-helm tools-kind tools-kubeseal tools-argocd tools-skaffold tools-k6 tools-jq tools-yq ## Install every GitOps CLI
 	@echo "All GitOps tools installed."
@@ -90,9 +88,7 @@ tools-yq: $(BIN) ## Install yq (YAML CLI)
 	  curl -fsSLo $(BIN)/yq "https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$(OS)_$(ARCH)" && \
 	  chmod +x $(BIN)/yq ; }
 
-# ==========================================
 # 2. CLUSTER LIFECYCLE
-# ==========================================
 .PHONY: cluster-up
 cluster-up: ## Create the local Kind cluster
 	@kind get clusters 2>/dev/null | grep -qx "$(CLUSTER)" \
@@ -103,9 +99,7 @@ cluster-up: ## Create the local Kind cluster
 cluster-down: ## Delete the local Kind cluster
 	-kind delete cluster --name $(CLUSTER)
 
-# ==========================================
 # 3. SECRETS MANAGEMENT
-# ==========================================
 .PHONY: seal
 seal: ## Encrypt plain secrets into the overlay structure (uses ENV variable)
 	@echo "Sealing $(ENV) secrets..."
@@ -116,9 +110,7 @@ seal: ## Encrypt plain secrets into the overlay structure (uses ENV variable)
 		fi \
 	done
 
-# ==========================================
 # 4. GITOPS BOOTSTRAPPING (ARGO CD)
-# ==========================================
 .PHONY: argocd
 argocd: ## Install Argo CD manually
 	helm repo add argo https://argoproj.github.io/argo-helm
@@ -155,9 +147,7 @@ bootstrap-prod: argocd ## Prod bootstrap: Argo CD App-of-Apps GitOps
 	@echo "Production GitOps bootstrap complete."
 
 
-# ==========================================
 # 5. BENCHMARKING (k6)
-# ==========================================
 .PHONY: bench
 bench: ## Run k6 scenario (SCENARIO=performance/load-sustained)
 	./tools/load-tests/run.sh $(SCENARIO)
@@ -188,9 +178,7 @@ bench-soak: ## Run 4-hour soak test with verification (pre-release)
 .PHONY: bench-full
 bench-full: bench-all bench-soak ## Full performance qualification suite (nightly + pre-release)
 
-# ==========================================
 # 6. UTILITIES
-# ==========================================
 .PHONY: capacity
 capacity: ## Regenerate GitOps manifests from capacity models
 	cd tools/capacity-engine && go run . -input slo-input.yaml -output capacity-output.yaml -render ../..
