@@ -127,21 +127,21 @@ bootstrap: ## Bootstrap the cluster (dispatches to bootstrap-dev or bootstrap-pr
 bootstrap-dev: ## Local dev bootstrap: Manual kubectl apply of overlays to bypass GitOps
 	@echo "Local Bootstrapping (bypassing Argo CD)..."
 	@echo "Deploying sealed-secrets operator (Wave -3)..."
-	kubectl apply --enable-helm -k overlays/dev/sealed-secrets
+	kubectl kustomize --enable-helm overlays/dev/sealed-secrets | kubectl apply -f -
 	@echo "Waiting for sealed-secrets operator..."
 	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=180s
 	@echo "Sealing local dev secrets..."
 	$(MAKE) seal ENV=dev
 	@echo "Deploying operators (Wave -2)..."
-	kubectl apply --enable-helm -k overlays/dev/operators
+	kubectl kustomize --enable-helm overlays/dev/operators | kubectl apply -f -
 	@echo "Deploying gateway (Wave -1)..."
-	kubectl apply --enable-helm -k overlays/dev/gateway
+	kubectl kustomize --enable-helm overlays/dev/gateway | kubectl apply -f -
 	@echo "Deploying datastores (Wave 0)..."
-	kubectl apply --enable-helm -k overlays/dev/datastores
+	kubectl kustomize --enable-helm overlays/dev/datastores | kubectl apply -f -
 	@echo "Deploying observability (Wave 1)..."
-	kubectl apply --enable-helm -k overlays/dev/observability
+	kubectl kustomize --enable-helm overlays/dev/observability | kubectl apply -f -
 	@echo "Deploying workloads (Wave 2)..."
-	kubectl apply --enable-helm -k overlays/dev/workloads
+	kubectl kustomize --enable-helm overlays/dev/workloads | kubectl apply -f -
 	@echo "Local dev bootstrap complete."
 
 .PHONY: bootstrap-prod
