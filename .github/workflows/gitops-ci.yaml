@@ -30,8 +30,8 @@ jobs:
 
       - name: Build Dev Overlay
         working-directory: overlays/dev
-        run: kustomize build . > /dev/null
+        run: kustomize build --enable-helm . > /dev/null
 
       - name: Build Prod Overlay
         working-directory: overlays/prod
-        run: kustomize build . > /dev/null
+        run: kustomize build --enable-helm . > /dev/null
