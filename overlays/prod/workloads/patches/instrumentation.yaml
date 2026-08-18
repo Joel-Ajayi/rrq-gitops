@@ -47,7 +47,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fraud-worker
+  name: webhook-echo
   namespace: rrq
 spec:
   template:
@@ -55,10 +55,10 @@ spec:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: rrq-migrate
+  name: fraud-worker
   namespace: rrq
 spec:
   template:

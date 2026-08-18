@@ -70,15 +70,3 @@ spec:
       containers:
         - name: webhook-echo
           imagePullPolicy: IfNotPresent
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: rrq-migrate
-  namespace: rrq
-spec:
-  template:
-    spec:
-      containers:
-        - name: migrate
-          imagePullPolicy: IfNotPresent
