@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,7 +29,7 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -40,7 +40,18 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-echo
+  namespace: rrq
+spec:
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,15 +62,4 @@ spec:
   template:
     metadata:
       annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: rrq-migrate
-  namespace: rrq
-spec:
-  template:
-    metadata:
-      annotations:
-        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"

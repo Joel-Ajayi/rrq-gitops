@@ -26,8 +26,5 @@ images:
   - name: rrq/webhook-echo
     newName: rrq/webhook-echo-go
     newTag: dev
-  - name: rrq/seed-performance
-    newName: rrq/seed-performance
-    newTag: dev
 patches:
   - path: patches/instrumentation.yaml
