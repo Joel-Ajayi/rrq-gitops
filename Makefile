@@ -126,13 +126,21 @@ bootstrap: ## Bootstrap the cluster (dispatches to bootstrap-dev or bootstrap-pr
 .PHONY: bootstrap-dev
 bootstrap-dev: ## Local dev bootstrap: Manual kubectl apply of overlays to bypass GitOps
 	@echo "Local Bootstrapping (bypassing Argo CD)..."
-	kubectl apply -k overlays/dev/operators
+	@echo "Deploying sealed-secrets operator (Wave -3)..."
+	kubectl apply -k overlays/dev/sealed-secrets
 	@echo "Waiting for sealed-secrets operator..."
 	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=120s
 	@echo "Sealing local dev secrets..."
 	$(MAKE) seal ENV=dev
+	@echo "Deploying operators (Wave -2)..."
+	kubectl apply -k overlays/dev/operators
+	@echo "Deploying gateway (Wave -1)..."
+	kubectl apply -k overlays/dev/gateway
+	@echo "Deploying datastores (Wave 0)..."
 	kubectl apply -k overlays/dev/datastores
+	@echo "Deploying observability (Wave 1)..."
 	kubectl apply -k overlays/dev/observability
+	@echo "Deploying workloads (Wave 2)..."
 	kubectl apply -k overlays/dev/workloads
 	@echo "Local dev bootstrap complete."
 
@@ -140,7 +148,7 @@ bootstrap-dev: ## Local dev bootstrap: Manual kubectl apply of overlays to bypas
 bootstrap-prod: argocd ## Prod bootstrap: Argo CD App-of-Apps GitOps
 	@echo "Deploying Root Application to Argo CD..."
 	kubectl apply -f bootstrap/root-app.yaml
-	@echo "Waiting for Argo CD to deploy sealed-secrets operator (Wave -2)..."
+	@echo "Waiting for Argo CD to deploy sealed-secrets operator (Wave -3)..."
 	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=120s
 	@echo "Sealing initial prod secrets..."
 	$(MAKE) seal ENV=prod
