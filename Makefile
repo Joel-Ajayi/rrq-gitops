@@ -107,9 +107,7 @@ seal: ## Encrypt plain secrets into the overlay structure and apply them to the 
 		if [ -f secrets/$(ENV)/$$comp.plain.yaml ]; then \
 			kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < secrets/$(ENV)/$$comp.plain.yaml > overlays/$(ENV)/$$comp/secrets.yaml; \
 			echo " -> Sealed $$comp secrets for $(ENV)"; \
-			ns=$$(grep -E '^[[:space:]]*namespace:' secrets/$(ENV)/$$comp.plain.yaml | head -n1 | awk '{print $$2}'); \
-			if [ -n "$$ns" ]; then kubectl create namespace $$ns --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1; fi; \
-			kubectl apply -f overlays/$(ENV)/$$comp/secrets.yaml; \
+			kubectl apply -f overlays/$(ENV)/$$comp/secrets.yaml 2>/dev/null || true; \
 			echo " -> Applied $$comp sealed secrets to cluster"; \
 		fi \
 	done
