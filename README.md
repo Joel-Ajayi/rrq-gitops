@@ -26,6 +26,7 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 ```
 rrq-gitops/
 ├── apps/                          # Argo CD Application manifests (production)
+│   ├── 00-sealed-secrets.yaml     #   Wave -3: Secret decryption operator
 │   ├── 00-operators.yaml          #   Wave -2: CRD-installing operators
 │   ├── 01-datastores.yaml         #   Wave  0: Stateful data clusters
 │   ├── 01-observability.yaml      #   Wave  1: Monitoring & telemetry
