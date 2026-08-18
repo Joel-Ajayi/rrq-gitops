@@ -21,6 +21,15 @@ spec:
                 limits:
                   cpu: 1000m
                   memory: 1536Mi
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
 ---
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana

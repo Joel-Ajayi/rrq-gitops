@@ -77,6 +77,15 @@ helmCharts:
           passwordKey: admin-password
         env:
           JAEGER_AGENT_PORT: ""
+      prometheus:
+        prometheusSpec:
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 10Gi
       prometheusOperator:
         tls:
           enabled: false
