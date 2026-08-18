@@ -101,12 +101,14 @@ cluster-down: ## Delete the local Kind cluster
 
 # 3. SECRETS MANAGEMENT
 .PHONY: seal
-seal: ## Encrypt plain secrets into the overlay structure (uses ENV variable)
+seal: ## Encrypt plain secrets into the overlay structure and apply them to the cluster (uses ENV variable)
 	@echo "Sealing $(ENV) secrets..."
 	@for comp in datastores observability workloads operators; do \
 		if [ -f secrets/$(ENV)/$$comp.plain.yaml ]; then \
 			kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml < secrets/$(ENV)/$$comp.plain.yaml > overlays/$(ENV)/$$comp/secrets.yaml; \
 			echo " -> Sealed $$comp secrets for $(ENV)"; \
+			kubectl apply -f overlays/$(ENV)/$$comp/secrets.yaml 2>/dev/null || true; \
+			echo " -> Applied $$comp sealed secrets to cluster"; \
 		fi \
 	done
 
