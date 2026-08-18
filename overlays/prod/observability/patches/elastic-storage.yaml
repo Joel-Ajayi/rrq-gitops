@@ -1,0 +1,15 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  namespace: observability
+spec:
+  nodeSets:
+    - name: default
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            resources:
+              requests:
+                storage: 50Gi

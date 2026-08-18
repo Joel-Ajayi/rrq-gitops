@@ -38,7 +38,7 @@ infrastructure:
     brokers: 2 # Terraform aws_msk_cluster broker count
     per_broker_partition_cap: 1000 # AWS MSK m5.large recommended max partitions
     replication_factor: 2 # Business Data Durability Policy
-    retention_days: 3 # Business Data Retention Policy / GDPR
+    retention_days: 1 # Business Data Retention Policy / GDPR
     segment_seconds: 86400 # Kafka topic 'segment.ms' (must be <= retention)
     broker_fd_ulimit: 65536 # OS level 'ulimit -n' on Kafka brokers
     latency_critical: false # Product Policy - defines if we optimize for throughput vs latency

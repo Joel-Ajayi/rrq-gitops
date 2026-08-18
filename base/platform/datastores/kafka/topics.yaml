@@ -11,7 +11,7 @@ spec:
   partitions: 5
   replicas: 2
   config:
-    retention.ms: "259200000" # 3 days
+    retention.ms: "86400000" # 1 day
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -24,7 +24,7 @@ spec:
   partitions: 14
   replicas: 2
   config:
-    retention.ms: "259200000" # 3 days
+    retention.ms: "86400000" # 1 day
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -37,7 +37,7 @@ spec:
   partitions: 8
   replicas: 2
   config:
-    retention.ms: "259200000" # 3 days
+    retention.ms: "86400000" # 1 day
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -50,4 +50,4 @@ spec:
   partitions: 8
   replicas: 2
   config:
-    retention.ms: "259200000" # 3 days
+    retention.ms: "86400000" # 1 day

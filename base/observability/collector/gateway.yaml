@@ -15,7 +15,7 @@ spec:
           name: elasticsearch-es-elastic-user
           key: elastic
   args:
-    - --feature-gates=connector.spanmetrics.useSecondAsDefaultMetricsUnit
+    feature-gates: "connector.spanmetrics.useSecondAsDefaultMetricsUnit"
   resources:
     limits:
       cpu: 500m

@@ -1,4 +1,4 @@
-# Runs once per `make dev` (and as an Argo CD PreSync hook in prod): global migrations
+# (and as an Argo CD PreSync hook in prod): global migrations
 # on the control-plane DB, shard migrations on every shard. URIs come from CNPG secrets.
 apiVersion: batch/v1
 kind: Job
@@ -21,6 +21,7 @@ spec:
       containers:
         - name: migrate
           image: rrq/migrate
+          imagePullPolicy: Never
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

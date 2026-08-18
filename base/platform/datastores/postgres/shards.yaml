@@ -19,13 +19,13 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "1", memory: 8Gi }
-    limits: { cpu: "2", memory: 8Gi }
+    requests: { cpu: "200m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
       max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16Mi"
+      work_mem: "16MB"
 
 ---
 # Ledger shard A: data for merchants with shard_id='shard-a'.
@@ -50,13 +50,13 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "1", memory: 8Gi }
-    limits: { cpu: "2", memory: 8Gi }
+    requests: { cpu: "200m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
       max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16Mi"
+      work_mem: "16MB"
 
 ---
 # Ledger shard B: data for merchants with shard_id='shard-b'.
@@ -81,10 +81,10 @@ spec:
   storage:
     size: 10Gi
   resources:
-    requests: { cpu: "1", memory: 8Gi }
-    limits: { cpu: "2", memory: 8Gi }
+    requests: { cpu: "200m", memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
       max_connections: "239"
       shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16Mi"
+      work_mem: "16MB"

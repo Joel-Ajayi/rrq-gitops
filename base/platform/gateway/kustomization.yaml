@@ -7,4 +7,3 @@ commonAnnotations:
 resources:
   - gatewayclass.yaml
   - gateway.yaml
-  - envoy-proxy.yaml

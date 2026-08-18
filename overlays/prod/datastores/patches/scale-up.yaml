@@ -8,6 +8,14 @@ spec:
   resources:
     requests: { cpu: "2", memory: 4Gi }
     limits: { cpu: "4", memory: 8Gi }
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 62Gi # Capacity: 247.19 GB/day / 4 (6 hours)
+        deleteClaim: false
+        kraftMetadata: shared
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -17,14 +25,14 @@ metadata:
 spec:
   instances: 3
   storage:
-    size: 50Gi
+    size: 5Gi # Capacity: 3.71 GB/day / 4 (6 hours), padded for baseline overhead
   resources:
     requests: { cpu: "4", memory: 8Gi }
     limits: { cpu: "8", memory: 16Gi }
   postgresql:
     parameters:
       max_connections: "239"
-      shared_buffers: "4GB"
+      shared_buffers: "2GB"
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -37,11 +45,11 @@ spec:
     requests: { cpu: "4", memory: 8Gi }
     limits: { cpu: "8", memory: 16Gi }
   storage:
-    size: 50Gi
+    size: 50Gi # Reduced from 158Gi for 1-day run constraint
   postgresql:
     parameters:
       max_connections: "239"
-      shared_buffers: "4GB"
+      shared_buffers: "2GB"
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -51,11 +59,11 @@ metadata:
 spec:
   instances: 3
   storage:
-    size: 10Gi
+    size: 50Gi # Reduced from 158Gi for 1-day run constraint
   resources:
     requests: { cpu: "4", memory: 8Gi }
     limits: { cpu: "8", memory: 16Gi }
   postgresql:
     parameters:
       max_connections: "239"
-      shared_buffers: "4GB"
+      shared_buffers: "2GB"

@@ -7,11 +7,10 @@ metadata:
   labels:
     app.kubernetes.io/part-of: rrq
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
     description: "Seeds platform premium merchant and clearing/fiat vault wallets on all shards"
-    runbook: "https://wiki.rrq.local/runbooks/seed-performance"
 spec:
-  ttlSecondsAfterFinished: 86400
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 3600
   template:
     spec:
       restartPolicy: Never
