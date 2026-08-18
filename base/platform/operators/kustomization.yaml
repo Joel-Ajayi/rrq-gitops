@@ -4,7 +4,8 @@ kind: Kustomization
 commonAnnotations:
   argocd.argoproj.io/sync-wave: "-2"
 
-resources: []
+resources:
+  - namespaces.yaml
 
 helmCharts:
   - name: cloudnative-pg
