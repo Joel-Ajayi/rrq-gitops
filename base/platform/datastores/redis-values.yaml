@@ -1,4 +1,5 @@
 architecture: replication
+fullnameOverride: "fraud-redis"
 auth:
   enabled: true
   existingSecret: redis-secret
