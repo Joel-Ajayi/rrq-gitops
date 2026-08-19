@@ -44,7 +44,7 @@ func renderKustomization(dir string, svcs map[string]Derived) error {
 	return writeYAML(filepath.Join(dir, "kustomization.yaml"), kust)
 }
 
-// renderPlatform writes the shared platform ConfigMap (rrq-platform-config)
+// renderPlatform writes the shared platform ConfigMap
 // with infra-level settings every service inherits via envFrom.
 func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, input *SLOInput, svcs map[string]Derived) error {
 	d := input.Defaults
@@ -76,7 +76,7 @@ func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, inpu
 		m["REDIS_MAXMEMORY_MIB"] = fmt.Sprintf("%d", rc[0].MaxMemoryBytes/(1024*1024))
 	}
 
-	return writeYAML(dir+"/platform-configmap.yaml", configMap("rrq-platform-config", m))
+	return writeYAML(dir+"/platform-configmap.yaml", configMap("platform-config", m))
 }
 
 func instTotalDemand(instName string, svcs map[string]Derived, input *SLOInput) int {

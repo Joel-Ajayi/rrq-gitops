@@ -39,7 +39,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
-  name: rrq
+  name: kafka-cluster
   namespace: rrq
   annotations:
     strimzi.io/node-pools: enabled

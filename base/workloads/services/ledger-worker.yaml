@@ -52,7 +52,7 @@ spec:
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
-                name: rrq-platform-config
+                name: platform-config
             - configMapRef:
                 name: ledger-worker-config
           env:
@@ -71,6 +71,8 @@ spec:
                 secretKeyRef:
                   name: shard-b-app
                   key: uri
+            - name: KAFKA_BROKERS
+              value: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
           lifecycle:
             preStop:
               exec:

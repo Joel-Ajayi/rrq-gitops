@@ -14,7 +14,7 @@ master:
       cpu: "4"
       memory: 4Gi
 replica:
-  replicaCount: 3
+  replicaCount: 2
   resources:
     requests:
       cpu: "2"

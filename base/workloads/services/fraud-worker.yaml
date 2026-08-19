@@ -62,7 +62,7 @@ spec:
                   - "5"
           envFrom:
             - configMapRef:
-                name: rrq-platform-config
+                name: platform-config
             - configMapRef:
                 name: fraud-worker-config
           env:
@@ -81,12 +81,19 @@ spec:
                 secretKeyRef:
                   name: shard-b-app
                   key: uri
-            - name: REDIS_DATA_PASSWORD
+            - name: REDIS_HOST
+              value: "fraud-redis.rrq.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "26379" #sentinel port
+            - name: REDIS_MASTER_NAME
+              value: "mymaster" #default
+            - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
-                  optional: true
+            - name: KAFKA_BROKERS
+              value: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
           livenessProbe:
             exec:
               command:

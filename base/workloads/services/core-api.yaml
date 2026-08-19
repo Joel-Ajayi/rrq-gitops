@@ -57,7 +57,7 @@ spec:
                   - "5"
           envFrom:
             - configMapRef:
-                name: rrq-platform-config
+                name: platform-config
             - configMapRef:
                 name: core-api-config
           env:
@@ -88,6 +88,8 @@ spec:
                 secretKeyRef:
                   name: rrq-secrets
                   key: jwt-signing-keys
+            - name: KAFKA_BROKERS
+              value: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
           livenessProbe:
             httpGet:
               path: /health
