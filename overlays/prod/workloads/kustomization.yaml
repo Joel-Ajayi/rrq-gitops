@@ -7,16 +7,22 @@ resources:
 images:
   - name: rrq/core-api
     newName: ghcr.io/Joel-Ajayi/core-api-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
   - name: rrq/outbox-relay
     newName: ghcr.io/Joel-Ajayi/outbox-relay-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
   - name: rrq/ledger-worker
     newName: ghcr.io/Joel-Ajayi/ledger-worker-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
   - name: rrq/webhook-worker
     newName: ghcr.io/Joel-Ajayi/webhook-worker-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
   - name: rrq/fraud-worker
     newName: ghcr.io/Joel-Ajayi/fraud-worker-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
   - name: rrq/webhook-echo
     newName: ghcr.io/Joel-Ajayi/webhook-echo-go
+    newTag: 6a5615cf61b85bb241aeabd5ab0c293106bb1ade
 patches:
   - path: patches/image-pull-policy.yaml
   - path: patches/instrumentation.yaml
