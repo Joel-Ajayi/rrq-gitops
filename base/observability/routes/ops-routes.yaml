@@ -39,7 +39,13 @@ spec:
     - matches:
         - path:
             type: Exact
+            value: /executive
+        - path:
+            type: Exact
             value: /executive2
+        - path:
+            type: Exact
+            value: /execute
       filters:
         - type: RequestRedirect
           requestRedirect:
@@ -47,15 +53,6 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /d/tier1-business-slos/tier-1-business-slos
             statusCode: 302
-    # Prometheus Route under /execute
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /execute
-      backendRefs:
-        - name: kube-prometheus-stack-prometheus
-          namespace: observability
-          port: 9090
     # Tier 2: User Journeys & Flows
     - matches:
         - path:
