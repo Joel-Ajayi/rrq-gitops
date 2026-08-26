@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+data:
+  envoy-gateway.yaml: |
+    apiVersion: gateway.envoyproxy.io/v1alpha1
+    kind: EnvoyGateway
+    gateway:
+      controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    logging:
+      level:
+        default: info
+    provider:
+      type: Kubernetes
+      kubernetes:
+        rateLimitDeployment:
+          patch:
+            type: StrategicMerge
+            value:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: envoy-ratelimit
+                      env:
+                      - name: REDIS_AUTH
+                        valueFrom:
+                          secretKeyRef:
+                            name: envoy-gateway-redis
+                            key: password
+    rateLimit:
+      backend:
+        type: Redis
+        redis:
+          url: fraud-redis.rrq.svc.cluster.local:6379
