@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  - namespace.yaml
   - tier1-business-slos.yaml
   - tier2-user-journeys.yaml
   - tier3-service-health.yaml
