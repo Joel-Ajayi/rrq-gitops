@@ -122,7 +122,6 @@ argocd: ## Install Argo CD manually
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo update
 	helm upgrade --install argocd argo/argo-cd \
-		-n argocd --create-namespace --wait
 		-n argocd --create-namespace --wait \
 		--set configs.cm."kustomize\.buildOptions"="--enable-helm"
 
