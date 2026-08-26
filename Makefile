@@ -122,8 +122,9 @@ argocd: ## Install Argo CD manually
 	helm repo add argo https://argoproj.github.io/argo-helm
 	helm repo update
 	helm upgrade --install argocd argo/argo-cd \
+		-n argocd --create-namespace --wait
 		-n argocd --create-namespace --wait \
-		--set configs.cm.timeout.reconciliation=600
+		--set configs.cm."kustomize\.buildOptions"="--enable-helm"
 
 .PHONY: bootstrap
 bootstrap: ## Bootstrap the cluster (dispatches to bootstrap-dev or bootstrap-prod based on ENV)
@@ -165,7 +166,7 @@ bootstrap-local: argocd ## Local prod bootstrap: Argo CD App-of-Apps GitOps
 	@echo "Deploying Local Root Application to Argo CD..."
 	kubectl apply -f bootstrap/root-app-local.yaml
 	@echo "Waiting for Argo CD to deploy sealed-secrets operator (Wave -3)..."
-	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=180s
+	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=240s
 	@echo "Sealing initial local secrets..."
 	$(MAKE) seal ENV=local
 	@echo "Local Production GitOps bootstrap complete."

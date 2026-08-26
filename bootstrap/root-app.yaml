@@ -36,6 +36,8 @@ spec:
         repoURL: https://github.com/Joel-Ajayi/rrq-gitops.git
         targetRevision: HEAD
         path: "overlays/prod/{{path}}"
+        kustomize:
+          buildOptions: "--enable-helm"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
