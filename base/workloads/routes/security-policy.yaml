@@ -17,7 +17,7 @@ spec:
   jwt:
     providers:
       - name: merchant-auth
-        issuer: rrq-core-api
+        issuer: core-api
         remoteJWKS:
           uri: http://core-api.rrq.svc.cluster.local:8080/.well-known/jwks.json
         claimToHeaders:

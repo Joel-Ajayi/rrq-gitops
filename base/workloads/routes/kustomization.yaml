@@ -4,4 +4,3 @@ kind: Kustomization
 resources:
   - httproute.yaml
   - security-policy.yaml
-  - traffic-policy.yaml
