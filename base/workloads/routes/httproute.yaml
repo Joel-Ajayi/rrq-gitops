@@ -26,6 +26,9 @@ spec:
         - path:
             type: Exact
             value: /v1/auth/token
+        - path:
+            type: Exact
+            value: /v1/merchants
       backendRefs:
         - name: core-api
           port: 8080
@@ -48,7 +51,22 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /v1
+            value: /v1/wallets
+        - path:
+            type: PathPrefix
+            value: /v1/transfers
+        - path:
+            type: PathPrefix
+            value: /v1/balances
+        - path:
+            type: PathPrefix
+            value: /v1/jobs
+        - path:
+            type: PathPrefix
+            value: /v1/ledger
+        - path:
+            type: PathPrefix
+            value: /v1/accounts
       backendRefs:
         - name: core-api
           port: 8080
