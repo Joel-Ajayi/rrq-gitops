@@ -6,22 +6,22 @@ resources:
   - services # prod-specific service overlays (tls, gateways,network policies)
 images:
   - name: rrq/core-api
-    newName: ghcr.io/Joel-Ajayi/core-api-go
+    newName: ghcr.io/joel-ajayi/core-api-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
   - name: rrq/outbox-relay
-    newName: ghcr.io/Joel-Ajayi/outbox-relay-go
+    newName: ghcr.io/joel-ajayi/outbox-relay-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
   - name: rrq/ledger-worker
-    newName: ghcr.io/Joel-Ajayi/ledger-worker-go
+    newName: ghcr.io/joel-ajayi/ledger-worker-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
   - name: rrq/webhook-worker
-    newName: ghcr.io/Joel-Ajayi/webhook-worker-go
+    newName: ghcr.io/joel-ajayi/webhook-worker-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
   - name: rrq/fraud-worker
-    newName: ghcr.io/Joel-Ajayi/fraud-worker-go
+    newName: ghcr.io/joel-ajayi/fraud-worker-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
   - name: rrq/webhook-echo
-    newName: ghcr.io/Joel-Ajayi/webhook-echo-go
+    newName: ghcr.io/joel-ajayi/webhook-echo-go
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
 patches:
   - path: patches/image-pull-policy.yaml
