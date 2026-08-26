@@ -6,7 +6,7 @@ metadata:
   name: broker
   namespace: rrq
   labels:
-    strimzi.io/cluster: rrq
+    strimzi.io/cluster: kafka-cluster
 spec:
   replicas: 2
   roles:

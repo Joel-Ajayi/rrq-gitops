@@ -103,3 +103,34 @@ spec:
           port: 9092 # Kafka
         - protocol: TCP
           port: 9093 # Kafka internal
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-k8s-api
+  namespace: rrq
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/managed-by
+        operator: In
+        values:
+          - cloudnative-pg
+          - keda
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda

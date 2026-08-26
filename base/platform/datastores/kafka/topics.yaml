@@ -6,7 +6,7 @@ metadata:
   name: jobs
   namespace: rrq
   labels:
-    strimzi.io/cluster: rrq
+    strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 5
   replicas: 2
@@ -19,7 +19,7 @@ metadata:
   name: notify
   namespace: rrq
   labels:
-    strimzi.io/cluster: rrq
+    strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 14
   replicas: 2
@@ -32,7 +32,7 @@ metadata:
   name: xshard.shard-a
   namespace: rrq
   labels:
-    strimzi.io/cluster: rrq
+    strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 8
   replicas: 2
@@ -45,7 +45,7 @@ metadata:
   name: xshard.shard-b
   namespace: rrq
   labels:
-    strimzi.io/cluster: rrq
+    strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 8
   replicas: 2

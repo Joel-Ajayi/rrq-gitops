@@ -158,3 +158,34 @@ spec:
       ports:
         - protocol: TCP
           port: 9090
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-cnpg-api
+  namespace: rrq
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/managed-by
+        operator: In
+        values:
+          - cloudnative-pg
+          - keda
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
