@@ -1,48 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
-  name: rrq-local-apps
+  name: rrq-local-root
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  generators:
-    - list:
-        elements:
-          - name: sealed-secrets
-            wave: "-3"
-            path: sealed-secrets
-          - name: operators
-            wave: "-2"
-            path: operators
-          - name: gateway
-            wave: "-1"
-            path: gateway
-          - name: datastores
-            wave: "0"
-            path: datastores
-          - name: observability
-            wave: "1"
-            path: observability
-          - name: workloads
-            wave: "2"
-            path: workloads
-  template:
-    metadata:
-      name: "{{name}}"
-      annotations:
-        argocd.argoproj.io/sync-wave: "{{wave}}"
-    spec:
-      project: default
-      source:
-        repoURL: https://github.com/Joel-Ajayi/rrq-gitops.git
-        targetRevision: HEAD
-        path: "overlays/local/{{path}}"
-      destination:
-        server: https://kubernetes.default.svc
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          - ServerSideApply=true
-          - Force=true
+  project: default
+  source:
+    repoURL: https://github.com/Joel-Ajayi/rrq-gitops.git
+    targetRevision: HEAD
+    path: apps-local
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - Force=true
