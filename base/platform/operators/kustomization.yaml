@@ -44,6 +44,8 @@ helmCharts:
     valuesInline:
       crds:
         enabled: true
+      extraArgs:
+        - --enable-gateway-api
 
   - name: eck-operator
     repo: https://helm.elastic.co
