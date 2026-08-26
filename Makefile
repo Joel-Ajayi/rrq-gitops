@@ -93,7 +93,7 @@ tools-yq: $(BIN) ## Install yq (YAML CLI)
 cluster-up: ## Create the local Kind cluster
 	@kind get clusters 2>/dev/null | grep -qx "$(CLUSTER)" \
 		&& echo "kind cluster '$(CLUSTER)' already exists" \
-		|| kind create cluster --name $(CLUSTER) --image $(KIND_NODE_IMAGE) --config kind/cluster-$(ENV).yaml
+		|| kind create cluster --name $(CLUSTER)-$(ENV) --image $(KIND_NODE_IMAGE) --config kind/cluster-$(ENV).yaml
 
 .PHONY: cluster-local
 cluster-local: ## Create the local prod Kind cluster
@@ -101,7 +101,7 @@ cluster-local: ## Create the local prod Kind cluster
 
 .PHONY: cluster-down
 cluster-down: ## Delete the local Kind cluster
-	-kind delete cluster --name $(CLUSTER)
+	-kind delete cluster --name $(CLUSTER)-$(ENV)
 
 # 3. SECRETS MANAGEMENT
 .PHONY: seal

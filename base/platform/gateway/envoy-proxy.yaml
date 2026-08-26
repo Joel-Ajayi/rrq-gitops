@@ -9,7 +9,7 @@ spec:
     kubernetes:
       envoyService:
         type: NodePort
-        externalTrafficPolicy: Cluster
+        externalTrafficPolicy: Cluster #all nodes open the nodeports
         patch:
           type: StrategicMerge
           value:
