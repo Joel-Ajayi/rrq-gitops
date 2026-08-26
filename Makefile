@@ -123,7 +123,11 @@ argocd: ## Install Argo CD manually
 	helm repo update
 	helm upgrade --install argocd argo/argo-cd \
 		-n argocd --create-namespace --wait \
-		--set configs.cm."kustomize\.buildOptions"="--enable-helm"
+		--set configs.cm."kustomize\.buildOptions"="--enable-helm" \
+		--set configs.params."controller\.repo\.server\.timeout\.seconds"="300" \
+		--set configs.params."server\.repo\.server\.timeout\.seconds"="300" \
+		--set repoServer.env[0].name="ARGOCD_EXEC_TIMEOUT" \
+		--set repoServer.env[0].value="300s"
 
 .PHONY: bootstrap
 bootstrap: ## Bootstrap the cluster (dispatches to bootstrap-dev or bootstrap-prod based on ENV)
