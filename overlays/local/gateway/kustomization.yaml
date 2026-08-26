@@ -6,4 +6,3 @@ resources:
 
 patches:
   - path: gateway-patch.yaml
-  - path: envoy-proxy-prod.yaml

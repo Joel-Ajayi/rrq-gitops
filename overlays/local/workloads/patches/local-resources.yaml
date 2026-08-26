@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: core-api
+          resources:
+            requests: { cpu: 1000m }
+            limits: { cpu: 1712m }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - core-api
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  minReplicas: 2
+  maxReplicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: outbox-relay
+          resources:
+            requests: { cpu: 200m }
+            limits: { cpu: 500m }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - outbox-relay
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  minReplicaCount: 2
+  maxReplicaCount: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: ledger-worker
+          resources:
+            requests: { cpu: 150m }
+            limits: { cpu: 500m }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - ledger-worker
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 2
+  maxReplicaCount: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: webhook-worker
+          resources:
+            requests: { cpu: 50m }
+            limits: { cpu: 500m }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - webhook-worker
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 2
+  maxReplicaCount: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: fraud-worker
+          resources:
+            requests: { cpu: 50m }
+            limits: { cpu: 500m }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - fraud-worker
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  minReplicaCount: 2
+  maxReplicaCount: 2

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../base/platform/datastores
+  - secrets.yaml
+patches:
+  - path: patches/image-pull-policy.yaml
+  - path: patches/scale-local.yaml
+  - path: patches/kafka-config.yaml
+
+images:
+  - name: rrq/migrate
+    newName: ghcr.io/Joel-Ajayi/migrate
+  - name: rrq/seed-performance
+    newName: ghcr.io/Joel-Ajayi/seed-performance

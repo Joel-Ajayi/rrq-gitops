@@ -93,7 +93,11 @@ tools-yq: $(BIN) ## Install yq (YAML CLI)
 cluster-up: ## Create the local Kind cluster
 	@kind get clusters 2>/dev/null | grep -qx "$(CLUSTER)" \
 		&& echo "kind cluster '$(CLUSTER)' already exists" \
-		|| kind create cluster --name $(CLUSTER) --image $(KIND_NODE_IMAGE) --config kind/cluster-dev.yaml
+		|| kind create cluster --name $(CLUSTER) --image $(KIND_NODE_IMAGE) --config kind/cluster-$(ENV).yaml
+
+.PHONY: cluster-local
+cluster-local: ## Create the local prod Kind cluster
+	@$(MAKE) cluster-up ENV=local
 
 .PHONY: cluster-down
 cluster-down: ## Delete the local Kind cluster
@@ -155,6 +159,16 @@ bootstrap-prod: argocd ## Prod bootstrap: Argo CD App-of-Apps GitOps
 	@echo "Sealing initial prod secrets..."
 	$(MAKE) seal ENV=prod
 	@echo "Production GitOps bootstrap complete."
+
+.PHONY: bootstrap-local
+bootstrap-local: argocd ## Local prod bootstrap: Argo CD App-of-Apps GitOps
+	@echo "Deploying Local Root Application to Argo CD..."
+	kubectl apply -f bootstrap/root-app-local.yaml
+	@echo "Waiting for Argo CD to deploy sealed-secrets operator (Wave -3)..."
+	kubectl rollout status deployment/sealed-secrets -n kube-system --timeout=180s
+	@echo "Sealing initial local secrets..."
+	$(MAKE) seal ENV=local
+	@echo "Local Production GitOps bootstrap complete."
 
 
 # 5. BENCHMARKING (k6)

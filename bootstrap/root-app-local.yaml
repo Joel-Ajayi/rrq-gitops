@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: rrq-prod-apps
+  name: rrq-local-apps
   namespace: argocd
 spec:
   generators:
@@ -35,7 +35,7 @@ spec:
       source:
         repoURL: https://github.com/Joel-Ajayi/rrq-gitops.git
         targetRevision: HEAD
-        path: "overlays/prod/{{path}}"
+        path: "overlays/local/{{path}}"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

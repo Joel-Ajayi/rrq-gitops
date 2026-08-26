@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../base/workloads
+  - secrets.yaml
+  - services
+images:
+  - name: rrq/core-api
+    newName: ghcr.io/Joel-Ajayi/core-api-go
+  - name: rrq/outbox-relay
+    newName: ghcr.io/Joel-Ajayi/outbox-relay-go
+  - name: rrq/ledger-worker
+    newName: ghcr.io/Joel-Ajayi/ledger-worker-go
+  - name: rrq/webhook-worker
+    newName: ghcr.io/Joel-Ajayi/webhook-worker-go
+  - name: rrq/fraud-worker
+    newName: ghcr.io/Joel-Ajayi/fraud-worker-go
+  - name: rrq/webhook-echo
+    newName: ghcr.io/Joel-Ajayi/webhook-echo-go
+patches:
+  - path: patches/image-pull-policy.yaml
+  - path: patches/instrumentation.yaml
+  - path: patches/local-resources.yaml

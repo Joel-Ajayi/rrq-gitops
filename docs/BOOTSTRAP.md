@@ -7,6 +7,7 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 ## 1. Production Cluster Provisioning (DOKS / Production K8s)
 
 ### Prerequisites
+
 - A managed Kubernetes cluster with at least 3 worker nodes (`s-4vcpu-8gb` minimum).
 - `kubectl` configured to point at the cluster.
 - All GitOps tools installed (`make tools`).
@@ -15,17 +16,20 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 
 1. **Provision Managed Kubernetes Cluster**:
    Create a production DOKS cluster via DigitalOcean CLI or Terraform:
+
    ```bash
    doctl kubernetes cluster create rrq-prod --count 3 --size s-4vcpu-8gb --region fra1
    ```
 
 2. **Configure `kubectl` Context**:
+
    ```bash
    doctl kubernetes cluster kubeconfig save rrq-prod
    ```
 
 3. **Prepare Plaintext Secrets**:
    Create plaintext secret files in `secrets/prod/` (these are git-ignored):
+
    ```bash
    # Example: secrets/prod/workloads.plain.yaml
    # Contains database passwords, JWT keys, Redis credentials, etc.
@@ -33,6 +37,7 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 
 4. **Bootstrap the Cluster**:
    A single command installs Argo CD, applies the Root App-of-Apps, waits for the Sealed Secrets operator, and encrypts secrets:
+
    ```bash
    make bootstrap ENV=prod
    ```
@@ -64,12 +69,47 @@ This document provides step-by-step instructions for provisioning, bootstrapping
 
 ---
 
-## 2. Local Development Bootstrap (Kind)
+## 2. Local Production GitOps Bootstrap (Kind with Argo CD)
 
-### Key Difference from Production
-Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a remote Git repo, `make bootstrap ENV=dev` directly applies Kustomize overlays via sequential `kubectl apply -k` calls. This allows uncommitted local changes to take effect immediately.
+Runs the complete, right-sized HA architecture locally, driven natively by **Argo CD App-of-Apps GitOps** (exactly mirroring production sync-waves, automated healing, and declarative reconciliation):
+
+### Step-by-Step Execution
+
+1. **Create 4-Node Local Production Kind Cluster**:
+
+   ```bash
+   make cluster-local
+   ```
+
+2. **Bootstrap Local Production via Argo CD**:
+
+   ```bash
+   make bootstrap ENV=local
+   ```
+
+   This executes:
+   1. Installs Argo CD in namespace `argocd`
+   2. Applies `bootstrap/root-app-local.yaml` (Local Root App-of-Apps pointing to `apps-local/`)
+   3. Waits for the Sealed Secrets operator (Wave -3)
+   4. Encrypts local plaintext secrets via `make seal ENV=local`
+   5. Argo CD automatically syncs Waves -2, -1, 0, 1, and 2 in declarative order.
+
+3. **Access Endpoints**:
+   - `https://localhost:8443/v1/transfers` (or `http://localhost:8080`) — Core API
+   - `http://cluster.127.0.0.1.nip.io:8080` — Portainer
+   - `http://metrics.127.0.0.1.nip.io:8080/services` — Grafana
+   - Argo CD UI: `kubectl port-forward svc/argocd-server -n argocd 8081:443` -> `https://localhost:8081`
+
+---
+
+## 3. Fast Local Development Bootstrap (Kind - Non-ArgoCD)
+
+### Key Difference from Production & Local Prod
+
+Fast local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a remote Git repo, `make bootstrap ENV=dev` directly applies Kustomize overlays via sequential `kubectl apply -k` calls. This allows uncommitted local changes to take effect immediately.
 
 ### Prerequisites
+
 - **Docker Engine** (running)
 - **Kind** (`v0.31.0+`), **kubectl** (`v1.31+`), **Helm** (`v3.17+`)
 - Install all tools: `make tools`
@@ -77,6 +117,7 @@ Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a
 ### Step-by-Step Execution
 
 1. **Clone the Repository**:
+
    ```bash
    git clone https://github.com/Joel-Ajayi/rrq-gitops.git
    cd rrq-gitops
@@ -84,12 +125,14 @@ Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a
 
 2. **Create Local Kind Cluster**:
    Creates a 3-worker node Kind cluster with port forwarding (host ports 8080/8443):
+
    ```bash
    make cluster-up
    ```
 
 3. **Bootstrap Dev Infrastructure**:
    Sequentially applies all overlays in strict wave order without Argo CD:
+
    ```bash
    make bootstrap ENV=dev
    ```
@@ -107,7 +150,7 @@ Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a
    - `http://localhost:8080/v1/transfers` — Core API Endpoint
    - `http://cluster.127.0.0.1.nip.io:8080` — Portainer
    - `http://metrics.127.0.0.1.nip.io:8080/services` — Grafana
-   - *(Optional)* Add `127.0.0.1 api.rrq.dev` to `/etc/hosts` for domain resolution.
+   - _(Optional)_ Add `127.0.0.1 api.rrq.dev` to `/etc/hosts` for domain resolution.
 
 ---
 
@@ -116,18 +159,22 @@ Local dev **bypasses Argo CD entirely**. Instead of GitOps reconciliation from a
 Secrets are managed via the `make seal` target:
 
 1. **Create plaintext secret files** in `secrets/<env>/`:
+
    ```
    secrets/dev/workloads.plain.yaml
    secrets/dev/datastores.plain.yaml
    secrets/prod/workloads.plain.yaml
    secrets/prod/datastores.plain.yaml
    ```
+
    These files are git-ignored (`.gitignore` contains `*.plain.yaml`).
 
 2. **Encrypt with `make seal`**:
+
    ```bash
    make seal ENV=dev   # or ENV=prod
    ```
+
    This runs `kubeseal` against each plaintext file and writes the encrypted `SealedSecret` to the corresponding overlay directory (e.g., `overlays/dev/workloads/secrets.yaml`).
 
 3. **Commit the encrypted SealedSecrets** — they are safe to push to Git.

@@ -1,0 +1,84 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rrq-gateway
+  namespace: rrq
+  labels:
+    app.kubernetes.io/part-of: rrq
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-local
+spec:
+  gatewayClassName: envoy-gateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: api-https
+      protocol: HTTPS
+      port: 443
+      hostname: "api.127.0.0.1.nip.io"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: api-tls
+
+    - name: cluster-https
+      protocol: HTTPS
+      port: 443
+      hostname: "cluster.127.0.0.1.nip.io"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: cluster-tls
+    - name: logs-https
+      protocol: HTTPS
+      port: 443
+      hostname: "logs.127.0.0.1.nip.io"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: logs-tls
+    - name: traces-https
+      protocol: HTTPS
+      port: 443
+      hostname: "traces.127.0.0.1.nip.io"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: traces-tls
+    - name: metrics-https
+      protocol: HTTPS
+      port: 443
+      hostname: "metrics.127.0.0.1.nip.io"
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: metrics-tls

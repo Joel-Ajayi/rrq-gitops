@@ -45,16 +45,18 @@ graph TD
 
 ---
 
-## 2. App-of-Apps Pattern
+## 2. Declarative ApplicationSet Pattern
 
-The production infrastructure uses a **Root Application** (`bootstrap/root-app.yaml`) that points at the `apps/` directory. Inside `apps/`, four child `Application` manifests define the deployment cascade:
+The infrastructure uses an **Argo CD ApplicationSet** (`bootstrap/root-app.yaml` for production, `bootstrap/root-app-local.yaml` for local production) to declaratively generate the deployment cascade with strict sync-waves across all environments without duplicate manifests:
 
-| File | Application Name | Sync Wave | Target Overlay |
-|------|-----------------|-----------|----------------|
-| `apps/00-operators.yaml` | `operators` | `-2` | `overlays/prod/operators` |
-| `apps/01-datastores.yaml` | `datastores` | `0` | `overlays/prod/datastores` |
-| `apps/01-observability.yaml` | `observability` | `1` | `overlays/prod/observability` |
-| `apps/02-workloads.yaml` | `workloads` | `2` | `overlays/prod/workloads` |
+| Subsystem | Sync Wave | Target Overlay (`prod` / `local`) | Purpose |
+|---|---|---|---|
+| `sealed-secrets` | `-3` | `overlays/<env>/sealed-secrets` | Secret decryption operator |
+| `operators` | `-2` | `overlays/<env>/operators` | CRD installers (CNPG, Strimzi, Envoy, KEDA, cert-manager, ECK, OTel) |
+| `gateway` | `-1` | `overlays/<env>/gateway` | Envoy Gateway & HTTP listener infrastructure |
+| `datastores` | `0` | `overlays/<env>/datastores` | Stateful databases (PostgreSQL clusters, Kafka, Redis) |
+| `observability` | `1` | `overlays/<env>/observability` | OTel pipelines, Elasticsearch, Prometheus, Grafana |
+| `workloads` | `2` | `overlays/<env>/workloads` | Application microservices (core-api, workers) & HTTPRoutes |
 
 Argo CD reads the `sync-wave` annotations and deploys them sequentially, **waiting for each wave to become fully Healthy** before proceeding to the next.
 

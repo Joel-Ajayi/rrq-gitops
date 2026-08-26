@@ -1,0 +1,111 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: rrq
+spec:
+  replicas: 2
+  resources:
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { cpu: "2", memory: 2Gi }
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 10Gi
+        deleteClaim: false
+        kraftMetadata: shared
+  template:
+    pod:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: []
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/name
+                      operator: In
+                      values:
+                        - kafka-cluster-kafka
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: merchants-db
+  namespace: rrq
+spec:
+  instances: 2
+  storage:
+    size: 2Gi
+  resources:
+    requests: { cpu: "500m", memory: 512Mi }
+    limits: { cpu: "1500m", memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-a
+  namespace: rrq
+spec:
+  instances: 2
+  resources:
+    requests: { cpu: "500m", memory: 512Mi }
+    limits: { cpu: "1500m", memory: 1Gi }
+  storage:
+    size: 10Gi
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shard-b
+  namespace: rrq
+spec:
+  instances: 2
+  storage:
+    size: 10Gi
+  resources:
+    requests: { cpu: "500m", memory: 512Mi }
+    limits: { cpu: "1500m", memory: 1Gi }
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fraud-redis-node
+  namespace: rrq
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+        - name: sentinel
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: core-api
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-relay
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: outbox-relay
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: ledger-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: webhook-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-worker
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: fraud-worker
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-echo
+  namespace: rrq
+spec:
+  template:
+    spec:
+      containers:
+        - name: webhook-echo
+          imagePullPolicy: IfNotPresent

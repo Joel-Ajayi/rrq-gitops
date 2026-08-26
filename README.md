@@ -13,6 +13,8 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 
 - [GitOps Architecture Specification](docs/ARCHITECTURE.md) — Argo CD App-of-Apps, sync waves, operator/CR separation, and namespace isolation.
 - [Cluster Provisioning & Bootstrap Guide](docs/BOOTSTRAP.md) — Step-by-step cluster setup for production and local Kind dev environments.
+- [Production Capacity & Sizing Guide](overlays/prod/README.md) — Enterprise-scale 3-node HA capacity specifications and resource allocations.
+- [Local Production Capacity & Sizing Guide](overlays/local/README.md) — Workstation right-sized HA capacity specifications (20 thread / 25 GiB RAM target).
 - [Infrastructure Operational Runbooks](docs/RUNBOOKS.md) — SRE procedures for database failovers, Kafka partition scaling, and secret rotation.
 - [Security & Network Policy Matrix](docs/SECURITY.md) — Multi-layer security model, default-deny ingress/egress, and sealed secret standards.
 - [Observability Stack Guide](base/observability/README.md) — OTel agents/gateway, trace, metrics, log pipelines, and architecture diagram.
@@ -25,14 +27,9 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 
 ```
 rrq-gitops/
-├── apps/                          # Argo CD Application manifests (production)
-│   ├── 00-sealed-secrets.yaml     #   Wave -3: Secret decryption operator
-│   ├── 00-operators.yaml          #   Wave -2: CRD-installing operators
-│   ├── 01-datastores.yaml         #   Wave  0: Stateful data clusters
-│   ├── 01-observability.yaml      #   Wave  1: Monitoring & telemetry
-│   └── 02-workloads.yaml          #   Wave  2: Application microservices
 ├── bootstrap/
-│   └── root-app.yaml              # Root App-of-Apps (points to apps/)
+│   ├── root-app.yaml              # Production ApplicationSet (generates all sync waves)
+│   └── root-app-local.yaml        # Local Production ApplicationSet (generates all sync waves)
 ├── base/                          # Shared base manifests (environment-agnostic)
 │   ├── platform/
 │   │   ├── operators/             #   All Helm operator charts (CRD installers)
@@ -43,12 +40,16 @@ rrq-gitops/
 │   │       └── README.md          #   5-Tier Grafana dashboard taxonomy
 │   └── workloads/                 #   Microservice deployments, Gateway CRs, migrations
 ├── overlays/                      # Environment-specific customizations
-│   ├── dev/                       #   Local Kind cluster overrides
-│   └── prod/                      #   Production cluster overrides
+│   ├── dev/                       #   Local Kind cluster overrides (minimal non-HA)
+│   ├── local/                     #   Local Kind cluster overrides (right-sized HA production)
+│   └── prod/                      #   Production cluster overrides (enterprise cloud scale)
 ├── secrets/                       # Plaintext secrets (git-ignored, used by `make seal`)
 │   ├── dev/
+│   ├── local/
 │   └── prod/
-├── kind/                          # Kind cluster configuration
+├── kind/                          # Kind cluster configurations
+│   ├── cluster-dev.yaml
+│   └── cluster-local.yaml
 ├── tools/
 │   ├── capacity-engine/           # Go-based capacity planning tool
 │   │   └── README.md              #   Engine input, formulas & file index
@@ -74,14 +75,26 @@ make bootstrap ENV=prod
 
 Argo CD will automatically reconcile the entire cluster using sync waves:
 
-| Wave | Phase | What Deploys |
-|------|-------|-------------|
-| `-2` | Operators | Sealed Secrets, CNPG, Strimzi, Envoy Gateway, KEDA, cert-manager, ECK, kube-prometheus-stack, OTel Operator |
-| `0`  | Datastores | PostgreSQL clusters, Kafka cluster & topics, Redis |
-| `1`  | Observability | OTel collectors, Grafana dashboards, ServiceMonitors, Portainer, Elasticsearch, Kibana |
-| `2`  | Workloads | core-api, ledger-worker, outbox-relay, webhook-worker, fraud-worker, Gateway & HTTPRoutes |
+| Wave | Phase         | What Deploys                                                                                                |
+| ---- | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `-2` | Operators     | Sealed Secrets, CNPG, Strimzi, Envoy Gateway, KEDA, cert-manager, ECK, kube-prometheus-stack, OTel Operator |
+| `0`  | Datastores    | PostgreSQL clusters, Kafka cluster & topics, Redis                                                          |
+| `1`  | Observability | OTel collectors, Grafana dashboards, ServiceMonitors, Portainer, Elasticsearch, Kibana                      |
+| `2`  | Workloads     | core-api, ledger-worker, outbox-relay, webhook-worker, fraud-worker, Gateway & HTTPRoutes                   |
 
-### Local Development (Kind)
+### Local Production Deployment (Kind with Argo CD)
+
+Runs the complete, right-sized High-Availability production architecture on a local Kind cluster using **Argo CD App-of-Apps GitOps** (exactly mirroring production sync-waves and deployment flow):
+
+```bash
+# 1. Create 4-node local Kind cluster (1 control-plane + 3 workers)
+make cluster-local
+
+# 2. Bootstrap Local Production (installs Argo CD, applies Local Root App, seals secrets)
+make bootstrap ENV=local
+```
+
+### Local Development (Kind - Fast Iteration)
 
 Local dev **bypasses Argo CD entirely** — `kubectl apply -k` is used directly against local files so uncommitted changes are immediately reflected:
 
@@ -94,7 +107,9 @@ make bootstrap ENV=dev
 ```
 
 #### Local Endpoints
+
 Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS):
+
 - **API Gateway**: `http://localhost:8080/v1/transfers`
 - **Portainer**: `http://cluster.127.0.0.1.nip.io:8080`
 - **Grafana**: `http://metrics.127.0.0.1.nip.io:8080/services`
@@ -103,17 +118,21 @@ Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS
 
 ## Makefile Targets
 
-| Target | Description |
-|--------|-------------|
-| `make tools` | Install all GitOps CLIs (kubectl, helm, kind, kubeseal, argocd, skaffold, k6, jq, yq) |
-| `make cluster-up` | Create local Kind cluster |
-| `make cluster-down` | Delete local Kind cluster |
-| `make bootstrap ENV=<dev\|prod>` | Full cluster bootstrap (dispatches to dev or prod) |
-| `make argocd` | Install Argo CD via Helm |
-| `make seal ENV=<dev\|prod>` | Encrypt plaintext secrets into SealedSecrets |
-| `make render ENV=<dev\|prod>` | Dry-run: print fully-rendered Kustomize manifests |
-| `make capacity` | Regenerate GitOps manifests from capacity models |
-| `make bench SCENARIO=<name>` | Run a k6 load test scenario |
+| Target                                  | Description                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------- |
+| `make tools`                            | Install all GitOps CLIs (kubectl, helm, kind, kubeseal, argocd, skaffold, k6, jq, yq) |
+| `make cluster-up`                       | Create local Kind cluster (`kind/cluster-$(ENV).yaml`)                                |
+| `make cluster-local`                    | Create 4-node local production Kind cluster (`kind/cluster-local.yaml`)               |
+| `make cluster-down`                     | Delete local Kind cluster                                                             |
+| `make bootstrap ENV=<dev\|local\|prod>` | Full cluster bootstrap (dispatches to dev, local, or prod)                            |
+| `make bootstrap-local`                  | Local production GitOps bootstrap via Argo CD                                         |
+| `make bootstrap-prod`                   | Cloud production GitOps bootstrap via Argo CD                                         |
+| `make bootstrap-dev`                    | Fast local dev bootstrap (sequential kubectl apply, bypasses Argo CD)                 |
+| `make argocd`                           | Install Argo CD via Helm                                                              |
+| `make seal ENV=<dev\|local\|prod>`      | Encrypt plaintext secrets into SealedSecrets                                          |
+| `make render ENV=<dev\|local\|prod>`    | Dry-run: print fully-rendered Kustomize manifests                                     |
+| `make capacity`                         | Regenerate GitOps manifests from capacity models                                      |
+| `make bench SCENARIO=<name>`            | Run a k6 load test scenario                                                           |
 
 ---
 
