@@ -42,7 +42,7 @@ spec:
                 echo "Waiting for shard-b Postgres..."
                 sleep 2
               done
-              until nc -z rrq-kafka-bootstrap.rrq 9092 2>/dev/null; do
+              until nc -z kafka-cluster-kafka-bootstrap.rrq 9092 2>/dev/null; do
                 echo "Waiting for Kafka..."
                 sleep 2
               done

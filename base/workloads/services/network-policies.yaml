@@ -48,10 +48,11 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: envoy-gateway-system
 ---
+# Allow Ingress to PostgreSQL (from cnpg-system operator AND all rrq workloads)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-cnpg-operator
+  name: allow-cnpg-ingress
   namespace: rrq
 spec:
   podSelector:
@@ -64,13 +65,76 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: cnpg-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rrq
+        - podSelector: {}
       ports:
         - protocol: TCP
           port: 5432
         - protocol: TCP
           port: 8000
 ---
-# Explicit internal Egress to Datastores
+# Allow Ingress to Kafka (from strimzi-system operator AND all rrq workloads)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-ingress
+  namespace: rrq
+spec:
+  podSelector:
+    matchExpressions:
+      - key: strimzi.io/cluster
+        operator: In
+        values:
+          - kafka-cluster
+          - rrq
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: strimzi-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rrq
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9091 # Kafka internal TLS
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 9093
+        - protocol: TCP
+          port: 9094
+---
+# Allow Ingress to Redis (from all rrq workloads)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ingress
+  namespace: rrq
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rrq
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 26379
+---
+# Allow Egress from all pods in rrq to Kubernetes API server, DNS, and internal datastores
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -91,6 +155,42 @@ spec:
         - protocol: TCP
           port: 53
     - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: strimzi-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9200
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rrq
         - podSelector: {}
       ports:
         - protocol: TCP
@@ -100,37 +200,12 @@ spec:
         - protocol: TCP
           port: 6379 # Redis
         - protocol: TCP
+          port: 26379 # Redis sentinel
+        - protocol: TCP
+          port: 9091 # Kafka internal TLS
+        - protocol: TCP
           port: 9092 # Kafka
         - protocol: TCP
           port: 9093 # Kafka internal
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-egress-k8s-api
-  namespace: rrq
-spec:
-  podSelector:
-    matchExpressions:
-      - key: app.kubernetes.io/managed-by
-        operator: In
-        values:
-          - cloudnative-pg
-          - keda
-  policyTypes:
-    - Egress
-  egress:
-    - ports:
         - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 6443
-        - protocol: TCP
-          port: 8000
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: cnpg-system
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: keda
+          port: 9094 # Kafka controller
