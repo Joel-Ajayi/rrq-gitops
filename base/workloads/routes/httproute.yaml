@@ -8,7 +8,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "api.127.0.0.1.nip.io"
     - "api.rrq.yotstack.tech"
@@ -30,8 +32,11 @@ spec:
             type: Exact
             value: /v1/merchants
       backendRefs:
-        - name: core-api
+        - group: ""
+          kind: Service
+          name: core-api
           port: 8080
+          weight: 1
 ---
 # Protected edge route for all /v1/* resources (JWT-verified via SecurityPolicy)
 apiVersion: gateway.networking.k8s.io/v1
@@ -43,7 +48,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "api.127.0.0.1.nip.io"
     - "api.rrq.yotstack.tech"
@@ -68,8 +75,11 @@ spec:
             type: PathPrefix
             value: /v1/accounts
       backendRefs:
-        - name: core-api
+        - group: ""
+          kind: Service
+          name: core-api
           port: 8080
+          weight: 1
 ---
 # Admin-only route: more specific than /v1, stamped by the gateway with
 # X-RRQ-Edge: envoy so core-api's requirePlatformAdmin middleware can reject
@@ -83,7 +93,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "api.127.0.0.1.nip.io"
     - "api.rrq.yotstack.tech"
@@ -99,5 +111,8 @@ spec:
               - name: X-RRQ-Edge
                 value: envoy
       backendRefs:
-        - name: core-api
+        - group: ""
+          kind: Service
+          name: core-api
           port: 8080
+          weight: 1

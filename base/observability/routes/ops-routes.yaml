@@ -7,7 +7,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "cluster.127.0.0.1.nip.io"
     - "cluster.rrq.yotstack.tech"
@@ -17,9 +19,12 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: portainer
+        - group: ""
+          kind: Service
+          name: portainer
           namespace: portainer
           port: 9000
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -30,7 +35,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "metrics.127.0.0.1.nip.io"
     - "metrics.rrq.yotstack.tech"
@@ -101,9 +108,12 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kube-prometheus-stack-grafana
+        - group: ""
+          kind: Service
+          name: kube-prometheus-stack-grafana
           namespace: observability
           port: 80
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -114,7 +124,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "logs.127.0.0.1.nip.io"
     - "logs.rrq.yotstack.tech"
@@ -124,9 +136,12 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kibana-kb-http
+        - group: ""
+          kind: Service
+          name: kibana-kb-http
           namespace: observability
           port: 5601
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -137,7 +152,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
 spec:
   parentRefs:
-    - name: rrq-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rrq-gateway
   hostnames:
     - "traces.127.0.0.1.nip.io"
     - "traces.rrq.yotstack.tech"
@@ -147,9 +164,12 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: jaeger-collector
+        - group: ""
+          kind: Service
+          name: jaeger-collector
           namespace: observability
           port: 16686
+          weight: 1
 ---
 # Reference Grant authorizing 'rrq' HTTPRoutes to connect to Portainer
 apiVersion: gateway.networking.k8s.io/v1beta1
