@@ -94,8 +94,8 @@ type Defaults struct {
 	ConsumerMinCommitCapFrac float64 `yaml:"consumer_min_commit_cap_frac"`
 	DLQMaxRetries            int     `yaml:"dlq_max_retries"`
 	RelayMaxFetchBatch       int     `yaml:"relay_max_fetch_batch"`
+	OtelExporterEndpoint     string  `yaml:"otel_exporter_endpoint"`
 }
-
 type Service struct {
 	Name                  string         `yaml:"name"`
 	SLO                   ServiceSLO     `yaml:"slo"`

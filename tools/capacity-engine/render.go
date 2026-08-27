@@ -68,6 +68,7 @@ func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, inpu
 		"PG_CONN_MAX_IDLE_TIME_MS":          fmt.Sprintf("%d", input.Infra.PG.Connection.MaxIdleMS),
 		"PG_CONN_MAX_LIFETIME_MS":           fmt.Sprintf("%d", input.Infra.PG.Connection.MaxLifetimeMS),
 		"RETRY_BUDGET_MIN_TOKENS":           fmt.Sprintf("%d", d.RetryBudgetMinTokens),
+		"OTEL_EXPORTER_OTLP_ENDPOINT":       d.OtelExporterEndpoint,
 		"RETRY_BUDGET_MAX_TOKENS":           fmt.Sprintf("%d", d.RetryBudgetMaxTokens),
 		"RETRY_BUDGET_FRACTION":             fmt.Sprintf("%g", d.RetryBudgetFraction),
 	}

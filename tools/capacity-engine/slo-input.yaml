@@ -85,6 +85,7 @@ defaults:
 
   dlq_max_retries: 2 # Product Policy - Max synchronous retry attempts before dead-lettering
   relay_max_fetch_batch: 1000 # DB protection - hard limit on PG outbox poll batch size
+  otel_exporter_endpoint: "http://agent-collector.observability.svc.cluster.local:4318" # Telemetry endpoint
 
 services:
   # === core-api: synchronous HTTP API gateway ===
