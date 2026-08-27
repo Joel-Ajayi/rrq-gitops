@@ -35,7 +35,7 @@ data:
           },
           "targets": [
             {
-              "expr": "saga_unresolved_count",
+              "expr": "sum(saga_unresolved_count)",
               "legendFormat": "Stuck Sagas"
             }
           ],
@@ -55,12 +55,12 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(dlq_ingestion_rate[1m])",
-              "legendFormat": "Ingested"
+              "expr": "sum(rate(dlq_ingestion_rate[1m])) by (topic)",
+              "legendFormat": "Ingested ({{topic}})"
             },
             {
-              "expr": "rate(admin_dlq_replayed_total[1m])",
-              "legendFormat": "Replayed"
+              "expr": "sum(rate(admin_dlq_replayed_total[1m])) by (shard)",
+              "legendFormat": "Replayed ({{shard}})"
             }
           ],
           "datasource": {
@@ -79,12 +79,12 @@ data:
           },
           "targets": [
             {
-              "expr": "bulkhead_in_flight",
-              "legendFormat": "Inflight"
+              "expr": "sum(bulkhead_in_flight)",
+              "legendFormat": "Inflight In-Use"
             },
             {
-              "expr": "rate(bulkhead_rejections_total[1m])",
-              "legendFormat": "Rejected"
+              "expr": "sum(rate(bulkhead_rejections_total[1m]))",
+              "legendFormat": "Rejections/sec"
             }
           ],
           "datasource": {
@@ -103,8 +103,8 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(idempotency_conflicts_total[1m])",
-              "legendFormat": "Conflicts"
+              "expr": "sum(rate(idempotency_conflicts_total[1m])) by (shard)",
+              "legendFormat": "Conflicts ({{shard}})"
             }
           ],
           "datasource": {
@@ -131,8 +131,8 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
           "targets": [
             {
-              "expr": "ledger_imbalance",
-              "legendFormat": "Imbalance"
+              "expr": "max(ledger_imbalance)",
+              "legendFormat": "Absolute Imbalance"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }

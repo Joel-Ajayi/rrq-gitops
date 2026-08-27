@@ -126,8 +126,8 @@ data:
           },
           "targets": [
             {
-              "expr": "circuit_breaker_state{service_name=\"$service_name\"}",
-              "legendFormat": "State ({{circuit_breaker}}) 0=C, 1=H, 2=O"
+              "expr": "max(circuit_breaker_state{service_name=\"$service_name\"}) by (circuit_breaker)",
+              "legendFormat": "State: {{circuit_breaker}}"
             },
             {
               "expr": "sum(rate(circuit_breaker_open_total{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
@@ -150,7 +150,7 @@ data:
           "targets": [
             {
               "expr": "sum(rate(kafka_consumer_panics_total[5m])) by (topic)",
-              "legendFormat": "{{topic}}"
+              "legendFormat": "Panics ({{topic}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -166,8 +166,8 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])",
-              "legendFormat": "Wait Events/sec"
+              "expr": "sum(rate(pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])) by (db_pool)",
+              "legendFormat": "{{db_pool}} waits/sec"
             }
           ],
           "datasource": {
@@ -186,8 +186,8 @@ data:
           },
           "targets": [
             {
-              "expr": "go_goroutines{service_name=\"$service_name\"}",
-              "legendFormat": "Count"
+              "expr": "sum(go_goroutines{namespace=\"rrq\", pod=~\"$service_name-.*\"}) by (pod)",
+              "legendFormat": "{{pod}}"
             }
           ],
           "datasource": {

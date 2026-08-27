@@ -148,8 +148,8 @@ data:
           },
           "targets": [
             {
-              "expr": "redis_memory_fragmentation_ratio",
-              "legendFormat": "Ratio"
+              "expr": "max(redis_memory_fragmentation_ratio) by (pod)",
+              "legendFormat": "{{pod}}"
             }
           ],
           "datasource": {
@@ -168,8 +168,8 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(redis_evicted_keys_total[1m])",
-              "legendFormat": "Evictions/sec"
+              "expr": "sum(rate(redis_evicted_keys_total[1m])) by (pod)",
+              "legendFormat": "{{pod}} evictions/sec"
             }
           ],
           "datasource": {
@@ -188,12 +188,12 @@ data:
           },
           "targets": [
             {
-              "expr": "kafka_producer_buffer_fill_ratio",
-              "legendFormat": "Buffer Fill Ratio"
+              "expr": "max(kafka_producer_buffer_fill_ratio) by (shard)",
+              "legendFormat": "Buffer Fill ({{shard}})"
             },
             {
-              "expr": "rate(outbox_events_published_total[1m])",
-              "legendFormat": "Published RPS"
+              "expr": "sum(rate(outbox_events_published_total[1m])) by (shard)",
+              "legendFormat": "Published RPS ({{shard}})"
             }
           ],
           "datasource": {
@@ -212,12 +212,12 @@ data:
           },
           "targets": [
             {
-              "expr": "bulkhead_in_flight",
-              "legendFormat": "Inflight"
+              "expr": "sum(bulkhead_in_flight)",
+              "legendFormat": "Inflight In-Use"
             },
             {
-              "expr": "rate(bulkhead_rejections_total[1m])",
-              "legendFormat": "Rejections"
+              "expr": "sum(rate(bulkhead_rejections_total[1m]))",
+              "legendFormat": "Rejections/sec"
             }
           ],
           "datasource": {

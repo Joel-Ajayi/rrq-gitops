@@ -35,7 +35,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(kube_pod_container_status_restarts_total[5m])",
+              "expr": "sum(rate(kube_pod_container_status_restarts_total{namespace=\"rrq\"}[5m])) by (pod)",
               "legendFormat": "{{pod}} Restarts/sec"
             }
           ],
@@ -55,8 +55,8 @@ data:
           },
           "targets": [
             {
-              "expr": "kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes",
-              "legendFormat": "{{persistentvolumeclaim}}"
+              "expr": "max(kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes) by (namespace, persistentvolumeclaim)",
+              "legendFormat": "{{namespace}}/{{persistentvolumeclaim}}"
             }
           ],
           "datasource": {
@@ -75,7 +75,7 @@ data:
           },
           "targets": [
             {
-              "expr": "kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure\"}",
+              "expr": "kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure\", status=\"true\"}",
               "legendFormat": "{{node}} {{condition}}"
             }
           ],
@@ -95,8 +95,8 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(node_network_transmit_errs_total[5m])",
-              "legendFormat": "{{device}} Errors/sec"
+              "expr": "sum(rate(node_network_transmit_errs_total[5m])) by (instance, device)",
+              "legendFormat": "{{instance}} [{{device}}]"
             }
           ],
           "datasource": {
@@ -115,12 +115,12 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(process_cpu_seconds_total[1m])",
-              "legendFormat": "CPU (cores)"
+              "expr": "sum(rate(process_cpu_seconds_total[1m])) by (job)",
+              "legendFormat": "CPU ({{job}})"
             },
             {
-              "expr": "rate(traces_span_metrics_calls_total[1m])",
-              "legendFormat": "RPS"
+              "expr": "sum(rate(traces_span_metrics_calls_total[1m])) by (service_name)",
+              "legendFormat": "RPS ({{service_name}})"
             }
           ],
           "datasource": {
@@ -140,7 +140,7 @@ data:
           "targets": [
             {
               "expr": "stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)",
-              "legendFormat": "C_s^2 Variance"
+              "legendFormat": "C_s^2 ({{service_name}})"
             }
           ],
           "datasource": {
