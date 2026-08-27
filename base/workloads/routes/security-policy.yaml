@@ -19,6 +19,7 @@ spec:
       - name: merchant-auth
         issuer: core-api
         remoteJWKS:
+          cacheDuration: 300s
           uri: http://core-api.rrq.svc.cluster.local:8080/.well-known/jwks.json
         claimToHeaders:
           - claim: sub
