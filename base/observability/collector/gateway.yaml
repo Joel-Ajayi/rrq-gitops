@@ -42,6 +42,16 @@ spec:
         check_interval: 1s
         limit_mib: 1024
         spike_limit_mib: 256
+      filter/health_checks:
+        error_mode: ignore
+        traces:
+          span:
+            - 'attributes["url.path"] == "/health"'
+            - 'attributes["url.path"] == "/ready"'
+            - 'attributes["http.target"] == "/health"'
+            - 'attributes["http.target"] == "/ready"'
+            - 'attributes["http.route"] == "/health"'
+            - 'attributes["http.route"] == "/ready"'
       k8sattributes:
         auth_type: serviceAccount
         passthrough: false
@@ -106,7 +116,7 @@ spec:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, k8sattributes, batch]
+          processors: [memory_limiter, filter/health_checks, k8sattributes, batch]
           exporters: [otlp/jaeger, span_metrics]
         metrics:
           receivers: [otlp, kafka_metrics, span_metrics]
