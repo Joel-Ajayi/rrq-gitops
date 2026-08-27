@@ -4,7 +4,7 @@ metadata:
   name: otel-collector
   namespace: observability
   labels:
-    release: kube-prometheus-stack
+    release: kube-prometheus-stack #Allow to be discovered by Prometheus Operator
 spec:
   selector:
     matchLabels:
