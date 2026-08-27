@@ -236,7 +236,7 @@ data:
           },
           "targets": [
             {
-              "expr": "avg(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[1m])) / avg(rate(traces_span_metrics_duration_seconds_count[1m])) by (span_name)",
+              "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[1m])) by (span_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"postgresql\"}[1m])) by (span_name)",
               "legendFormat": "{{span_name}} latency"
             }
           ],
@@ -256,7 +256,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(traces_span_metrics_calls_total{span_name=~\"(?i).*(INSERT|UPDATE|DELETE).*\"}[1m]) / rate(traces_span_metrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m])",
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=~\"(?i).*(INSERT|UPDATE|DELETE).*\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m]))",
               "legendFormat": "Writes/Req"
             }
           ],

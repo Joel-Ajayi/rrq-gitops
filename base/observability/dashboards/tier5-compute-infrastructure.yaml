@@ -55,7 +55,7 @@ data:
           },
           "targets": [
             {
-              "expr": "kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes",
+              "expr": "kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes",
               "legendFormat": "{{persistentvolumeclaim}}"
             }
           ],
@@ -139,7 +139,7 @@ data:
           },
           "targets": [
             {
-              "expr": "variance(traces_span_metrics_duration_seconds) / (mean(traces_span_metrics_duration_seconds)^2)",
+              "expr": "stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)",
               "legendFormat": "C_s^2 Variance"
             }
           ],
