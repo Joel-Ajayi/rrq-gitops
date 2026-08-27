@@ -31,6 +31,18 @@ data:
             },
             "query": "label_values(traces_span_metrics_calls_total, service_name)",
             "refresh": 1
+          },
+          {
+            "name": "pod",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(traces_span_metrics_calls_total{service_name=\"$service_name\"}, k8s_pod_name)",
+            "refresh": 1,
+            "includeAll": true,
+            "multi": true
           }
         ]
       },
@@ -105,7 +117,7 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Open Circuit Breakers",
+          "title": "Circuit Breaker Activity",
           "gridPos": {
             "h": 8,
             "w": 12,
@@ -115,13 +127,33 @@ data:
           "targets": [
             {
               "expr": "rrq_circuit_breaker_state{service_name=\"$service_name\"}",
-              "legendFormat": "State (0=C, 1=H, 2=O)"
+              "legendFormat": "State ({{circuit_breaker}}) 0=C, 1=H, 2=O"
+            },
+            {
+              "expr": "sum(rate(rrq_circuit_breaker_open_total{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
+              "legendFormat": "Opens/s ({{circuit_breaker}})"
+            },
+            {
+              "expr": "sum(rate(rrq_circuit_breaker_half_open_failure{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
+              "legendFormat": "Half-Open Fails/s ({{circuit_breaker}})"
             }
           ],
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer Panics (recovered)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_kafka_consumer_panics_total[5m])) by (topic)",
+              "legendFormat": "{{topic}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
@@ -134,7 +166,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_pg_pool_empty_acquire_total{service_name=\"$service_name\"}[1m])",
+              "expr": "rate(rrq_pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])",
               "legendFormat": "Wait Events/sec"
             }
           ],

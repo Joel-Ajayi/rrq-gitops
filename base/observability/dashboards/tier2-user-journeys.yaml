@@ -55,7 +55,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_dlq_ingestion_total[1m])",
+              "expr": "rate(rrq_dlq_ingestion_rate[1m])",
               "legendFormat": "Ingested"
             },
             {
@@ -79,7 +79,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_bulkhead_inflight_requests[1m])",
+              "expr": "rrq_bulkhead_in_flight",
               "legendFormat": "Inflight"
             },
             {
@@ -111,6 +111,43 @@ data:
             "type": "prometheus",
             "uid": "prometheus"
           }
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Inflow Quality",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_dlq_infrastructure_flood_total[5m])) by (service_name)",
+              "legendFormat": "Infra Flood ({{service_name}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Ledger Imbalance",
+          "description": "rrq_ledger_imbalance is a gauge (not a counter); it carries the absolute imbalance sum, not a delta. Track for absolute drift, not rate.",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "rrq_ledger_imbalance",
+              "legendFormat": "Imbalance"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Idempotency Replay",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_idempotency_hits_total[5m])) by (shard)",
+              "legendFormat": "Hits ({{shard}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }

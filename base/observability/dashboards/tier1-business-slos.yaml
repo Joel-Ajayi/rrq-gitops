@@ -21,7 +21,14 @@ data:
         "reorganized"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "name": "trace_id",
+            "type": "textbox",
+            "label": "Trace ID",
+            "description": "Paste a 32-hex-char trace_id to open the per-transfer trace in Jaeger. Find it in Kibana: filter by event:transfer.completed and job_id:<job_id>."
+          }
+        ]
       },
       "panels": [
         {
@@ -122,6 +129,96 @@ data:
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Decline Reasons",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_declines_total[5m])) by (reason)",
+              "legendFormat": "{{reason}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Deposit Activity",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_deposits_total[5m])) by (status)",
+              "legendFormat": "Count ({{status}})"
+            },
+            {
+              "expr": "sum(rate(rrq_business_deposits_amount_total[5m])) by (currency)",
+              "legendFormat": "Amount ({{currency}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Refund & Dispute Activity",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_refunds_total[5m])) by (currency)",
+              "legendFormat": "Refunds ({{currency}})"
+            },
+            {
+              "expr": "sum(rate(rrq_business_disputes_total[5m])) by (dispute_status)",
+              "legendFormat": "Disputes ({{dispute_status}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Wallet Onboarding",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_wallets_created_total[5m])) by (currency)",
+              "legendFormat": "{{currency}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cross-Shard Saga Activity",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [
+            {
+              "expr": "sum(rate(rrq_business_saga_initiated_total[5m]))",
+              "legendFormat": "Initiated/s"
+            },
+            {
+              "expr": "sum(rate(rrq_business_saga_completed_total[5m]))",
+              "legendFormat": "Completed/s"
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(rrq_business_saga_duration_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p50 (s)"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(rrq_business_saga_duration_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p99 (s)"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "text",
+          "title": "Per-Transfer Trace Lookup",
+          "description": "A7: paste a trace_id (32 hex chars) below to open the per-transfer trace in Jaeger. Find the trace_id from a canonical log in Kibana: filter by event:transfer.completed and job_id:<job_id>.",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 40 },
+          "options": {
+            "mode": "markdown",
+            "content": "## Per-Transfer Trace Lookup\n\n**Trace ID:**  ${trace_id}\n\n[Open in Jaeger](https://traces.127.0.0.1.nip.io/trace/${trace_id})\n\n> The Jaeger URL uses the local dev host (traces.127.0.0.1.nip.io). For prod, replace with https://traces.rrq.yotstack.tech/trace/${trace_id}.\n> A trace_id propagates through HTTP request → outbox event → Kafka header → consumer ctx → saga events → webhook delivery, all in one trace."
           }
         }
       ]

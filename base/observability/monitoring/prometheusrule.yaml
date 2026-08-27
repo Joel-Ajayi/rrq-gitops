@@ -122,7 +122,7 @@ spec:
 
         - alert: LedgerWorkerBackoffSpike
           # Backoff time > 5min/5min — persistent infrastructure failures
-          expr: rate(rrq_consumer_backoff_duration_seconds_sum{service_name="ledger-worker"}[5m]) > 300
+          expr: rate(rrq_kafka_consumer_backoff_duration_seconds_sum{service_name="ledger-worker"}[5m]) > 300
           for: 5m
           labels:
             severity: warning
@@ -354,7 +354,7 @@ spec:
 
 
         - alert: ConsumerBackoffDominant
-          expr: rate(rrq_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5
+          expr: rate(rrq_kafka_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5
           for: 5m
           labels:
             severity: warning

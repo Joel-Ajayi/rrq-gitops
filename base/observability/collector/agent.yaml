@@ -27,8 +27,8 @@ spec:
           - /var/log/pods/*/*/*.log
         start_at: end
         operators:
-          - type: regex_parser
-            regex: '^(?P<time>\S+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<message>.*)$'
+          - type: json_parser
+            parse_to: attributes
       hostmetrics:
         collection_interval: 30s
         scrapers:

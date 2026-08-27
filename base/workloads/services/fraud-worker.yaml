@@ -94,6 +94,8 @@ spec:
                   key: redis-password
             - name: KAFKA_BROKERS
               value: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
+            - name: OTEL_SERVICE_NAME
+              value: "fraud-worker"
           livenessProbe:
             exec:
               command:

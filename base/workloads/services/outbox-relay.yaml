@@ -73,6 +73,8 @@ spec:
                   key: uri
             - name: KAFKA_BROKERS
               value: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
+            - name: OTEL_SERVICE_NAME
+              value: "outbox-relay"
           lifecycle:
             preStop:
               exec:

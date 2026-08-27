@@ -21,7 +21,20 @@ data:
         "reorganized"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "name": "pod",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(traces_span_metrics_calls_total, k8s_pod_name)",
+            "refresh": 1,
+            "includeAll": true,
+            "multi": true
+          }
+        ]
       },
       "panels": [
         {
@@ -175,7 +188,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_kafka_producer_buffer_fill",
+              "expr": "rrq_kafka_producer_buffer_fill_ratio",
               "legendFormat": "Buffer Fill Ratio"
             },
             {
@@ -199,7 +212,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_bulkhead_inflight_requests",
+              "expr": "rrq_bulkhead_in_flight",
               "legendFormat": "Inflight"
             },
             {
@@ -251,6 +264,38 @@ data:
             "type": "prometheus",
             "uid": "prometheus"
           }
+        },
+        {
+          "type": "timeseries",
+          "title": "PG Connection Pool",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+          "targets": [
+            {
+              "expr": "sum(rrq_pg_pool_acquired_conns) by (service_name, db_pool)",
+              "legendFormat": "Acquired ({{service_name}}/{{db_pool}})"
+            },
+            {
+              "expr": "sum(rrq_pg_pool_idle_conns) by (service_name, db_pool)",
+              "legendFormat": "Idle ({{service_name}}/{{db_pool}})"
+            },
+            {
+              "expr": "sum(rrq_pg_pool_max_conns) by (service_name, db_pool)",
+              "legendFormat": "Max ({{service_name}}/{{db_pool}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Commit Coordinator Saturation",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+          "targets": [
+            {
+              "expr": "sum(rrq_commit_coordinator_queue_depth) by (topic, partition)",
+              "legendFormat": "{{topic}}/p{{partition}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }
