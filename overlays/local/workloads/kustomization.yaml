@@ -25,5 +25,4 @@ images:
     newTag: 692b2b10391c92eb60ead8a58a04670f7092cc58
 patches:
   - path: patches/image-pull-policy.yaml
-  - path: patches/instrumentation.yaml
   - path: patches/local-resources.yaml

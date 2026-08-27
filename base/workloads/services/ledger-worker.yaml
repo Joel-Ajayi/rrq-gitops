@@ -102,6 +102,8 @@ spec:
               memory: 67Mi
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
             readOnlyRootFilesystem: true
             capabilities:
               drop:
@@ -118,10 +120,6 @@ spec:
                       values:
                         - ledger-worker
                 topologyKey: kubernetes.io/hostname
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject

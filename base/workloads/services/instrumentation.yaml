@@ -1,4 +1,4 @@
-# Prod: inject the Go auto-instrumentation agent into Go workloads.
+# Local Prod: inject the Go auto-instrumentation agent into Go workloads.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -10,6 +10,7 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -21,6 +22,7 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,6 +34,7 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -43,6 +46,7 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -54,6 +58,7 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,3 +70,4 @@ spec:
     metadata:
       annotations:
         instrumentation.opentelemetry.io/inject-go: "observability/platform-autoinstrumentation"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/usr/local/bin/service"

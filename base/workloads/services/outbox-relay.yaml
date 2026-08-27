@@ -102,6 +102,8 @@ spec:
               memory: 74Mi
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
             readOnlyRootFilesystem: true
             capabilities:
               drop:
@@ -118,10 +120,6 @@ spec:
                       values:
                         - outbox-relay
                 topologyKey: kubernetes.io/hostname
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

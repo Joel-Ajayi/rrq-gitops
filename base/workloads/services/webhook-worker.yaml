@@ -93,6 +93,8 @@ spec:
               memory: 72Mi
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
             readOnlyRootFilesystem: true
             capabilities:
               drop:
@@ -109,10 +111,6 @@ spec:
                       values:
                         - webhook-worker
                 topologyKey: kubernetes.io/hostname
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject

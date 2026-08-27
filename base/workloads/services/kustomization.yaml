@@ -11,4 +11,5 @@ resources:
   - network-policies.yaml
 
 patches:
-  - path: per-core.yaml
+  - path: instrumentation.yaml
+  # - path: per-core.yaml : not yet

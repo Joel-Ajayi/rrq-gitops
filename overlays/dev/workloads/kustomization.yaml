@@ -27,4 +27,3 @@ images:
     newName: rrq/webhook-echo-go
     newTag: dev
 patches:
-  - path: patches/instrumentation.yaml
