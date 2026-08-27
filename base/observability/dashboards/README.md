@@ -38,8 +38,8 @@ Rather than relying on tool-centric or monolithic dashboards, RRQ observability 
 * **Target Audience**: Executive Leadership, Product Owners, Incident Commanders.
 * **Methodology**: High-Level Golden Signals & Business Invariants.
 * **Key Panels**:
-  * **Total Processed Transfers** (`rrq_business_transfers_total`): Total transfers breakdown by status (success/failed/pending) emitted directly by `ledger-worker`.
-  * **Gross Transaction Value (GTV)** (`rrq_business_gtv_total`): Actively recorded business throughput metric from `ledger-worker`.
+  * **Total Processed Transfers** (`business_transfers_total`): Total transfers breakdown by status (success/failed/pending) emitted directly by `ledger-worker`.
+  * **Gross Transaction Value (GTV)** (`business_gtv_total`): Actively recorded business throughput metric from `ledger-worker`.
   * **Fraud / Velocity Rejections**: Rate of transfers blocked by rate-limit and velocity guards.
   * **Transfer Success Rate**: Ratio of successful transfers vs total HTTP ingress requests.
   * **Active Merchants**: Operational lookup traffic proxy.
@@ -48,7 +48,7 @@ Rather than relying on tool-centric or monolithic dashboards, RRQ observability 
 * **Target Audience**: Backend Engineers, Systems Architects.
 * **Methodology**: Asynchronous Data Flow & State Progression.
 * **Key Panels**:
-  * **Saga Unresolved Count** (`rrq_saga_unresolved_count`): Pending cross-shard clearing sagas.
+  * **Saga Unresolved Count** (`saga_unresolved_count`): Pending cross-shard clearing sagas.
   * **Dead Letter Queue (DLQ) Churn**: Ingested poison pills vs manually replayed events.
   * **Webhook Delivery vs Rejections**: Inflight worker requests vs rate-limiter rejections.
   * **Idempotency Conflicts**: Upstream duplicate request rates.

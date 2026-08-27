@@ -188,11 +188,11 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_kafka_producer_buffer_fill_ratio",
+              "expr": "kafka_producer_buffer_fill_ratio",
               "legendFormat": "Buffer Fill Ratio"
             },
             {
-              "expr": "rate(rrq_outbox_events_published_total[1m])",
+              "expr": "rate(outbox_events_published_total[1m])",
               "legendFormat": "Published RPS"
             }
           ],
@@ -212,11 +212,11 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_bulkhead_in_flight",
+              "expr": "bulkhead_in_flight",
               "legendFormat": "Inflight"
             },
             {
-              "expr": "rate(rrq_bulkhead_rejections_total[1m])",
+              "expr": "rate(bulkhead_rejections_total[1m])",
               "legendFormat": "Rejections"
             }
           ],
@@ -271,15 +271,15 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
           "targets": [
             {
-              "expr": "sum(rrq_pg_pool_acquired_conns) by (service_name, db_pool)",
+              "expr": "sum(pg_pool_acquired_conns) by (service_name, db_pool)",
               "legendFormat": "Acquired ({{service_name}}/{{db_pool}})"
             },
             {
-              "expr": "sum(rrq_pg_pool_idle_conns) by (service_name, db_pool)",
+              "expr": "sum(pg_pool_idle_conns) by (service_name, db_pool)",
               "legendFormat": "Idle ({{service_name}}/{{db_pool}})"
             },
             {
-              "expr": "sum(rrq_pg_pool_max_conns) by (service_name, db_pool)",
+              "expr": "sum(pg_pool_max_conns) by (service_name, db_pool)",
               "legendFormat": "Max ({{service_name}}/{{db_pool}})"
             }
           ],
@@ -291,7 +291,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
           "targets": [
             {
-              "expr": "sum(rrq_commit_coordinator_queue_depth) by (topic, partition)",
+              "expr": "sum(commit_coordinator_queue_depth) by (topic, partition)",
               "legendFormat": "{{topic}}/p{{partition}}"
             }
           ],

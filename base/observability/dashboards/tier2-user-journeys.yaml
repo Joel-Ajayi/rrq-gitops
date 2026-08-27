@@ -35,7 +35,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_saga_unresolved_count",
+              "expr": "saga_unresolved_count",
               "legendFormat": "Stuck Sagas"
             }
           ],
@@ -55,11 +55,11 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_dlq_ingestion_rate[1m])",
+              "expr": "rate(dlq_ingestion_rate[1m])",
               "legendFormat": "Ingested"
             },
             {
-              "expr": "rate(rrq_admin_dlq_replayed_total[1m])",
+              "expr": "rate(admin_dlq_replayed_total[1m])",
               "legendFormat": "Replayed"
             }
           ],
@@ -79,11 +79,11 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_bulkhead_in_flight",
+              "expr": "bulkhead_in_flight",
               "legendFormat": "Inflight"
             },
             {
-              "expr": "rate(rrq_bulkhead_rejections_total[1m])",
+              "expr": "rate(bulkhead_rejections_total[1m])",
               "legendFormat": "Rejected"
             }
           ],
@@ -103,7 +103,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_idempotency_conflicts_total[1m])",
+              "expr": "rate(idempotency_conflicts_total[1m])",
               "legendFormat": "Conflicts"
             }
           ],
@@ -118,7 +118,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_dlq_infrastructure_flood_total[5m])) by (service_name)",
+              "expr": "sum(rate(dlq_infrastructure_flood_total[5m])) by (service_name)",
               "legendFormat": "Infra Flood ({{service_name}})"
             }
           ],
@@ -127,11 +127,11 @@ data:
         {
           "type": "timeseries",
           "title": "Ledger Imbalance",
-          "description": "rrq_ledger_imbalance is a gauge (not a counter); it carries the absolute imbalance sum, not a delta. Track for absolute drift, not rate.",
+          "description": "ledger_imbalance is a gauge (not a counter); it carries the absolute imbalance sum, not a delta. Track for absolute drift, not rate.",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
           "targets": [
             {
-              "expr": "rrq_ledger_imbalance",
+              "expr": "ledger_imbalance",
               "legendFormat": "Imbalance"
             }
           ],
@@ -143,7 +143,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_idempotency_hits_total[5m])) by (shard)",
+              "expr": "sum(rate(idempotency_hits_total[5m])) by (shard)",
               "legendFormat": "Hits ({{shard}})"
             }
           ],

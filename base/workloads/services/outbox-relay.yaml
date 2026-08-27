@@ -148,14 +148,14 @@ spec:
     - type: prometheus
       metadata:
         serverAddress: http://prometheus-operated.observability.svc.cluster.local:9090
-        metricName: rrq_outbox_lag_seconds
-        query: "sum(rrq_outbox_lag_seconds) by (shard)"
+        metricName: outbox_lag_seconds
+        query: "sum(outbox_lag_seconds) by (shard)"
         threshold: "5"
         activateThreshold: "1"
     - type: prometheus
       metadata:
         serverAddress: http://prometheus-operated.observability.svc.cluster.local:9090
-        metricName: rrq_circuit_breaker_state
-        query: 'sum(rrq_circuit_breaker_state{circuit_breaker="kafka-egress"} == 2)'
+        metricName: circuit_breaker_state
+        query: 'sum(circuit_breaker_state{circuit_breaker="kafka-egress"} == 2)'
         threshold: "1"
         activateThreshold: "0"

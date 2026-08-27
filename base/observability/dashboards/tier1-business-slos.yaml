@@ -42,7 +42,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_transfers_total[1m])) by (status)",
+              "expr": "sum(rate(business_transfers_total[1m])) by (status)",
               "legendFormat": "{{status}}"
             }
           ],
@@ -62,7 +62,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_velocity_limit_exceeded_total[1m])",
+              "expr": "rate(velocity_limit_exceeded_total[1m])",
               "legendFormat": "Rejections/sec"
             }
           ],
@@ -122,7 +122,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_gtv_total[1m])) by (currency)",
+              "expr": "sum(rate(business_gtv_total[1m])) by (currency)",
               "legendFormat": "GTV ({{currency}})"
             }
           ],
@@ -137,7 +137,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_declines_total[5m])) by (reason)",
+              "expr": "sum(rate(business_declines_total[5m])) by (reason)",
               "legendFormat": "{{reason}}"
             }
           ],
@@ -149,11 +149,11 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_deposits_total[5m])) by (status)",
+              "expr": "sum(rate(business_deposits_total[5m])) by (status)",
               "legendFormat": "Count ({{status}})"
             },
             {
-              "expr": "sum(rate(rrq_business_deposits_amount_total[5m])) by (currency)",
+              "expr": "sum(rate(business_deposits_amount_total[5m])) by (currency)",
               "legendFormat": "Amount ({{currency}})"
             }
           ],
@@ -165,11 +165,11 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_refunds_total[5m])) by (currency)",
+              "expr": "sum(rate(business_refunds_total[5m])) by (currency)",
               "legendFormat": "Refunds ({{currency}})"
             },
             {
-              "expr": "sum(rate(rrq_business_disputes_total[5m])) by (dispute_status)",
+              "expr": "sum(rate(business_disputes_total[5m])) by (dispute_status)",
               "legendFormat": "Disputes ({{dispute_status}})"
             }
           ],
@@ -181,7 +181,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_wallets_created_total[5m])) by (currency)",
+              "expr": "sum(rate(business_wallets_created_total[5m])) by (currency)",
               "legendFormat": "{{currency}}"
             }
           ],
@@ -193,19 +193,19 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_business_saga_initiated_total[5m]))",
+              "expr": "sum(rate(business_saga_initiated_total[5m]))",
               "legendFormat": "Initiated/s"
             },
             {
-              "expr": "sum(rate(rrq_business_saga_completed_total[5m]))",
+              "expr": "sum(rate(business_saga_completed_total[5m]))",
               "legendFormat": "Completed/s"
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(rrq_business_saga_duration_seconds_bucket[5m])) by (le))",
+              "expr": "histogram_quantile(0.5, sum(rate(business_saga_duration_seconds_bucket[5m])) by (le))",
               "legendFormat": "p50 (s)"
             },
             {
-              "expr": "histogram_quantile(0.99, sum(rate(rrq_business_saga_duration_seconds_bucket[5m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(business_saga_duration_seconds_bucket[5m])) by (le))",
               "legendFormat": "p99 (s)"
             }
           ],

@@ -172,10 +172,10 @@ services:
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
     circuit_breaker:
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
-      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_half_open_failures_total
+      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
 
   # === outbox-relay: polls PG events, produces to Kafka ===
   - name: outbox-relay
@@ -185,11 +185,11 @@ services:
       latency_ms: 2000 # Product SLO - End-to-end publish latency SLA
       target_utilization: 0.65 # Capacity Team - Maximum allowed sustained CPU utilization
     role: producer # Architecture definition - async Kafka producer
-    rps_per_core: 500 # Tier 5 | Panel: Compute Saturation Curve | Metric: process_cpu_seconds_total vs rrq_outbox_events_published_total
+    rps_per_core: 500 # Tier 5 | Panel: Compute Saturation Curve | Metric: process_cpu_seconds_total vs outbox_events_published_total
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 1 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 268435456 # k8s pod Memory limit
-    producer_throughput_rps: 4000 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: rrq_outbox_events_published_total
+    producer_throughput_rps: 4000 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: outbox_events_published_total
     endpoints:
       - name: poll
         nominal_qps: 400 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
@@ -205,20 +205,20 @@ services:
       - xshard.shard-a # Architecture definition - Producer topic routing
       - xshard.shard-b # Architecture definition - Producer topic routing
     circuit_breaker:
-      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_half_open_failures_total
-      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
+      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
+      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
     relay:
       staging_kb: 50 # trace/OTel - average outbox payload size
       max_payload_kb: 64 # Kafka producer 'max.request.size' configuration limit
       buffer_sample_interval_ms: 100 # Capacity Team - AIMD buffer sample frequency
-      buffer_max_throttle_level: 3 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: rrq_kafka_producer_buffer_fill
+      buffer_max_throttle_level: 3 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: kafka_producer_buffer_fill
       buffer_max_poll_interval_ms: 48 # SHOULD BE DERIVED: Redundant with relayDerived math
-      aimd_throttle_frac: 0.8 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: rrq_kafka_producer_buffer_fill
-      aimd_pause_frac: 1.0 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: rrq_kafka_producer_buffer_fill
-      aimd_resume_frac: 0.5 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: rrq_kafka_producer_buffer_fill
+      aimd_throttle_frac: 0.8 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: kafka_producer_buffer_fill
+      aimd_pause_frac: 1.0 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: kafka_producer_buffer_fill
+      aimd_resume_frac: 0.5 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: kafka_producer_buffer_fill
 
   # === ledger-worker: SERIALIZABLE tx, cross-shard saga ===
   - name: ledger-worker
@@ -278,10 +278,10 @@ services:
       - xshard.shard-a # Architecture definition - Consumer topic subscriptions
       - xshard.shard-b # Architecture definition - Consumer topic subscriptions
     circuit_breaker:
-      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_half_open_failures_total
-      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
+      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
+      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
 
   # === webhook-worker: Kafka consumer + HTTPS delivery ===
@@ -316,7 +316,7 @@ services:
     topics:
       - notify # Architecture definition - Consumer topic subscriptions
     http_outbound:
-      peak_qps_per_pod: 100 # Tier 4 | Panel: Webhook Concurrency | Metric: rrq_bulkhead_inflight_requests
+      peak_qps_per_pod: 100 # Tier 4 | Panel: Webhook Concurrency | Metric: bulkhead_inflight_requests
       avg_latency_s: 1.0 # Tier 4 | Panel: Database Query Latency | Metric: traces_span_metrics_duration_seconds
       host_count: 3 # Capacity Team - Estimated concurrent distinct merchant domains
       per_host_headroom: 16 # Go net/http DefaultMaxIdleConnsPerHost baseline + safety
@@ -325,10 +325,10 @@ services:
       tls_handshake_timeout_ms: 5000 # Network Standard - max TLS negotiation time
       expect_continue_timeout_ms: 1000 # Go net/http standard expectation timeout
     circuit_breaker:
-      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_half_open_failures_total
-      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
+      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
+      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
     webhook:
       delivery_max_attempts: 15 # Product Policy - Merchant webhook delivery absolute retry limit
@@ -337,8 +337,8 @@ services:
       scheduler_poll_interval_ms: 5000 # Capacity Team - DB polling interval for delayed retries
       scheduler_batch_size: 100 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
       fast_lane_grace_period_ms: 5000 # Capacity Team - Thread handoff buffer for synchronous delivery
-      fast_lane_buffer_size: 100 # Tier 4 | Panel: Webhook Concurrency | Metric: rrq_bulkhead_rejections_total
-      breaker_eviction_interval_ms: 60000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
+      fast_lane_buffer_size: 100 # Tier 4 | Panel: Webhook Concurrency | Metric: bulkhead_rejections_total
+      breaker_eviction_interval_ms: 60000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
 
   # === fraud-worker: consumer + Redis sliding-window velocity ===
   - name: fraud-worker
@@ -377,8 +377,8 @@ services:
       merchants: 100000 # Data Analytics - Number of total active merchants to track
       window_buckets: 2 # Risk/Trust Team - Sub-buckets for sliding window precision
     circuit_breaker:
-      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_half_open_failures_total
-      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
-      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: rrq_circuit_breaker_state
+      max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
+      interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
+      min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate

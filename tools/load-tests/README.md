@@ -214,12 +214,12 @@ Push system throughput to peak capacity to observe maximum peak QPS, outbox prod
      * **Metric:** Peak `rate(traces_span_metrics_calls_total[1m])` reached before SLO degradation.
   2. **`producer_throughput_rps`** (`services[outbox-relay]`):
      * **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Outbox AIMD Backpressure`
-     * **Metric:** `rate(rrq_outbox_events_published_total[1m])`
+     * **Metric:** `rate(outbox_events_published_total[1m])`
   3. **Outbox AIMD Backpressure Ratios (`buffer_max_throttle_level`, `aimd_*_frac`)**:
      * **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Outbox AIMD Backpressure`
-     * **Metric:** `rrq_kafka_producer_buffer_fill` fill fractions during saturation.
+     * **Metric:** `kafka_producer_buffer_fill` fill fractions during saturation.
   4. **Webhook Outbound HTTP Concurrency:**
-     * **`peak_qps_per_pod`**: `Tier 4` / Panel: `Webhook Concurrency` (`rrq_bulkhead_inflight_requests` max)
+     * **`peak_qps_per_pod`**: `Tier 4` / Panel: `Webhook Concurrency` (`bulkhead_inflight_requests` max)
      * **`avg_latency_s`**: `Tier 4` / Panel: `Database Query Latency` (`traces_span_metrics_duration_seconds`)
 
 ---
@@ -234,7 +234,7 @@ Ramp load past peak capacity to force fault conditions and measure circuit break
   ```
 * **Metrics to Extract for `slo-input.yaml`:**
   * **Circuit Breaker Parameters (`circuit_breaker` block under each service):**
-    * **`min_requests`, `interval_ms`, `max_fails`, `half_open_probes`**: `Tier 3` / Panel: `Open Circuit Breakers` (`rrq_circuit_breaker_state`, `rrq_circuit_breaker_half_open_failures_total`).
+    * **`min_requests`, `interval_ms`, `max_fails`, `half_open_probes`**: `Tier 3` / Panel: `Open Circuit Breakers` (`circuit_breaker_state`, `circuit_breaker_half_open_failures_total`).
 
 ---
 

@@ -44,7 +44,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/api-high-latency"
 
         - alert: APIGatewayIdempotencyConflictSpike
-          expr: rate(rrq_idempotency_conflicts_total{service_name="core-api"}[5m]) > 10
+          expr: rate(idempotency_conflicts_total{service_name="core-api"}[5m]) > 10
           for: 5m
           labels:
             severity: warning
@@ -54,7 +54,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/idempotency-spikes"
 
         - alert: CoreAPIBulkheadOverload
-          expr: rate(rrq_bulkhead_rejections_total{service_name="core-api"}[5m]) > 0
+          expr: rate(bulkhead_rejections_total{service_name="core-api"}[5m]) > 0
           for: 1m
           labels:
             severity: warning
@@ -67,7 +67,7 @@ spec:
     - name: rrq.ledger.worker
       rules:
         - alert: LedgerDoubleEntryImbalance
-          expr: rrq_saga_unresolved_count > 0
+          expr: saga_unresolved_count > 0
           for: 2m
           labels:
             severity: warning
@@ -78,7 +78,7 @@ spec:
 
         - alert: LedgerWorkerDLQSpike
           # DLQ ingestion > 10/min — poison pills or systemic business rule failures
-          expr: rate(rrq_dlq_ingestion_rate{service_name="ledger-worker"}[5m]) > 10
+          expr: rate(dlq_ingestion_rate{service_name="ledger-worker"}[5m]) > 10
           for: 2m
           labels:
             severity: critical
@@ -89,7 +89,7 @@ spec:
 
         - alert: LedgerWorkerDLQWriteFailure
           # DLQ write failed — process may crash, check Postgres connectivity immediately
-          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service_name="ledger-worker"}[5m]) > 0
+          expr: increase(infrastructure_errors_total{component="dlq_store",service_name="ledger-worker"}[5m]) > 0
           for: 0m
           labels:
             severity: critical
@@ -100,13 +100,13 @@ spec:
 
         - alert: LedgerWorkerCBOpen
           # Shard CB open — database pool unhealthy, check infra errors for that shard
-          expr: rrq_circuit_breaker_state{service_name="ledger-worker",circuit_breaker=~"shard-.*"} == 2
+          expr: circuit_breaker_state{service_name="ledger-worker",circuit_breaker=~"shard-.*"} == 2
           for: 1m
           labels:
             severity: critical
           annotations:
             summary: "Ledger Worker shard CB Open"
-            description: "Circuit breaker for shard {{ $labels.circuit_breaker }} is Open. Database pool likely unhealthy. Check rrq_infrastructure_errors_total for that shard."
+            description: "Circuit breaker for shard {{ $labels.circuit_breaker }} is Open. Database pool likely unhealthy. Check infrastructure_errors_total for that shard."
             runbook_url: "https://wiki.rrq.local/runbooks/ledger-cb-open"
 
         - alert: LedgerWorkerProcessingLatencyHigh
@@ -122,7 +122,7 @@ spec:
 
         - alert: LedgerWorkerBackoffSpike
           # Backoff time > 5min/5min — persistent infrastructure failures
-          expr: rate(rrq_kafka_consumer_backoff_duration_seconds_sum{service_name="ledger-worker"}[5m]) > 300
+          expr: rate(kafka_consumer_backoff_duration_seconds_sum{service_name="ledger-worker"}[5m]) > 300
           for: 5m
           labels:
             severity: warning
@@ -134,7 +134,7 @@ spec:
     - name: rrq.webhook.worker
       rules:
         - alert: WebhookWorkerDLQSpike
-          expr: rate(rrq_dlq_ingestion_rate{service_name="webhook-worker"}[5m]) > 5
+          expr: rate(dlq_ingestion_rate{service_name="webhook-worker"}[5m]) > 5
           for: 2m
           labels:
             severity: critical
@@ -144,7 +144,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/webhook-dlq-spike"
 
         - alert: WebhookWorkerDLQWriteFailure
-          expr: increase(rrq_infrastructure_errors_total{component="dlq_store",service_name="webhook-worker"}[5m]) > 0
+          expr: increase(infrastructure_errors_total{component="dlq_store",service_name="webhook-worker"}[5m]) > 0
           for: 0m
           labels:
             severity: critical
@@ -154,7 +154,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/webhook-dlq-write-failure"
 
         - alert: WebhookWorkerCBOpen
-          expr: rrq_circuit_breaker_state{service_name="webhook-worker",circuit_breaker=~"merchant-.*"} == 2
+          expr: circuit_breaker_state{service_name="webhook-worker",circuit_breaker=~"merchant-.*"} == 2
           for: 1m
           labels:
             severity: critical
@@ -176,7 +176,7 @@ spec:
     - name: rrq.outbox.relay
       rules:
         - alert: OutboxLagCritical
-          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 10
+          expr: outbox_lag_seconds{service_name="outbox-relay"} > 10
           for: 2m
           labels:
             severity: critical
@@ -186,7 +186,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-lag-critical"
 
         - alert: OutboxLagWarning
-          expr: rrq_outbox_lag_seconds{service_name="outbox-relay"} > 5
+          expr: outbox_lag_seconds{service_name="outbox-relay"} > 5
           for: 5m
           labels:
             severity: warning
@@ -196,7 +196,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-lag-warning"
 
         - alert: OutboxDLQIngestion
-          expr: rate(rrq_dlq_ingestion_rate{service_name="outbox-relay"}[5m]) > 0.1
+          expr: rate(dlq_ingestion_rate{service_name="outbox-relay"}[5m]) > 0.1
           for: 2m
           labels:
             severity: critical
@@ -206,7 +206,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-dlq-spike"
 
         - alert: OutboxKafkaBufferFull
-          expr: rrq_kafka_producer_buffer_fill_ratio{service_name="outbox-relay"} > 0.99
+          expr: kafka_producer_buffer_fill_ratio{service_name="outbox-relay"} > 0.99
           for: 30s
           labels:
             severity: critical
@@ -216,7 +216,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-kafka-buffer-full"
 
         - alert: OutboxRelayShardCBOpen
-          expr: rrq_circuit_breaker_state{service_name="outbox-relay",circuit_breaker=~"shard-rw-.*|shard-ro-.*"} == 2
+          expr: circuit_breaker_state{service_name="outbox-relay",circuit_breaker=~"shard-rw-.*|shard-ro-.*"} == 2
           for: 30s
           labels:
             severity: critical
@@ -226,7 +226,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-cb-open"
 
         - alert: OutboxRelayPanicRate
-          expr: rate(rrq_outbox_panics_total{service_name="outbox-relay"}[5m]) > 0
+          expr: rate(outbox_panics_total{service_name="outbox-relay"}[5m]) > 0
           for: 0m
           labels:
             severity: critical
@@ -236,7 +236,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/outbox-relay-panic"
 
         - alert: OutboxRelayNoPublish
-          expr: rate(rrq_outbox_events_published_total{service_name="outbox-relay"}[5m]) == 0 and rrq_outbox_lag_seconds{service_name="outbox-relay"} > 30
+          expr: rate(outbox_events_published_total{service_name="outbox-relay"}[5m]) == 0 and outbox_lag_seconds{service_name="outbox-relay"} > 30
           for: 2m
           labels:
             severity: warning
@@ -290,7 +290,7 @@ spec:
     - name: rrq.fraud.worker
       rules:
         - alert: FraudWorkerDLQSpike
-          expr: rate(rrq_dlq_ingestion_rate{service_name="fraud-worker"}[5m]) > 5
+          expr: rate(dlq_ingestion_rate{service_name="fraud-worker"}[5m]) > 5
           for: 2m
           labels:
             severity: critical
@@ -300,7 +300,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/fraud-dlq-spike"
 
         - alert: FraudWorkerCBOpen
-          expr: rrq_circuit_breaker_state{service_name="fraud-worker",circuit_breaker=~"shard-.*"} == 2
+          expr: circuit_breaker_state{service_name="fraud-worker",circuit_breaker=~"shard-.*"} == 2
           for: 1m
           labels:
             severity: critical
@@ -313,7 +313,7 @@ spec:
     - name: rrq.business
       rules:
         - alert: BusinessTSRDrop
-          expr: (sum(rate(rrq_business_transfers_total{status="failed"}[5m])) / sum(rate(rrq_business_transfers_total{}[5m]))) * 100 > 5
+          expr: (sum(rate(business_transfers_total{status="failed"}[5m])) / sum(rate(business_transfers_total{}[5m]))) * 100 > 5
           for: 2m
           labels:
             severity: critical
@@ -323,7 +323,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/tsr-drop"
 
         - alert: BusinessGTVAnomaly
-          expr: rate(rrq_business_gtv_total[10m]) < 100 and on() rate(rrq_business_transfers_total[10m]) > 0
+          expr: rate(business_gtv_total[10m]) < 100 and on() rate(business_transfers_total[10m]) > 0
           for: 5m
           labels:
             severity: warning
@@ -333,7 +333,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/gtv-anomaly"
 
         - alert: SagaFailureRateHigh
-          expr: (sum(rate(rrq_business_transfers_total{status="failed",shard_type="cross"}[5m])) / sum(rate(rrq_business_transfers_total{shard_type="cross"}[5m]))) * 100 > 10
+          expr: (sum(rate(business_transfers_total{status="failed",shard_type="cross"}[5m])) / sum(rate(business_transfers_total{shard_type="cross"}[5m]))) * 100 > 10
           for: 2m
           labels:
             severity: critical
@@ -343,7 +343,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/saga-failure"
 
         - alert: FraudVelocityLimitExceeded
-          expr: rate(rrq_velocity_limit_exceeded_total[5m]) > 5
+          expr: rate(velocity_limit_exceeded_total[5m]) > 5
           for: 2m
           labels:
             severity: warning
@@ -354,7 +354,7 @@ spec:
 
 
         - alert: ConsumerBackoffDominant
-          expr: rate(rrq_kafka_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5
+          expr: rate(kafka_consumer_backoff_duration_seconds_sum[5m]) / 300 > 0.5
           for: 5m
           labels:
             severity: warning
@@ -366,7 +366,7 @@ spec:
     - name: rrq.retry.budget
       rules:
         - alert: RetryBudgetExhaustedHigh
-          expr: rate(rrq_retry_budget_exhausted_total[5m]) > 1
+          expr: rate(retry_budget_exhausted_total[5m]) > 1
           for: 1m
           labels:
             severity: warning
@@ -378,7 +378,7 @@ spec:
     - name: rrq.recon.worker
       rules:
         - alert: ReconDiscrepancyDetected
-          expr: increase(rrq_recon_discrepancies_total[5m]) > 0
+          expr: increase(recon_discrepancies_total[5m]) > 0
           for: 0m
           labels:
             severity: critical

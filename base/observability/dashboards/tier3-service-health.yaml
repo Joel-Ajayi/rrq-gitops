@@ -126,15 +126,15 @@ data:
           },
           "targets": [
             {
-              "expr": "rrq_circuit_breaker_state{service_name=\"$service_name\"}",
+              "expr": "circuit_breaker_state{service_name=\"$service_name\"}",
               "legendFormat": "State ({{circuit_breaker}}) 0=C, 1=H, 2=O"
             },
             {
-              "expr": "sum(rate(rrq_circuit_breaker_open_total{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
+              "expr": "sum(rate(circuit_breaker_open_total{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
               "legendFormat": "Opens/s ({{circuit_breaker}})"
             },
             {
-              "expr": "sum(rate(rrq_circuit_breaker_half_open_failure{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
+              "expr": "sum(rate(circuit_breaker_half_open_failure{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
               "legendFormat": "Half-Open Fails/s ({{circuit_breaker}})"
             }
           ],
@@ -149,7 +149,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
           "targets": [
             {
-              "expr": "sum(rate(rrq_kafka_consumer_panics_total[5m])) by (topic)",
+              "expr": "sum(rate(kafka_consumer_panics_total[5m])) by (topic)",
               "legendFormat": "{{topic}}"
             }
           ],
@@ -166,7 +166,7 @@ data:
           },
           "targets": [
             {
-              "expr": "rate(rrq_pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])",
+              "expr": "rate(pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])",
               "legendFormat": "Wait Events/sec"
             }
           ],
