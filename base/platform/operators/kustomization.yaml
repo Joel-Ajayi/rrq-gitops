@@ -110,5 +110,7 @@ helmCharts:
         certManager:
           enabled: true
       manager:
+        extraArgs:
+          - --feature-gates=operator.autoinstrumentation.go
         collectorImage:
           repository: otel/opentelemetry-collector-contrib
