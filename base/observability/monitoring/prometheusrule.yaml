@@ -111,7 +111,7 @@ spec:
 
         - alert: LedgerWorkerProcessingLatencyHigh
           # p99 processing > 10s — slow queries or lock contention
-          expr: histogram_quantile(0.99, rate(traces_span_metrics_duration_seconds_bucket{service_name="ledger-worker"}[5m])) > 10
+          expr: histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name="ledger-worker"}[5m])) by (le)) > 10
           for: 5m
           labels:
             severity: warning
@@ -164,7 +164,7 @@ spec:
             runbook_url: "https://wiki.rrq.local/runbooks/webhook-cb-open"
 
         - alert: WebhookWorkerProcessingLatencyHigh
-          expr: histogram_quantile(0.99, rate(traces_span_metrics_duration_seconds_bucket{service_name="webhook-worker"}[5m])) > 10
+          expr: histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name="webhook-worker"}[5m])) by (le)) > 10
           for: 5m
           labels:
             severity: warning
