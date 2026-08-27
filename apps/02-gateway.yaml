@@ -23,3 +23,8 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
       - Force=true
+  ignoreDifferences:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      jsonPointers:
+        - /status

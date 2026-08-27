@@ -23,3 +23,16 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
       - Force=true
+  ignoreDifferences:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      jsonPointers:
+        - /status
+    - group: opentelemetry.io
+      kind: OpenTelemetryCollector
+      jsonPointers:
+        - /status
+    - group: elasticsearch.k8s.elastic.co
+      kind: Elasticsearch
+      jsonPointers:
+        - /status
