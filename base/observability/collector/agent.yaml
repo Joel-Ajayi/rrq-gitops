@@ -39,10 +39,18 @@ spec:
       filelog:
         include:
           - /var/log/pods/*/*/*.log
-        start_at: end
+        exclude:
+          - /var/log/pods/observability_*/*/*.log
+        start_at: beginning
         operators:
+          - type: regex_parser
+            regex: '^(?P<time>[^ Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
           - type: json_parser
-            parse_to: attributes
+            parse_from: attributes.log
+            if: 'attributes.log matches "^\\{"'
       hostmetrics:
         collection_interval: 30s
         scrapers:

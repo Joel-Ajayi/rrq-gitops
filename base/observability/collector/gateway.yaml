@@ -102,12 +102,12 @@ spec:
           insecure: true
       elasticsearch:
         endpoints:
-          ["https://elasticsearch-es-http.observability.svc.cluster.local:9200"]
+          ["https://elasticsearch-es-http.observability.svc:9200"]
         logs_index: "rrq-logs"
         auth:
           authenticator: basicauth
         tls:
-          insecure: true
+          insecure_skip_verify: true
       prometheus:
         endpoint: 0.0.0.0:8889
         namespace: ""
@@ -116,7 +116,8 @@ spec:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, filter/health_checks, k8sattributes, batch]
+          processors:
+            [memory_limiter, filter/health_checks, k8sattributes, batch]
           exporters: [otlp/jaeger, span_metrics]
         metrics:
           receivers: [otlp, kafka_metrics, span_metrics]
