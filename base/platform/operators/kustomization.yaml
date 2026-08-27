@@ -112,4 +112,5 @@ helmCharts:
       manager:
         extraArgs:
           - --enable-go-instrumentation=true
+        collectorImage:
           repository: otel/opentelemetry-collector-contrib
