@@ -7,21 +7,21 @@ resources:
 images:
   - name: rrq/core-api
     newName: ghcr.io/joel-ajayi/core-api-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
   - name: rrq/outbox-relay
     newName: ghcr.io/joel-ajayi/outbox-relay-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
   - name: rrq/ledger-worker
     newName: ghcr.io/joel-ajayi/ledger-worker-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
   - name: rrq/webhook-worker
     newName: ghcr.io/joel-ajayi/webhook-worker-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
   - name: rrq/fraud-worker
     newName: ghcr.io/joel-ajayi/fraud-worker-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
   - name: rrq/webhook-echo
     newName: ghcr.io/joel-ajayi/webhook-echo-go
-    newTag: d065b7ad635fda17c47a9a449669742e2afd90de
+    newTag: 5c4e5031ed0a5f339f35281192f57d052a16f4ef
 patches:
   - path: patches/image-pull-policy.yaml
