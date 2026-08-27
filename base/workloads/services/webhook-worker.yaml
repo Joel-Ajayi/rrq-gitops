@@ -78,9 +78,8 @@ spec:
           livenessProbe:
             exec:
               command:
-                - /bin/sh
-                - -c
-                - kill -0 1
+                - pgrep
+                - service
             initialDelaySeconds: 30
             periodSeconds: 30
 

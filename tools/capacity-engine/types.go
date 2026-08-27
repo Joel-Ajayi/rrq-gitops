@@ -269,10 +269,10 @@ type Derived struct {
 }
 
 type EngineOutput struct {
-	Ceilings    map[string]PGCeiling `yaml:"ceilings"`
-	KafkaCap    KafkaCeiling         `yaml:"kafka_cap"`
-	RedisCap    []RedisCeiling       `yaml:"redis_cap"`
-	Services    map[string]Derived   `yaml:"services"`
-	Failures    []string             `yaml:"failures,omitempty"`
-	Warnings    []string             `yaml:"warnings,omitempty"`
+	Ceilings map[string]PGCeiling `yaml:"ceilings"`
+	KafkaCap KafkaCeiling         `yaml:"kafka_cap"`
+	RedisCap []RedisCeiling       `yaml:"redis_cap"`
+	Services map[string]Derived   `yaml:"services"`
+	Failures []string             `yaml:"failures,omitempty"`
+	Warnings []string             `yaml:"warnings,omitempty"`
 }
