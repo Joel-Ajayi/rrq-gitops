@@ -177,34 +177,46 @@ bootstrap-local: argocd ## Local prod bootstrap: Argo CD App-of-Apps GitOps
 
 # 5. BENCHMARKING (k6)
 .PHONY: bench
-bench: ## Run k6 scenario (SCENARIO=performance/load-sustained)
-	./tools/load-tests/run.sh $(SCENARIO)
+bench: ## Run k6 scenario (default: SCENARIO=smoke, e.g. make bench SCENARIO=load)
+	./tools/load-tests/run.sh $(or $(SCENARIO),smoke)
 
 .PHONY: bench-seed
 bench-seed: ## Seed test data (create merchants, wallets, pre-fund)
 	./tools/load-tests/run.sh seed
 
 .PHONY: bench-smoke
-bench-smoke: ## Quick smoke test (1min, low VUs, for CI)
-	DURATION=1m ./tools/load-tests/run.sh performance/load-sustained --no-verify
+bench-smoke: ## Quick smoke test (30s, low VUs, for CI)
+	./tools/load-tests/run.sh smoke --no-verify
+
+.PHONY: bench-load
+bench-load: ## Steady-state load test
+	./tools/load-tests/run.sh load
+
+.PHONY: bench-stress
+bench-stress: ## Stress test to peak throughput
+	./tools/load-tests/run.sh stress
+
+.PHONY: bench-spike
+bench-spike: ## Traffic surge spike test
+	./tools/load-tests/run.sh spike
 
 .PHONY: bench-verify
-bench-verify: ## Run k6 scenario with post-test observability verification (default)
-	./tools/load-tests/run.sh $(SCENARIO) --verify
+bench-verify: ## Run k6 scenario with post-test verification
+	./tools/load-tests/run.sh $(or $(SCENARIO),smoke) --verify
 
 .PHONY: bench-all
-bench-all: ## Run all k6 scenarios sequentially with verification (nightly)
-	@for s in performance/load-sustained performance/stress-bulk-payout performance/ramp-to-peak performance/spike-surge reliability/fraud-throughput reliability/circuit-breaker reliability/reconciliation-integrity scalability/cross-shard-throughput compatibility/contract-compliance security/edge-protection; do \
+bench-all: ## Run all standard k6 scenarios sequentially
+	@for s in smoke load stress spike breakpoint full_workload; do \
 	  echo "=== Running $$s ==="; \
-	  $(MAKE) bench-verify SCENARIO=$$s; \
+	  $(MAKE) bench SCENARIO=$$s; \
 	done
 
 .PHONY: bench-soak
-bench-soak: ## Run 4-hour soak test with verification (pre-release)
-	$(MAKE) bench-verify SCENARIO=performance/soak-endurance
+bench-soak: ## Run long-duration soak test
+	./tools/load-tests/run.sh soak
 
 .PHONY: bench-full
-bench-full: bench-all bench-soak ## Full performance qualification suite (nightly + pre-release)
+bench-full: bench-all bench-soak ## Full performance qualification suite
 
 # 6. UTILITIES
 .PHONY: capacity

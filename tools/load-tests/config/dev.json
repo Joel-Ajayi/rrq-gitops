@@ -1,6 +1,6 @@
 {
   "environment": "dev",
-  "baseUrl": "http://api.127.0.0.1.nip.io:8888",
+  "baseUrl": "https://api.127.0.0.1.nip.io:8443",
   "workloads": {
     "smoke": {
       "executor": "constant-arrival-rate",

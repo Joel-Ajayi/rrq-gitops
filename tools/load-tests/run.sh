@@ -20,9 +20,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # ── Seed command: create merchants, wallets, and pre-fund ──
 if [ "${1:-}" = "seed" ]; then
   echo "══════════════════════════════════════════════════════════════"
-  echo "  SEED: Creating 100 merchants & 100,000 wallets in DB"
+  echo "  SEED: Creating test merchants & wallets in DB"
   echo "══════════════════════════════════════════════════════════════"
-  node "${ROOT}/load-tests/seed-test-data.mjs"
+  NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/seed-test-data.mjs"
   exit 0
 fi
 
@@ -32,7 +32,7 @@ if ! command -v k6 >/dev/null 2>&1; then
   exit 1
 fi
 
-SCENARIO="${1:-load}"
+SCENARIO="${1:-smoke}"
 TARGET_ENV="${2:-dev}"
 VERIFY="true"
 
@@ -69,7 +69,7 @@ echo "  Start Time:  $(date -d @"$START_TS" '+%Y-%m-%d %H:%M:%S')"
 echo "══════════════════════════════════════════════════════════════"
 echo ""
 
-K6_FLAGS="--env ENV=${TARGET_ENV}"
+K6_FLAGS="--env ENV=${TARGET_ENV} --insecure-skip-tls-verify"
 
 k6 run \
   $K6_FLAGS \

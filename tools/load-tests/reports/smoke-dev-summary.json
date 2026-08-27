@@ -1,0 +1,157 @@
+{
+    "metrics": {
+        "iteration_duration": {
+            "p(95)": 20.0330345,
+            "avg": 16.741381642384106,
+            "min": 6.450662,
+            "med": 13.695037,
+            "max": 363.923959,
+            "p(90)": 18.259207
+        },
+        "http_reqs": {
+            "count": 151,
+            "rate": 4.9048097565313595
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(90)": 17.38508,
+            "p(95)": 18.258189,
+            "avg": 12.53917732450331,
+            "min": 5.946184,
+            "med": 12.840625,
+            "max": 24.673201
+        },
+        "http_req_receiving": {
+            "max": 1.106314,
+            "p(90)": 0.273421,
+            "p(95)": 0.32858750000000003,
+            "avg": 0.1686638013245033,
+            "min": 0.061529,
+            "med": 0.137311
+        },
+        "http_req_connecting": {
+            "max": 1.66196,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.04418094701986755,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_waiting": {
+            "min": 5.713682,
+            "med": 12.427404,
+            "max": 23.868057,
+            "p(90)": 16.746021,
+            "p(95)": 17.5265945,
+            "avg": 12.164889933774836
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.14841209271523179,
+            "min": 0,
+            "med": 0,
+            "max": 6.059658
+        },
+        "checks": {
+            "fails": 0,
+            "passes": 302,
+            "value": 1
+        },
+        "vus": {
+            "value": 0,
+            "min": 0,
+            "max": 0
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 151,
+            "thresholds": {
+                "rate==0.00": false
+            },
+            "value": 0
+        },
+        "http_req_sending": {
+            "p(95)": 0.38377649999999996,
+            "avg": 0.20562358940397354,
+            "min": 0.084429,
+            "med": 0.161995,
+            "max": 2.100879,
+            "p(90)": 0.279696
+        },
+        "http_req_duration": {
+            "max": 24.673201,
+            "p(90)": 17.38508,
+            "p(95)": 18.258189,
+            "avg": 12.53917732450331,
+            "min": 5.946184,
+            "med": 12.840625,
+            "thresholds": {
+                "p(99)<2000": false
+            }
+        },
+        "vus_max": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "http_req_blocked": {
+            "avg": 3.3984173907284783,
+            "min": 0.00033,
+            "med": 0.000589,
+            "max": 346.344268,
+            "p(90)": 0.00095,
+            "p(95)": 0.0012445
+        },
+        "transfer_duration_ms": {
+            "avg": 12.53917732450331,
+            "min": 5.946184,
+            "med": 12.840625,
+            "max": 24.673201,
+            "p(90)": 17.38508,
+            "p(95)": 18.258189
+        },
+        "transfer_error_rate": {
+            "passes": 0,
+            "fails": 151,
+            "value": 0
+        },
+        "data_received": {
+            "count": 36961,
+            "rate": 1200.573996100368
+        },
+        "transfers_success_total": {
+            "count": 151,
+            "rate": 4.9048097565313595
+        },
+        "iterations": {
+            "count": 151,
+            "rate": 4.9048097565313595
+        },
+        "data_sent": {
+            "count": 60896,
+            "rate": 1978.0350657863157
+        }
+    },
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "status is 202 or 200": {
+                    "id": "ecf6e2c4a0bcb22bda37e4fe8b339c39",
+                    "passes": 151,
+                    "fails": 0,
+                    "name": "status is 202 or 200",
+                    "path": "::status is 202 or 200"
+                },
+                "has jobId": {
+                    "name": "has jobId",
+                    "path": "::has jobId",
+                    "id": "a89500f5df31a4026670e035ea6e9a1f",
+                    "passes": 151,
+                    "fails": 0
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

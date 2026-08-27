@@ -8,17 +8,9 @@ const configPath = path.join(__dirname, "config", `${ENV}.json`);
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const BASE_URL = process.env.BASE_URL || config.baseUrl;
 const MERCHANT_COUNT = 100;
-const WALLETS_PER_MERCHANT = 1000;
-const CONCURRENCY = 50; // Max concurrent requests per batch
+const WALLETS_PER_MERCHANT = 100;
+const CONCURRENCY = 20; // Max concurrent requests per batch
 const INITIAL_DEPOSIT_AMOUNT = 10000000; // 100,000 NGN in smallest unit
-
-// Simple batch concurrency limiter — processes items in batches of CONCURRENCY
-async function batchProcess(items, fn) {
-  for (let i = 0; i < items.length; i += CONCURRENCY) {
-    const batch = items.slice(i, i + CONCURRENCY);
-    await Promise.all(batch.map(fn));
-  }
-}
 
 async function fetchWithRetry(url, options, retries = 3) {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -40,15 +32,12 @@ async function fetchWithRetry(url, options, retries = 3) {
 }
 
 async function main() {
-  // ── Phase 1: Create merchants (POST /v1/merchants is unauthenticated) ──
   console.log(`\nPreparing test data: creating ${MERCHANT_COUNT} merchants...`);
   const merchants = [];
   for (let i = 0; i < MERCHANT_COUNT; i++) {
     const res = await fetchWithRetry(`${BASE_URL}/v1/merchants`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: `Perf Merchant ${i + 1}`,
         webhookUrl: "http://webhook-echo:8080/",
@@ -64,10 +53,7 @@ async function main() {
     merchants.push({ id: body.merchantId, apiKey: body.apiKey });
   }
 
-  // ── Phase 2: Acquire JWTs for each merchant ──
-  console.log(
-    `Successfully created ${MERCHANT_COUNT} merchants. Acquiring JWTs...`,
-  );
+  console.log(`Successfully created ${MERCHANT_COUNT} merchants. Acquiring JWTs...`);
   const jwts = [];
   for (let i = 0; i < MERCHANT_COUNT; i++) {
     const res = await fetchWithRetry(`${BASE_URL}/v1/auth/token`, {
@@ -75,15 +61,12 @@ async function main() {
       headers: { Authorization: `Bearer ${merchants[i].apiKey}` },
     });
     if (!res.ok) {
-      console.error(
-        `Failed to log in for merchant ${merchants[i].id}: status=${res.status}`,
-      );
+      console.error(`Failed to log in for merchant ${merchants[i].id}: status=${res.status}`);
       process.exit(1);
     }
     jwts.push((await res.json()).token);
   }
 
-  // ── Phase 3: Create wallets (1,000 per merchant) ──
   console.log(`Creating ${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets...`);
   const wallets = Array.from({ length: MERCHANT_COUNT }, () => []);
   const ROUNDS = 10;
@@ -91,11 +74,11 @@ async function main() {
 
   for (let r = 0; r < ROUNDS; r++) {
     console.log(`  Wallet creation round ${r + 1}/${ROUNDS}...`);
-    const requests = [];
+    const requestFactories = [];
     for (let m = 0; m < MERCHANT_COUNT; m++) {
       const jwt = jwts[m];
       for (let w = 0; w < WALLETS_PER_ROUND; w++) {
-        requests.push(
+        requestFactories.push(() => 
           fetchWithRetry(`${BASE_URL}/v1/wallets`, {
             method: "POST",
             headers: {
@@ -107,28 +90,23 @@ async function main() {
             if (!res.ok) throw new Error(`Wallet create failed: ${res.status}`);
             const body = await res.json();
             wallets[m].push(body.walletId);
-          }),
+          })
         );
       }
     }
-    // Process in batches of CONCURRENCY
-    for (let i = 0; i < requests.length; i += CONCURRENCY) {
-      const batch = requests.slice(i, i + CONCURRENCY);
-      await Promise.all(batch);
+    for (let i = 0; i < requestFactories.length; i += CONCURRENCY) {
+      const batch = requestFactories.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(fn => fn()));
     }
   }
 
-  // ── Phase 4: Pre-fund wallets with deposits (separate phase) ──
-  // This ensures wallets have balance before k6 transfer tests run.
-  console.log(
-    `\nPre-funding ${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets with initial deposits...`,
-  );
+  console.log(`\nPre-funding ${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets with initial deposits...`);
   let fundedCount = 0;
   for (let m = 0; m < MERCHANT_COUNT; m++) {
     const jwt = jwts[m];
-    const depositRequests = [];
+    const depositFactories = [];
     for (let w = 0; w < WALLETS_PER_MERCHANT; w++) {
-      depositRequests.push(
+      depositFactories.push(() => 
         fetchWithRetry(`${BASE_URL}/v1/transfers`, {
           method: "POST",
           headers: {
@@ -145,37 +123,30 @@ async function main() {
           }),
         }).then(async (res) => {
           if (!res.ok) {
-            console.error(
-              `Deposit failed for wallet ${wallets[m][w]}: status=${res.status}`,
-            );
+            console.error(`Deposit failed for wallet ${wallets[m][w]}: status=${res.status}`);
           }
-        }),
+        })
       );
     }
-    // Process deposits in batches of CONCURRENCY
-    for (let i = 0; i < depositRequests.length; i += CONCURRENCY) {
-      const batch = depositRequests.slice(i, i + CONCURRENCY);
-      await Promise.all(batch);
+    for (let i = 0; i < depositFactories.length; i += CONCURRENCY) {
+      const batch = depositFactories.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(fn => fn()));
     }
     fundedCount += WALLETS_PER_MERCHANT;
-    console.log(
-      `  Funded ${fundedCount}/${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets`,
-    );
+    console.log(`  Funded ${fundedCount}/${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets`);
   }
 
-  // Wait for deposits to be processed by the ledger worker
   console.log(`\nWaiting 30s for deposits to be processed by ledger worker...`);
   await new Promise((r) => setTimeout(r, 30000));
 
-  // ── Phase 5: Write test data ──
   console.log("Writing test-data.json...");
-  const apiKeys = merchants.map(m => m.apiKey);
+  const apiKeys = merchants.map((m) => m.apiKey);
   const outData = { jwts, wallets, apiKeys };
   fs.writeFileSync(
     path.join(__dirname, "test-data.json"),
     JSON.stringify(outData, null, 2),
   );
-  console.log("Done! Written to k6/test-data.json");
+  console.log("Done! Written to load-tests/test-data.json");
   console.log(`  Merchants: ${MERCHANT_COUNT}`);
   console.log(`  Wallets: ${MERCHANT_COUNT * WALLETS_PER_MERCHANT}`);
   console.log(`  Initial deposit per wallet: ${INITIAL_DEPOSIT_AMOUNT}`);
