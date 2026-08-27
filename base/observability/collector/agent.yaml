@@ -7,6 +7,20 @@ spec:
   image: otel/opentelemetry-collector-contrib:0.156.0
   mode: daemonset
   serviceAccount: agent
+  volumeMounts:
+    - name: varlogpods
+      mountPath: /var/log/pods
+      readOnly: true
+    - name: varlibdockercontainers
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+  volumes:
+    - name: varlogpods
+      hostPath:
+        path: /var/log/pods
+    - name: varlibdockercontainers
+      hostPath:
+        path: /var/lib/docker/containers
   resources:
     limits:
       cpu: 500m

@@ -30,7 +30,7 @@ spec:
           grpc:
             endpoint: 0.0.0.0:4317
       kafka_metrics:
-        brokers: "rrq-kafka-bootstrap.rrq.svc.cluster.local:9092"
+        brokers: "kafka-cluster-kafka-bootstrap.rrq.svc.cluster.local:9092"
         protocol_version: 2.0.0
         collection_interval: 10s
         scrapers:
@@ -93,7 +93,7 @@ spec:
       elasticsearch:
         endpoints:
           ["https://elasticsearch-es-http.observability.svc.cluster.local:9200"]
-        logs_index: "rrq-logs-%{+yyyy.MM.dd}"
+        logs_index: "rrq-logs"
         auth:
           authenticator: basicauth
         tls:
