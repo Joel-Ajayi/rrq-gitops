@@ -9,7 +9,7 @@ patches:
 images:
   - name: rrq/migrate
     newName: ghcr.io/joel-ajayi/migrate
-    newTag: 65dbfb3f472d1b262056c38c415b1767cac52f04
+    newTag: 32fa9aae5e7934bd63ca255b554a59140140b695
   - name: rrq/seed-performance
     newName: ghcr.io/joel-ajayi/seed-performance
-    newTag: 65dbfb3f472d1b262056c38c415b1767cac52f04
+    newTag: 32fa9aae5e7934bd63ca255b554a59140140b695
