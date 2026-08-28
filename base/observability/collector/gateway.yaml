@@ -106,7 +106,7 @@ spec:
       elasticsearch:
         endpoints:
           ["https://elasticsearch-es-http.observability.svc:9200"]
-        logs_index: "rrq-logs"
+        logs_index: "logs-rrq-default"
         auth:
           authenticator: basicauth
         tls:
