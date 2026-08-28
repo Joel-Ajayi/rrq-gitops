@@ -83,19 +83,9 @@ spec:
       span_metrics:
         dimensions:
           - name: http.method
-            default: "GET"
           - name: http.status_code
-            default: "0"
           - name: http.route
-            default: "unknown"
-          - name: rpc.system
-            default: "unknown"
-          - name: rpc.method
-            default: "unknown"
-          - name: messaging.system
-            default: "unknown"
           - name: db.system.name
-            default: "unknown"
           - name: k8s.pod.name
             default: "unknown"
     extensions:
