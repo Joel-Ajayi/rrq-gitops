@@ -16,29 +16,20 @@ data:
         "from": "now-1h",
         "to": "now"
       },
-      "tags": [
-        "rrq",
-        "reorganized"
-      ],
+      "tags": ["rrq", "reorganized"],
       "templating": {
         "list": [
           {
             "name": "service_name",
             "type": "query",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
             "query": "label_values(traces_span_metrics_calls_total, service_name)",
             "refresh": 1
           },
           {
             "name": "pod",
             "type": "query",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
             "query": "label_values(traces_span_metrics_calls_total{service_name=\"$service_name\"}, k8s_pod_name)",
             "refresh": 1,
             "includeAll": true,
@@ -49,191 +40,135 @@ data:
       "panels": [
         {
           "type": "timeseries",
-          "title": "API / Kafka Throughput (Rate)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
+          "title": "API Throughput (core-api)",
+          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\"}[1m])) by (span_name)",
-              "legendFormat": "{{span_name}} API RPS"
-            },
-            {
-              "expr": "sum(rate(kafka_consumer_offset{service_name=\"$service_name\"}[1m])) by (topic)",
-              "legendFormat": "{{topic}} Consume RPS"
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}}"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Consumer Lag (Workers)",
+          "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(kafka_consumer_group_lag_sum_ratio{group=~\"$service_name.*\"}) by (topic)",
+              "legendFormat": "{{topic}} Lag"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "timeseries",
+          "title": "Outbox Events Published (outbox-relay)",
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(outbox_events_published_total{exported_job=\"outbox-relay\"}[1m]))",
+              "legendFormat": "Events/s"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Error Rate",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
+          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
               "legendFormat": "{{span_name}} Errors"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Latency (Duration)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le))",
-              "legendFormat": "P99"
-            },
-            {
-              "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le))",
-              "legendFormat": "P50"
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} P99"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Circuit Breaker Activity",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "targets": [
             {
-              "expr": "max(circuit_breaker_state{service_name=\"$service_name\"}) by (circuit_breaker)",
+              "expr": "max(circuit_breaker_state{exported_job=~\"$service_name.*\"}) by (circuit_breaker)",
               "legendFormat": "State: {{circuit_breaker}}"
-            },
-            {
-              "expr": "sum(rate(circuit_breaker_open_total{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
-              "legendFormat": "Opens/s ({{circuit_breaker}})"
-            },
-            {
-              "expr": "sum(rate(circuit_breaker_half_open_failure{service_name=\"$service_name\"}[5m])) by (circuit_breaker)",
-              "legendFormat": "Half-Open Fails/s ({{circuit_breaker}})"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Consumer Panics (recovered)",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
           "targets": [
             {
-              "expr": "sum(rate(kafka_consumer_panics_total[5m])) by (topic)",
-              "legendFormat": "Panics ({{topic}})"
+              "expr": "sum(rate(consumer_panics_total{exported_job=~\"$service_name.*\"}[5m]))",
+              "legendFormat": "Panics/s"
             }
           ],
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "DB Connection Pool Starvation",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 16
-          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
           "targets": [
             {
-              "expr": "sum(rate(pg_pool_empty_acquire_count{service_name=\"$service_name\"}[1m])) by (db_pool)",
+              "expr": "sum(rate(pg_pool_empty_acquire_count_total{exported_job=~\"$service_name.*\"}[1m])) by (db_pool)",
               "legendFormat": "{{db_pool}} waits/sec"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Go Goroutines",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 16
-          },
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
           "targets": [
             {
-              "expr": "sum(go_goroutines{namespace=\"rrq\", pod=~\"$service_name-.*\"}) by (pod)",
-              "legendFormat": "{{pod}}"
+              "expr": "sum(go_goroutines{exported_job=~\"$service_name.*\"}) by (instance)",
+              "legendFormat": "{{instance}}"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Pod CPU Usage",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 24
-          },
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 24},
           "targets": [
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
               "legendFormat": "{{pod}}"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
           "title": "Pod Memory Usage",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 24
-          },
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 24},
           "targets": [
             {
               "expr": "sum(container_memory_working_set_bytes{namespace=\"rrq\", pod=~\"$service_name-.*\"}) by (pod)",
               "legendFormat": "{{pod}}"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
         }
       ]
     }
