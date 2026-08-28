@@ -116,9 +116,9 @@ func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas int) int {
 	if poolSize > safeCap {
 		poolSize = safeCap
 	}
-	// Floor at 1 to prevent 0-sized pools
-	if poolSize < 1 {
-		poolSize = 1
+	// Floor at 2 to prevent serial bottlenecks (pool of 1)
+	if poolSize < 2 {
+		poolSize = 2
 	}
 	return poolSize
 }

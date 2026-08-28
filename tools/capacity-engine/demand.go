@@ -306,22 +306,19 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 			}
 		}
 
-		rwPoolDemand := int(math.Ceil((rwQPSMS / rho) / minR))
-		if rwPoolDemand < 1 {
-			rwPoolDemand = 1
+		if rwQPSMS > 0 {
+			rwPoolDemand := int(math.Ceil((rwQPSMS / rho) / minR))
+			if rwPoolDemand < 1 {
+				rwPoolDemand = 1
+			}
+			rwCaps[shardName] = perShardRWCap(rwPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
 		}
-		rwCaps[shardName] = perShardRWCap(rwPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
-		if rwCaps[shardName] < 1 {
-			rwCaps[shardName] = 1
-		}
-
-		roPoolDemand := int(math.Ceil((roQPSMS / rho) / minR))
-		if roPoolDemand < 1 {
-			roPoolDemand = 1
-		}
-		roCaps[shardName] = perShardRWCap(roPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
-		if roCaps[shardName] < 1 {
-			roCaps[shardName] = 1
+		if roQPSMS > 0 {
+			roPoolDemand := int(math.Ceil((roQPSMS / rho) / minR))
+			if roPoolDemand < 1 {
+				roPoolDemand = 1
+			}
+			roCaps[shardName] = perShardRWCap(roPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
 		}
 	}
 
@@ -334,15 +331,14 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 		totalAlloc += c
 	}
 
-	allocSum := 0
-	for _, c := range rwCaps {
-		allocSum += c
-	}
-	for _, c := range roCaps {
-		allocSum += c
-	}
-	if allocSum > d.PoolSize {
-		d.PoolSize = allocSum
+	if totalAlloc > d.PoolSize && totalAlloc > 0 {
+		scale := float64(d.PoolSize) / float64(totalAlloc)
+		for s, c := range rwCaps {
+			rwCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
+		}
+		for s, c := range roCaps {
+			roCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
+		}
 	}
 
 	return rwCaps, roCaps

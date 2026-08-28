@@ -273,14 +273,6 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
-      - name: merchant-lookup
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput
-        avg_query_time_ms: 2 # Tier 4 | Panel: Database Query Latency
-        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
-        c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance
-        db_instance: merchants # Architecture definition - Global merchants DB
-        writes_per_message: 0 # Read-only query
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
       - xshard.shard-a # Architecture definition - Consumer topic subscriptions
@@ -321,14 +313,6 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
-      - name: merchant-lookup
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput
-        avg_query_time_ms: 2 # Tier 4 | Panel: Database Query Latency
-        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
-        c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance
-        db_instance: merchants # Architecture definition - Global merchants DB
-        writes_per_message: 0 # Read-only query
     topics:
       - notify # Architecture definition - Consumer topic subscriptions
     http_outbound:
@@ -387,14 +371,6 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
-      - name: merchant-lookup
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput
-        avg_query_time_ms: 2 # Tier 4 | Panel: Database Query Latency
-        c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
-        c_a_squared: 0.5 # Tier 5 | Panel: Latency/Arrival Variance
-        db_instance: merchants # Architecture definition - Global merchants DB
-        writes_per_message: 0 # Read-only query
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:
