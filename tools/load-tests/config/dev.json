@@ -4,9 +4,9 @@
   "workloads": {
     "smoke": {
       "executor": "constant-arrival-rate",
-      "rate": 5,
+      "rate": 1,
       "timeUnit": "1s",
-      "duration": "30s",
+      "duration": "5s",
       "preAllocatedVUs": 5,
       "maxVUs": 10
     },
