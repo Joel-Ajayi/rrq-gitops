@@ -87,11 +87,11 @@ spec:
 
           resources:
             requests:
-              cpu: 51m
-              memory: 72Mi
+              cpu: 101m
+              memory: 75Mi
             limits:
               cpu: "1"
-              memory: 72Mi
+              memory: 75Mi
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -129,7 +129,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: webhook-worker
         topic: notify
-        lagThreshold: "3190"
+        lagThreshold: "6420"
         offsetResetPolicy: earliest
     - type: postgresql
       metadata:

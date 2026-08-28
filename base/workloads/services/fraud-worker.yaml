@@ -112,10 +112,10 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 21m
+              cpu: 41m
               memory: 65Mi
             limits:
-              cpu: 21m
+              cpu: 41m
               memory: 65Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -154,7 +154,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: fraud-worker
         topic: jobs
-        lagThreshold: "10500"
+        lagThreshold: "13668"
         offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1

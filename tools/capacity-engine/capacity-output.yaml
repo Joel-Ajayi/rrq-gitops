@@ -32,7 +32,7 @@ redis_cap:
 services:
     core-api:
         name: core-api
-        pool_size: 7
+        pool_size: 14
         workers: 60
         min_replicas: 4
         max_replicas: 10
@@ -71,26 +71,26 @@ services:
         dlq_cap_delay_ms: 212
         per_shard_rw:
             merchants: 1
-            shard-a: 1
-            shard-b: 1
+            shard-a: 3
+            shard-b: 3
         per_shard_ro:
-            merchants: 1
-            shard-a: 1
-            shard-b: 1
+            merchants: 3
+            shard-a: 2
+            shard-b: 2
         dlq_write_timeout_ms: 636
         fast_lane_worker_pool_size: 0
         retry_budget_min_tokens: 84
         retry_budget_max_tokens: 832
     fraud-worker:
         name: fraud-worker
-        pool_size: 3
-        workers: 2
+        pool_size: 6
+        workers: 4
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             jobs: 5
-        lag_threshold: 10500
+        lag_threshold: 13668
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -100,13 +100,14 @@ services:
         relay_batch_timeout_ms: 0
         session_ms: 15842
         heartbeat_ms: 5280
-        max_retries: 8
-        backoff_base_ms: 1
+        max_retries: 7
+        backoff_base_ms: 2
         backoff_cap_ms: 128
-        cpu_request: 21
+        cpu_request: 41
         mem_request: 65
         latency_ms:
             dlq-ingest: 15.470494417862835
+            merchant-lookup: 2.820574162679425
             velocity-check: 0.7051435406698563
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
@@ -120,14 +121,18 @@ services:
             merchants: 1
             shard-a: 1
             shard-b: 1
+        per_shard_ro:
+            merchants: 1
+            shard-a: 1
+            shard-b: 1
         dlq_write_timeout_ms: 1592
         fast_lane_worker_pool_size: 0
-        retry_budget_min_tokens: 2
-        retry_budget_max_tokens: 16
+        retry_budget_min_tokens: 4
+        retry_budget_max_tokens: 31
     ledger-worker:
         name: ledger-worker
-        pool_size: 3
-        workers: 6
+        pool_size: 8
+        workers: 9
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
@@ -135,7 +140,7 @@ services:
             jobs: 5
             xshard.shard-a: 5
             xshard.shard-b: 5
-        lag_threshold: 816
+        lag_threshold: 1692
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -145,13 +150,14 @@ services:
         relay_batch_timeout_ms: 0
         session_ms: 12336
         heartbeat_ms: 4112
-        max_retries: 3
-        backoff_base_ms: 15
-        backoff_cap_ms: 60
-        cpu_request: 165
+        max_retries: 4
+        backoff_base_ms: 11
+        backoff_cap_ms: 88
+        cpu_request: 245
         mem_request: 67
         latency_ms:
             dlq-ingest: 14.01180838760728
+            merchant-lookup: 2.601771258141092
             process-transfer: 28.02361677521456
             xshard-failed: 14.01180838760728
             xshard-requested: 14.01180838760728
@@ -166,15 +172,19 @@ services:
         dlq_cap_delay_ms: 212
         per_shard_rw:
             merchants: 1
+            shard-a: 2
+            shard-b: 2
+        per_shard_ro:
+            merchants: 1
             shard-a: 1
             shard-b: 1
         dlq_write_timeout_ms: 636
         fast_lane_worker_pool_size: 0
-        retry_budget_min_tokens: 4
-        retry_budget_max_tokens: 31
+        retry_budget_min_tokens: 5
+        retry_budget_max_tokens: 46
     outbox-relay:
         name: outbox-relay
-        pool_size: 3
+        pool_size: 6
         workers: 5
         min_replicas: 3
         max_replicas: 5
@@ -210,6 +220,9 @@ services:
         dlq_base_delay_ms: 106
         dlq_cap_delay_ms: 212
         per_shard_rw:
+            shard-a: 2
+            shard-b: 2
+        per_shard_ro:
             shard-a: 1
             shard-b: 1
         dlq_write_timeout_ms: 636
@@ -218,16 +231,16 @@ services:
         retry_budget_max_tokens: 111
     webhook-worker:
         name: webhook-worker
-        pool_size: 3
-        workers: 150
+        pool_size: 8
+        workers: 214
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             notify: 5
-        lag_threshold: 3190
-        http_pool: 150
-        http_per_host: 50
+        lag_threshold: 6420
+        http_pool: 214
+        http_per_host: 72
         http_per_host_cap: 16
         relay_replicas: 0
         relay_fetch_batch: 0
@@ -236,14 +249,15 @@ services:
         session_ms: 45060
         heartbeat_ms: 15020
         max_retries: 1
-        backoff_base_ms: 1044
-        backoff_cap_ms: 1044
-        cpu_request: 51
-        mem_request: 72
+        backoff_base_ms: 1024
+        backoff_cap_ms: 1024
+        cpu_request: 101
+        mem_request: 75
         latency_ms:
             delivery-tracking: 1093.5393258426966
             dlq-ingest: 1020.7865168539325
-        webhook_max_concurrency: 15
+            merchant-lookup: 1003.6179775280899
+        webhook_max_concurrency: 22
         breaker_eviction_ttl_ms: 300000
         process_timeout_ms: 25500
         circuit_breaker_timeout_ms: 25500
@@ -253,13 +267,17 @@ services:
         dlq_cap_delay_ms: 3187
         per_shard_rw:
             merchants: 1
+            shard-a: 2
+            shard-b: 2
+        per_shard_ro:
+            merchants: 1
             shard-a: 1
             shard-b: 1
         dlq_write_timeout_ms: 9560
-        fast_lane_worker_pool_size: 150
-        retry_budget_min_tokens: 2
-        retry_budget_max_tokens: 16
+        fast_lane_worker_pool_size: 214
+        retry_budget_min_tokens: 4
+        retry_budget_max_tokens: 31
 warnings:
-    - 'pg/shard-b: total peak demand 112 > optimal 9'
-    - 'pg/merchants: total peak demand 97 > optimal 9'
-    - 'pg/shard-a: total peak demand 112 > optimal 9'
+    - 'pg/merchants: total peak demand 206 > optimal 9'
+    - 'pg/shard-a: total peak demand 236 > optimal 9'
+    - 'pg/shard-b: total peak demand 236 > optimal 9'
