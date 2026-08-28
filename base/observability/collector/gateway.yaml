@@ -49,12 +49,17 @@ spec:
             - 'attributes["url.path"] == "/health"'
             - 'attributes["url.path"] == "/ready"'
             - 'attributes["url.path"] == "/.well-known/jwks.json"'
+            - 'attributes["url.path"] == "/v1/traces"'
+            - 'attributes["url.path"] == "/v1/metrics"'
             - 'attributes["http.target"] == "/health"'
             - 'attributes["http.target"] == "/ready"'
             - 'attributes["http.target"] == "/.well-known/jwks.json"'
+            - 'attributes["http.target"] == "/v1/traces"'
+            - 'attributes["http.target"] == "/v1/metrics"'
             - 'attributes["http.route"] == "/health"'
             - 'attributes["http.route"] == "/ready"'
             - 'attributes["http.route"] == "/.well-known/jwks.json"'
+            - 'attributes["server.port"] == 4318'
       k8sattributes:
         auth_type: serviceAccount
         passthrough: false
@@ -104,8 +109,7 @@ spec:
         tls:
           insecure: true
       elasticsearch:
-        endpoints:
-          ["https://elasticsearch-es-http.observability.svc:9200"]
+        endpoints: ["https://elasticsearch-es-http.observability.svc:9200"]
         logs_index: "logs-rrq-default"
         auth:
           authenticator: basicauth

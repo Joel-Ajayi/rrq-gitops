@@ -71,6 +71,24 @@ spec:
         check_interval: 1s
         limit_mib: 512
         spike_limit_mib: 128
+      filter/telemetry_noise:
+        error_mode: ignore
+        traces:
+          span:
+            - 'attributes["url.path"] == "/health"'
+            - 'attributes["url.path"] == "/ready"'
+            - 'attributes["url.path"] == "/.well-known/jwks.json"'
+            - 'attributes["url.path"] == "/v1/traces"'
+            - 'attributes["url.path"] == "/v1/metrics"'
+            - 'attributes["http.target"] == "/health"'
+            - 'attributes["http.target"] == "/ready"'
+            - 'attributes["http.target"] == "/.well-known/jwks.json"'
+            - 'attributes["http.target"] == "/v1/traces"'
+            - 'attributes["http.target"] == "/v1/metrics"'
+            - 'attributes["http.route"] == "/health"'
+            - 'attributes["http.route"] == "/ready"'
+            - 'attributes["http.route"] == "/.well-known/jwks.json"'
+            - 'attributes["server.port"] == 4318'
       batch:
         send_batch_size: 1024
         timeout: 1s
@@ -83,7 +101,7 @@ spec:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, filter/telemetry_noise, batch]
           exporters: [otlp/gateway]
         metrics:
           receivers: [otlp, hostmetrics, kubelet_stats]
