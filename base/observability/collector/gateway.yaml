@@ -48,10 +48,13 @@ spec:
           span:
             - 'attributes["url.path"] == "/health"'
             - 'attributes["url.path"] == "/ready"'
+            - 'attributes["url.path"] == "/.well-known/jwks.json"'
             - 'attributes["http.target"] == "/health"'
             - 'attributes["http.target"] == "/ready"'
+            - 'attributes["http.target"] == "/.well-known/jwks.json"'
             - 'attributes["http.route"] == "/health"'
             - 'attributes["http.route"] == "/ready"'
+            - 'attributes["http.route"] == "/.well-known/jwks.json"'
       k8sattributes:
         auth_type: serviceAccount
         passthrough: false

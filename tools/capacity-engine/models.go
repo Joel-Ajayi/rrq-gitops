@@ -284,9 +284,9 @@ func relayDerived(totalPeak, avgMS, producerThroughput, sloLatencyMS float64, ma
 		replicas = 1
 	}
 	batchTimeout = fetchBatch * int(math.Ceil(avgMS))
-	// Pool interval bounded by cluster peak rate, distributed over replicas.
+	// Pool interval bounded by cluster peak rate, with a 1000ms minimum floor for idle DB stability.
 	podSharePeak := math.Max(totalPeak/float64(replicas), 1)
-	poolInterval = max(1, int(math.Ceil(1000*float64(fetchBatch)/podSharePeak))-1)
+	poolInterval = max(1000, int(math.Ceil(1000*float64(fetchBatch)/podSharePeak))-1)
 	return
 }
 
