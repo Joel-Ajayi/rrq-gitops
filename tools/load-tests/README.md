@@ -182,7 +182,7 @@ Simulate standard steady-state production traffic across **all 8 endpoints** (`c
 * **Metrics to Extract for `slo-input.yaml` (in order):**
   1. **`nominal_qps`** (under each endpoint in `services[*].endpoints`):
      * **Dashboard:** `Tier 3 — Application & Services` / Panel: `API / Kafka Throughput`
-     * **Metric:** `rate(traces_span_metrics_calls_total[5m])` or `rate(kafka_consumer_offset_sum[5m])`
+     * **Metric:** `rate(traces_span_metrics_calls_total[5m])` or `rate(kafka_consumer_group_offset_sum_ratio[5m])`
   2. **`avg_query_time_ms`** (under each endpoint):
      * **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Database Query Latency`
      * **Metric:** `rate(traces_span_metrics_duration_seconds_sum[5m]) / rate(traces_span_metrics_duration_seconds_count[5m]) * 1000`
@@ -192,7 +192,7 @@ Simulate standard steady-state production traffic across **all 8 endpoints** (`c
      * **`c_s_squared` (Service Variance):** `variance(duration) / mean(duration)^2`
   4. **`partition_consume_rps`** (`infrastructure.kafka.partition_consume_rps`):
      * **Dashboard:** `Tier 3 — Application & Services` / Panel: `API / Kafka Throughput`
-     * **Metric:** `rate(kafka_consumer_offset_sum{topic=~"jobs|xshard.*|notify"}[5m])`
+     * **Metric:** `rate(kafka_consumer_group_offset_sum_ratio{topic=~"jobs|xshard.*|notify"}[5m])`
   5. **Postgres & Redis Workload Baseline:**
      * **`session_busy_ratio`** (`infrastructure.postgres.workload`): `Tier 4` / Panel: `Database Query Latency` (`active_sessions / total_sessions`)
      * **`avg_parallelism`** (`infrastructure.postgres.workload`): `Tier 4` / Panel: `Database Query Latency` (`pg_settings_max_parallel_workers_per_gather`)
@@ -219,7 +219,7 @@ Push system throughput to peak capacity to observe maximum peak QPS, outbox prod
      * **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Outbox AIMD Backpressure`
      * **Metric:** `kafka_producer_buffer_fill` fill fractions during saturation.
   4. **Webhook Outbound HTTP Concurrency:**
-     * **`peak_qps_per_pod`**: `Tier 4` / Panel: `Webhook Concurrency` (`bulkhead_inflight_requests` max)
+     * **`peak_qps_per_pod`**: `Tier 4` / Panel: `Webhook Concurrency` (`bulkhead_in_flight` max)
      * **`avg_latency_s`**: `Tier 4` / Panel: `Database Query Latency` (`traces_span_metrics_duration_seconds`)
 
 ---
@@ -234,7 +234,7 @@ Ramp load past peak capacity to force fault conditions and measure circuit break
   ```
 * **Metrics to Extract for `slo-input.yaml`:**
   * **Circuit Breaker Parameters (`circuit_breaker` block under each service):**
-    * **`min_requests`, `interval_ms`, `max_fails`, `half_open_probes`**: `Tier 3` / Panel: `Open Circuit Breakers` (`circuit_breaker_state`, `circuit_breaker_half_open_failures_total`).
+    * **`min_requests`, `interval_ms`, `max_fails`, `half_open_probes`**: `Tier 3` / Panel: `Open Circuit Breakers` (`circuit_breaker_state`, `circuit_breaker_half_open_failure_total`).
 
 ---
 

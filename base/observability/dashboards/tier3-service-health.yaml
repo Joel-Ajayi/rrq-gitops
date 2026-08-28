@@ -40,35 +40,19 @@ data:
       "panels": [
         {
           "type": "timeseries",
-          "title": "API Throughput (core-api)",
-          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+          "title": "API / Kafka Throughput",
+          "gridPos": {"h": 8, "w": 18, "x": 0, "y": 0},
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
-              "legendFormat": "{{span_name}}"
-            }
-          ],
-          "datasource": {"type": "prometheus", "uid": "prometheus"}
-        },
-        {
-          "type": "timeseries",
-          "title": "Kafka Consumer Lag (Workers)",
-          "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
-          "targets": [
+              "legendFormat": "API: {{span_name}}"
+            },
             {
-              "expr": "sum(kafka_consumer_group_lag_sum_ratio{group=~\"$service_name.*\"}) by (topic)",
-              "legendFormat": "{{topic}} Lag"
-            }
-          ],
-          "datasource": {"type": "prometheus", "uid": "prometheus"}
-        },
-        {
-          "type": "timeseries",
-          "title": "Outbox Events Published (outbox-relay)",
-          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
-          "targets": [
+              "expr": "sum(rate(kafka_consumer_group_offset_sum_ratio{group=~\"$service_name.*\"}[1m])) by (topic)",
+              "legendFormat": "Consume: {{topic}}"
+            },
             {
-              "expr": "sum(rate(outbox_events_published_total{exported_job=\"outbox-relay\"}[1m]))",
+              "expr": "sum(rate(outbox_events_published_total{exported_job=~\"$service_name.*\"}[1m]))",
               "legendFormat": "Events/s"
             }
           ],
@@ -100,7 +84,7 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Circuit Breaker Activity",
+          "title": "Open Circuit Breakers",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "targets": [
             {
