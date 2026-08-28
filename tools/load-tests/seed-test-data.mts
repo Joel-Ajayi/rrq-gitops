@@ -2,17 +2,34 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ENV = process.env.ENV || "dev";
-const configPath = path.join(__dirname, "config", `${ENV}.json`);
-const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-const BASE_URL = process.env.BASE_URL || config.baseUrl;
-const MERCHANT_COUNT = 100;
-const WALLETS_PER_MERCHANT = 100;
-const CONCURRENCY = 20; // Max concurrent requests per batch
-const INITIAL_DEPOSIT_AMOUNT = 10000000; // 100,000 NGN in smallest unit
+interface Config {
+  baseUrl: string;
+}
 
-async function fetchWithRetry(url, options, retries = 3) {
+interface MerchantResponse {
+  merchantId: string;
+  apiKey: string;
+}
+
+interface TokenResponse {
+  token: string;
+}
+
+interface WalletResponse {
+  walletId: string;
+}
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ENV: string = process.env.ENV || "dev";
+const configPath: string = path.join(__dirname, "config", `${ENV}.json`);
+const config: Config = JSON.parse(fs.readFileSync(configPath, "utf8")) as Config;
+const BASE_URL: string = process.env.BASE_URL || config.baseUrl;
+const MERCHANT_COUNT: number = 100;
+const WALLETS_PER_MERCHANT: number = 100;
+const CONCURRENCY: number = 20; // Max concurrent requests per batch
+const INITIAL_DEPOSIT_AMOUNT: number = 10000000; // 100,000 NGN in smallest unit
+
+async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const res = await fetch(url, options);
@@ -29,11 +46,12 @@ async function fetchWithRetry(url, options, retries = 3) {
       throw err;
     }
   }
+  throw new Error("Unreachable");
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log(`\nPreparing test data: creating ${MERCHANT_COUNT} merchants...`);
-  const merchants = [];
+  const merchants: { id: string; apiKey: string }[] = [];
   for (let i = 0; i < MERCHANT_COUNT; i++) {
     const res = await fetchWithRetry(`${BASE_URL}/v1/merchants`, {
       method: "POST",
@@ -49,12 +67,12 @@ async function main() {
       console.error(`Failed to create merchant ${i}: status=${res.status}`);
       process.exit(1);
     }
-    const body = await res.json();
+    const body = (await res.json()) as MerchantResponse;
     merchants.push({ id: body.merchantId, apiKey: body.apiKey });
   }
 
   console.log(`Successfully created ${MERCHANT_COUNT} merchants. Acquiring JWTs...`);
-  const jwts = [];
+  const jwts: string[] = [];
   for (let i = 0; i < MERCHANT_COUNT; i++) {
     const res = await fetchWithRetry(`${BASE_URL}/v1/auth/token`, {
       method: "POST",
@@ -64,17 +82,18 @@ async function main() {
       console.error(`Failed to log in for merchant ${merchants[i].id}: status=${res.status}`);
       process.exit(1);
     }
-    jwts.push((await res.json()).token);
+    const body = (await res.json()) as TokenResponse;
+    jwts.push(body.token);
   }
 
   console.log(`Creating ${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets...`);
-  const wallets = Array.from({ length: MERCHANT_COUNT }, () => []);
+  const wallets: string[][] = Array.from({ length: MERCHANT_COUNT }, () => []);
   const ROUNDS = 10;
   const WALLETS_PER_ROUND = WALLETS_PER_MERCHANT / ROUNDS;
 
   for (let r = 0; r < ROUNDS; r++) {
     console.log(`  Wallet creation round ${r + 1}/${ROUNDS}...`);
-    const requestFactories = [];
+    const requestFactories: (() => Promise<void>)[] = [];
     for (let m = 0; m < MERCHANT_COUNT; m++) {
       const jwt = jwts[m];
       for (let w = 0; w < WALLETS_PER_ROUND; w++) {
@@ -88,7 +107,7 @@ async function main() {
             body: JSON.stringify({ currency: "NGN" }),
           }).then(async (res) => {
             if (!res.ok) throw new Error(`Wallet create failed: ${res.status}`);
-            const body = await res.json();
+            const body = (await res.json()) as WalletResponse;
             wallets[m].push(body.walletId);
           })
         );
@@ -104,7 +123,7 @@ async function main() {
   let fundedCount = 0;
   for (let m = 0; m < MERCHANT_COUNT; m++) {
     const jwt = jwts[m];
-    const depositFactories = [];
+    const depositFactories: (() => Promise<void>)[] = [];
     for (let w = 0; w < WALLETS_PER_MERCHANT; w++) {
       depositFactories.push(() => 
         fetchWithRetry(`${BASE_URL}/v1/transfers`, {

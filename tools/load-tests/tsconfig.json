@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["k6", "node"]
   },
-  "include": ["**/*.ts", "**/*.json"]
+  "include": ["**/*.ts", "**/*.mts", "**/*.json"]
 }
