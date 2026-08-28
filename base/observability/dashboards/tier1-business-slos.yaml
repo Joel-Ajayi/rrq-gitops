@@ -82,7 +82,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"create-transfer\", status_code=\"STATUS_CODE_OK\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_name=\"create-transfer\"}[1m]))",
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\", status_code=\"STATUS_CODE_OK\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\"}[1m]))",
               "legendFormat": "Success Ratio"
             }
           ],
@@ -102,7 +102,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"merchant-lookup\"}[1m]))",
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"api.merchant_directory.shard_for\"}[1m]))",
               "legendFormat": "Lookup RPS"
             }
           ],
