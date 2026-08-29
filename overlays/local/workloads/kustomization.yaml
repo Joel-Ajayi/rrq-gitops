@@ -7,22 +7,22 @@ resources:
 images:
   - name: rrq/core-api
     newName: ghcr.io/joel-ajayi/core-api-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
   - name: rrq/outbox-relay
     newName: ghcr.io/joel-ajayi/outbox-relay-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
   - name: rrq/ledger-worker
     newName: ghcr.io/joel-ajayi/ledger-worker-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
   - name: rrq/webhook-worker
     newName: ghcr.io/joel-ajayi/webhook-worker-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
   - name: rrq/fraud-worker
     newName: ghcr.io/joel-ajayi/fraud-worker-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
   - name: rrq/webhook-echo
     newName: ghcr.io/joel-ajayi/webhook-echo-go
-    newTag: c4c75243ea1e98729d9118a9fe4ad195cddf5a21
+    newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
 patches:
   - path: patches/image-pull-policy.yaml
   - path: patches/local-resources.yaml
