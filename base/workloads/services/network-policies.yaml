@@ -47,6 +47,12 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: envoy-gateway-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rrq
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: webhook-worker
 ---
 # Allow Ingress to PostgreSQL (from cnpg-system operator AND all rrq workloads)
 apiVersion: networking.k8s.io/v1
