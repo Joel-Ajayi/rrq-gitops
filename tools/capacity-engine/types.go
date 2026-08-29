@@ -109,9 +109,6 @@ type Service struct {
 	ProducerThroughputRPS float64        `yaml:"producer_throughput_rps"`
 	Relay                 *RelayConfig   `yaml:"relay"`
 	JWTAccessHrs          int            `yaml:"jwt_access_hrs"`
-	Argon2MemoryKib       int            `yaml:"argon2_memory_kib"`
-	Argon2Iterations      int            `yaml:"argon2_iterations"`
-	Argon2Parallelism     int            `yaml:"argon2_parallelism"`
 	MaxRequestBytes       int            `yaml:"max_request_bytes"`
 	VelocityThreshold     float64        `yaml:"velocity_threshold"`
 	VelocityWindowMS      int            `yaml:"velocity_window_ms"`

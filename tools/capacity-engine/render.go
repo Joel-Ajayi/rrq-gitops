@@ -220,11 +220,6 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		if svc.JWTAccessHrs > 0 {
 			m["JWT_ACCESS_HRS"] = fmt.Sprintf("%d", svc.JWTAccessHrs)
 		}
-		if svc.Argon2MemoryKib > 0 {
-			m["ARGON2_MEMORY_KIB"] = fmt.Sprintf("%d", svc.Argon2MemoryKib)
-			m["ARGON2_ITERATIONS"] = fmt.Sprintf("%d", svc.Argon2Iterations)
-			m["ARGON2_PARALLELISM"] = fmt.Sprintf("%d", svc.Argon2Parallelism)
-		}
 		if svc.MaxRequestBytes > 0 {
 			m["MAX_REQUEST_BYTES"] = fmt.Sprintf("%d", svc.MaxRequestBytes)
 		}
@@ -399,9 +394,6 @@ func serviceValues(name string, d Derived, svc *Service, input *SLOInput) map[st
 
 	if svc.JWTAccessHrs > 0 {
 		m["JWT_ACCESS_HRS"] = fmt.Sprintf("%d", svc.JWTAccessHrs)
-		m["ARGON2_MEMORY_KIB"] = fmt.Sprintf("%d", svc.Argon2MemoryKib)
-		m["ARGON2_ITERATIONS"] = fmt.Sprintf("%d", svc.Argon2Iterations)
-		m["ARGON2_PARALLELISM"] = fmt.Sprintf("%d", svc.Argon2Parallelism)
 	}
 	if svc.MaxRequestBytes > 0 {
 		m["MAX_REQUEST_BYTES"] = fmt.Sprintf("%d", svc.MaxRequestBytes)

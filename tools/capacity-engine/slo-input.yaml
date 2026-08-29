@@ -101,9 +101,6 @@ services:
     hpa_target_cpu: 0.70 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 268435456 # k8s pod Memory limit (256 MiB)
     jwt_access_hrs: 24 # Security Team - JWT Token expiration policy
-    argon2_memory_kib: 65536 # Security Team - OWASP Argon2id recommended memory cost
-    argon2_iterations: 3 # Security Team - OWASP Argon2id recommended CPU iterations
-    argon2_parallelism: 0 # Security Team - Argon2id concurrency setting
     max_request_bytes: 524288 # Security Team - WAF payload size limit (512KB)
     endpoints:
       - name: create-transfer
