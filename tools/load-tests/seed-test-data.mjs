@@ -95,41 +95,6 @@ async function main() {
             await Promise.all(batch.map(fn => fn()));
         }
     }
-    console.log(`\nPre-funding ${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets with initial deposits...`);
-    let fundedCount = 0;
-    for (let m = 0; m < MERCHANT_COUNT; m++) {
-        const jwt = jwts[m];
-        const depositFactories = [];
-        for (let w = 0; w < WALLETS_PER_MERCHANT; w++) {
-            depositFactories.push(() => fetchWithRetry(`${BASE_URL}/v1/transfers`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${jwt}`,
-                    "X-Idempotency-Key": `seed-dep-${m}-${w}`,
-                },
-                body: JSON.stringify({
-                    from_wallet: "",
-                    to_wallet: wallets[m][w],
-                    amount: INITIAL_DEPOSIT_AMOUNT,
-                    currency: "NGN",
-                    reference: `seed-ref-${m}-${w}`,
-                }),
-            }).then(async (res) => {
-                if (!res.ok) {
-                    console.error(`Deposit failed for wallet ${wallets[m][w]}: status=${res.status}`);
-                }
-            }));
-        }
-        for (let i = 0; i < depositFactories.length; i += CONCURRENCY) {
-            const batch = depositFactories.slice(i, i + CONCURRENCY);
-            await Promise.all(batch.map(fn => fn()));
-        }
-        fundedCount += WALLETS_PER_MERCHANT;
-        console.log(`  Funded ${fundedCount}/${MERCHANT_COUNT * WALLETS_PER_MERCHANT} wallets`);
-    }
-    console.log(`\nWaiting 30s for deposits to be processed by ledger worker...`);
-    await new Promise((r) => setTimeout(r, 30000));
     console.log("Writing test-data.json...");
     const apiKeys = merchants.map((m) => m.apiKey);
     const outData = { jwts, wallets, apiKeys };
@@ -137,6 +102,5 @@ async function main() {
     console.log("Done! Written to load-tests/test-data.json");
     console.log(`  Merchants: ${MERCHANT_COUNT}`);
     console.log(`  Wallets: ${MERCHANT_COUNT * WALLETS_PER_MERCHANT}`);
-    console.log(`  Initial deposit per wallet: ${INITIAL_DEPOSIT_AMOUNT}`);
 }
 main().catch(console.error);
