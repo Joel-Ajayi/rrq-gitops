@@ -162,7 +162,7 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 		"DLQ_BASE_DELAY_MS":       fmt.Sprintf("%d", d.DLQBaseDelayMs),
 		"DLQ_CAP_DELAY_MS":        fmt.Sprintf("%d", d.DLQCapDelayMs),
 		"DLQ_WRITE_TIMEOUT_MS":    fmt.Sprintf("%d", d.DLQWriteTimeoutMs),
-		"POD_MEM_REQUEST_MIB":     fmt.Sprintf("%d", d.MemRequest),
+		"POD_MEM_REQUEST_MIB":     fmt.Sprintf("%d", standardMemRequest(d.MemRequest)),
 		"RETRY_BUDGET_MIN_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMinTokens),
 		"RETRY_BUDGET_MAX_TOKENS": fmt.Sprintf("%d", d.RetryBudgetMaxTokens),
 		"RETRY_BUDGET_FRACTION":   fmt.Sprintf("%g", input.Defaults.RetryBudgetFraction),

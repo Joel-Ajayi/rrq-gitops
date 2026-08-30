@@ -62,14 +62,21 @@ func renderManifests(svcs map[string]Derived, pg map[string]PGCeiling, input *SL
 		return err
 	}
 
-	// 4. Patch per-service Deployment resources (CPU request, memory limit).
-	//     Engine-derived CPU and memory replace stale hardcoded values.
+	// 4. Patch per-service Deployment resources (CPU request/limit, memory request/limit).
+	//     Engine-derived CPU and memory replace stale hardcoded values with standard cloud rounding.
 	for name, d := range svcs {
 		path := filepath.Join(svcDir, name+".yaml")
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
-		if err := patchDeploymentResources(path, d); err != nil {
+		var svc Service
+		for _, s := range input.Services {
+			if s.Name == name {
+				svc = s
+				break
+			}
+		}
+		if err := patchDeploymentResources(path, d, svc, input); err != nil {
 			return fmt.Errorf("patch resources %s: %w", path, err)
 		}
 	}
@@ -146,9 +153,9 @@ func patchKafkaTopics(path string, partitions map[string]int) error {
 	return os.WriteFile(path, []byte(strings.Join(blocks, "\n---\n")), 0644)
 }
 
-// patchDeploymentResources updates CPU request and memory limit in a
-// Deployment's container resources block from engine-derived values.
-func patchDeploymentResources(path string, d Derived) error {
+// patchDeploymentResources updates CPU requests/limits and memory requests/limits
+// in a Deployment's container resources block using standard rounded increments.
+func patchDeploymentResources(path string, d Derived, svc Service, input *SLOInput) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -159,21 +166,15 @@ func patchDeploymentResources(path string, d Derived) error {
 
 	text := string(data)
 
-	// CPU request: <value>m
-	if d.CPURequest > 0 {
-		cpuRe := regexp.MustCompile(`(?m)^(\s*-?\s*)cpu:\s*\d+m(\s*)$`)
-		if cpuRe.MatchString(text) {
-			text = cpuRe.ReplaceAllString(text, fmt.Sprintf("${1}cpu: %dm${2}", d.CPURequest))
-		}
-	}
+	reqCPU := standardCPURequest(d.CPURequest)
+	reqMem := standardMemRequest(d.MemRequest)
+	limCPU := standardCPULimit(svc, input)
+	limMem := standardMemLimit(svc, input)
 
-	// Memory limit: <value>Mi or <value>Gi
-	// We patch the memory limit from the engine-derived MemRequest (MiB).
-	if d.MemRequest > 0 {
-		memRe := regexp.MustCompile(`(?m)^(\s*-?\s*)memory:\s*\d+(Mi|Gi)(\s*)$`)
-		if memRe.MatchString(text) {
-			text = memRe.ReplaceAllString(text, fmt.Sprintf("${1}memory: %d${2}", d.MemRequest))
-		}
+	// Replace the entire resources block with properly sized requests and limits
+	resRe := regexp.MustCompile(`(?ms)(resources:\s*\n\s+requests:\s*\n\s+cpu:)\s*[^\n]+(\n\s+memory:)\s*[^\n]+(\n\s+limits:\s*\n\s+cpu:)\s*[^\n]+(\n\s+memory:)\s*[^\n]+`)
+	if resRe.MatchString(text) {
+		text = resRe.ReplaceAllString(text, fmt.Sprintf(`${1} %dm${2} %dMi${3} "%s"${4} %dMi`, reqCPU, reqMem, limCPU, limMem))
 	}
 
 	if text != string(data) {

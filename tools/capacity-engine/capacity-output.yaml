@@ -84,13 +84,13 @@ services:
     fraud-worker:
         name: fraud-worker
         pool_size: 3
-        workers: 4
+        workers: 5
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             jobs: 5
-        lag_threshold: 13668
+        lag_threshold: 15250
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -103,12 +103,13 @@ services:
         max_retries: 7
         backoff_base_ms: 2
         backoff_cap_ms: 128
-        cpu_request: 41
+        cpu_request: 61
         mem_request: 65
         latency_ms:
             dlq-ingest: 15.470494417862835
             merchant-lookup: 2.820574162679425
             velocity-check: 0.7051435406698563
+            wallet-status-check: 2.820574162679425
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 4250
@@ -123,10 +124,12 @@ services:
             shard-b: 1
         per_shard_ro:
             merchants: 1
+            shard-a: 1
+            shard-b: 1
         dlq_write_timeout_ms: 1592
         fast_lane_worker_pool_size: 0
-        retry_budget_min_tokens: 4
-        retry_budget_max_tokens: 31
+        retry_budget_min_tokens: 5
+        retry_budget_max_tokens: 45
     ledger-worker:
         name: ledger-worker
         pool_size: 3

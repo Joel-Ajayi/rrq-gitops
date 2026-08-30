@@ -1,6 +1,9 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 const (
 	// DefaultSessionTimeoutMS is the fallback minimum session timeout (10s)
@@ -479,3 +482,51 @@ func hpaCap(gap, pool, minReplicas int) int {
 	}
 	return cap
 }
+
+// STANDARD CPU REQUEST — rounds up raw mcores to standard 100m units (minimum 200m floor)
+func standardCPURequest(mcores int) int {
+	if mcores <= 200 {
+		return 200
+	}
+	return int(math.Ceil(float64(mcores)/100.0)) * 100
+}
+
+// STANDARD MEMORY REQUEST — rounds up raw MiB to standard cloud power-of-2 / tier (64, 128, 256, 512, 1024 MiB)
+func standardMemRequest(mib int) int {
+	if mib <= 64 {
+		return 64
+	}
+	if mib <= 128 {
+		return 128
+	}
+	if mib <= 256 {
+		return 256
+	}
+	if mib <= 512 {
+		return 512
+	}
+	return int(math.Ceil(float64(mib)/256.0)) * 256
+}
+
+// STANDARD CPU LIMIT — resolves pod CPU limit from service or infra config
+func standardCPULimit(svc Service, input *SLOInput) string {
+	if svc.CoresPerPod > 0 {
+		return fmt.Sprintf("%d", svc.CoresPerPod)
+	}
+	if input.Infra.Pod.CPULimitM > 0 {
+		return fmt.Sprintf("%d", int(math.Ceil(float64(input.Infra.Pod.CPULimitM)/1000.0)))
+	}
+	return "1"
+}
+
+// STANDARD MEMORY LIMIT — resolves pod Memory limit (in MiB) from service or infra config
+func standardMemLimit(svc Service, input *SLOInput) int {
+	if svc.MemLimitBytes > 0 {
+		return int(svc.MemLimitBytes / (1024 * 1024))
+	}
+	if input.Infra.Pod.MemLimitBytes > 0 {
+		return int(input.Infra.Pod.MemLimitBytes / (1024 * 1024))
+	}
+	return 256
+}
+

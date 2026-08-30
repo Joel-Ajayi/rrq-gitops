@@ -391,6 +391,14 @@ services:
         c_a_squared: 0.5
         db_instance: merchants
         writes_per_message: 0
+      - name: wallet-status-check
+        nominal_qps: 120 # Check wallet status on shard prior to freeze
+        peak_qps: 200
+        avg_query_time_ms: 2
+        c_s_squared: 1.0
+        c_a_squared: 0.5
+        db_instances: [shard-a, shard-b]
+        writes_per_message: 0
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:
