@@ -10,7 +10,7 @@ data:
     {
       "title": "Tier 4: Middleware & Data (USE)",
       "uid": "tier4-middleware-data",
-      "version": 1,
+      "version": 2,
       "refresh": "10s",
       "time": {
         "from": "now-1h",
@@ -23,276 +23,181 @@ data:
       "templating": {
         "list": [
           {
-            "name": "pod",
-            "type": "query",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            },
-            "query": "label_values(traces_span_metrics_calls_total, k8s_pod_name)",
-            "refresh": 1,
+            "name": "shard",
+            "type": "custom",
+            "options": [
+              { "text": "All", "value": ".*", "selected": true },
+              { "text": "merchants-global", "value": "merchants-global" },
+              { "text": "shard-a", "value": "shard-a" },
+              { "text": "shard-b", "value": "shard-b" }
+            ],
+            "query": ".*,merchants-global,shard-a,shard-b",
             "includeAll": true,
-            "multi": true
+            "multi": false
           }
         ]
       },
       "panels": [
         {
           "type": "timeseries",
-          "title": "Postgres Cache Hit Ratio",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
+          "title": "Postgres Buffer Cache Hit Ratio",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
           "targets": [
             {
-              "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m])))",
-              "legendFormat": "Hit Ratio"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Postgres Dead Tuples (Bloat)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "sum(pg_stat_user_tables_n_dead_tup) by (relname)",
-              "legendFormat": "{{relname}}"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Postgres TXID Age (Wraparound)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "max(pg_database_age)",
-              "legendFormat": "Max TXID Age"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Kafka Under Replicated Partitions",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "sum(kafka_cluster_partition_underreplicated)",
-              "legendFormat": "URP Count"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Kafka Active Controllers",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 16
-          },
-          "targets": [
-            {
-              "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount)",
-              "legendFormat": "Controllers"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Redis Memory Fragmentation",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 16
-          },
-          "targets": [
-            {
-              "expr": "max(redis_memory_fragmentation_ratio) by (pod)",
-              "legendFormat": "{{pod}}"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Redis Evicted Keys",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 24
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(redis_evicted_keys_total[1m])) by (pod)",
-              "legendFormat": "{{pod}} evictions/sec"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Outbox AIMD Backpressure",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 32
-          },
-          "targets": [
-            {
-              "expr": "max(kafka_producer_buffer_fill_ratio) by (shard)",
-              "legendFormat": "Buffer Fill ({{shard}})"
-            },
-            {
-              "expr": "sum(rate(outbox_events_published_total[1m])) by (shard)",
-              "legendFormat": "Published RPS ({{shard}})"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Webhook Concurrency",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 32
-          },
-          "targets": [
-            {
-              "expr": "sum(bulkhead_in_flight)",
-              "legendFormat": "Inflight In-Use"
-            },
-            {
-              "expr": "sum(rate(bulkhead_rejections_total[1m]))",
-              "legendFormat": "Rejections/sec"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Database Query Latency",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 40
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[1m])) by (span_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"postgresql\"}[1m])) by (span_name)",
-              "legendFormat": "{{span_name}} latency"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "DB Write Spans per Request",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 40
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=~\"(?i).*(INSERT|UPDATE|DELETE).*\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m]))",
-              "legendFormat": "Writes/Req"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "PG Connection Pool",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
-          "targets": [
-            {
-              "expr": "sum(pg_pool_acquired_conns) by (service, db_pool)",
-              "legendFormat": "Acquired ({{service}}/{{db_pool}})"
-            },
-            {
-              "expr": "sum(pg_pool_idle_conns) by (service, db_pool)",
-              "legendFormat": "Idle ({{service}}/{{db_pool}})"
-            },
-            {
-              "expr": "sum(pg_pool_max_conns) by (service, db_pool)",
-              "legendFormat": "Max ({{service}}/{{db_pool}})"
+              "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m]))) * 100",
+              "legendFormat": "Hit Ratio (%)"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Commit Coordinator Saturation",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+          "title": "Postgres Dead Tuples (Table Bloat)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
           "targets": [
             {
-              "expr": "sum(commit_coordinator_queue_depth) by (topic, partition)",
-              "legendFormat": "{{topic}}/p{{partition}}"
+              "expr": "sum(pg_stat_user_tables_n_dead_tup) by (relname)",
+              "legendFormat": "{{relname}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Postgres Database Query Latency (Auto-OTel Spans)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} P99"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} P50"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Postgres Connection Pool Utilization",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(pg_pool_acquired_conns) by (service, db_pool, shard)",
+              "legendFormat": "Acquired: {{service}} ({{db_pool}} / {{shard}})"
+            },
+            {
+              "expr": "sum(pg_pool_idle_conns) by (service, db_pool, shard)",
+              "legendFormat": "Idle: {{service}} ({{db_pool}} / {{shard}})"
+            },
+            {
+              "expr": "sum(rate(pg_pool_empty_acquire_count_total[1m])) by (service, db_pool)",
+              "legendFormat": "Waits/s: {{service}} ({{db_pool}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Consumer Group Lag (OTel Collector)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum(kafka_consumer_group_lag_ratio) by (group, topic)",
+              "legendFormat": "Lag: {{group}} ({{topic}})"
+            },
+            {
+              "expr": "sum(kafka_consumer_group_lag_sum_ratio) by (group)",
+              "legendFormat": "Total Lag: {{group}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Consumer Throughput & Active Members",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum(rate(kafka_consumer_group_offset_sum_ratio[1m])) by (group, topic)",
+              "legendFormat": "Consume RPS: {{group}} ({{topic}})"
+            },
+            {
+              "expr": "sum(kafka_consumer_group_members) by (group)",
+              "legendFormat": "Members: {{group}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Kafka Broker Health & Partition Balance",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(kafka_brokers)",
+              "legendFormat": "Brokers"
+            },
+            {
+              "expr": "sum(kafka_topic_partitions) by (topic)",
+              "legendFormat": "Partitions: {{topic}}"
+            },
+            {
+              "expr": "sum(kafka_cluster_partition_underreplicated)",
+              "legendFormat": "Under-Replicated Partitions"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Transactional Outbox: Lag & Buffer Fill",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [
+            {
+              "expr": "max(outbox_lag_seconds) by (shard)",
+              "legendFormat": "Outbox Lag (s): {{shard}}"
+            },
+            {
+              "expr": "max(kafka_producer_buffer_fill_ratio) by (shard)",
+              "legendFormat": "Producer Buffer Fill: {{shard}}"
+            },
+            {
+              "expr": "sum(rate(outbox_events_published_total[1m])) by (shard)",
+              "legendFormat": "Published RPS: {{shard}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Memory Fragmentation & Evictions",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [
+            {
+              "expr": "max(redis_memory_fragmentation_ratio) by (pod)",
+              "legendFormat": "Frag Ratio: {{pod}}"
+            },
+            {
+              "expr": "sum(rate(redis_evicted_keys_total[1m])) by (pod)",
+              "legendFormat": "Evictions/s: {{pod}}"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Redis Connected Clients & Operations",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [
+            {
+              "expr": "sum(redis_connected_clients) by (pod)",
+              "legendFormat": "Clients: {{pod}}"
+            },
+            {
+              "expr": "sum(rate(redis_commands_total[1m])) by (pod)",
+              "legendFormat": "Commands/s: {{pod}}"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
