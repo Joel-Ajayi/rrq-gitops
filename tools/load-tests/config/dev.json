@@ -4,11 +4,11 @@
   "workloads": {
     "smoke": {
       "executor": "constant-arrival-rate",
-      "rate": 1,
+      "rate": 5,
       "timeUnit": "1s",
-      "duration": "5s",
+      "duration": "30s",
       "preAllocatedVUs": 5,
-      "maxVUs": 10
+      "maxVUs": 20
     },
     "full_workload": {
       "executor": "ramping-arrival-rate",
