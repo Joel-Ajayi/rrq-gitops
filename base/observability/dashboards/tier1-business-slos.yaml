@@ -35,6 +35,7 @@ data:
           "type": "stat",
           "title": "Total Transfers Processed",
           "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(business_transfers_total)",
@@ -47,6 +48,7 @@ data:
           "type": "stat",
           "title": "Successful Transfers",
           "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(business_transfers_total{status=\"success\"})",
@@ -59,6 +61,7 @@ data:
           "type": "stat",
           "title": "Failed / Declined Transfers",
           "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(business_transfers_total{status=\"failed\"})",
@@ -71,6 +74,7 @@ data:
           "type": "stat",
           "title": "Cumulative GTV",
           "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(business_gtv_total)",
@@ -83,6 +87,7 @@ data:
           "type": "timeseries",
           "title": "Transfer Throughput by Status & Shard Type",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(business_transfers_total[1m])) by (status, shard_type)",
@@ -95,6 +100,7 @@ data:
           "type": "timeseries",
           "title": "Transfer Success Rate (TSR)",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
           "targets": [
             {
               "expr": "(sum(rate(business_transfers_total{status=\"success\"}[1m])) / sum(rate(business_transfers_total[1m]))) * 100",
@@ -111,6 +117,7 @@ data:
           "type": "timeseries",
           "title": "Gross Transaction Value (GTV Rate)",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(business_gtv_total[1m])) by (currency)",
@@ -123,6 +130,7 @@ data:
           "type": "timeseries",
           "title": "Decline Reasons Breakdown",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(business_declines_total[1m])) by (reason)",
@@ -135,6 +143,7 @@ data:
           "type": "timeseries",
           "title": "Fraud / Velocity Rejections",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(velocity_limit_exceeded_total[1m])) by (limit_type)",
@@ -147,6 +156,7 @@ data:
           "type": "timeseries",
           "title": "Deposit Operations & Inflow",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(business_deposits_total[1m])) by (status, currency)",
@@ -163,6 +173,7 @@ data:
           "type": "timeseries",
           "title": "Wallet Onboarding Rate",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(business_wallets_created_total[1m])) by (currency)",
@@ -175,6 +186,7 @@ data:
           "type": "timeseries",
           "title": "Cross-Shard Saga Throughput & Latency",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(business_saga_initiated_total[1m]))",
@@ -199,6 +211,7 @@ data:
           "type": "timeseries",
           "title": "Refunds & Disputes Activity",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(business_refunds_total[1m])) by (currency)",
@@ -215,6 +228,7 @@ data:
           "type": "timeseries",
           "title": "Reconciliation Discrepancies",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(recon_discrepancies_total[1m])) by (shard)",

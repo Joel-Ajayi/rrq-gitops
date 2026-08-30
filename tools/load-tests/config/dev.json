@@ -5,13 +5,10 @@
     "smoke": {
       "executor": "constant-arrival-rate",
       "rate": 5,
-      "timeUnit": "1s",
       "duration": "30s",
-      "preAllocatedVUs": 5,
-      "maxVUs": 20
+      "preAllocatedVUs": 5
     },
     "full_workload": {
-      "executor": "ramping-arrival-rate",
       "startRate": 100,
       "timeUnit": "1s",
       "preAllocatedVUs": 100,

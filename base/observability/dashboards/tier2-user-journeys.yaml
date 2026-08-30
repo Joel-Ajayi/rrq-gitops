@@ -4,7 +4,7 @@ metadata:
   name: rrq-tier2-user-journeys
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
   rrq-tier2-user-journeys.json: |-
     {
@@ -28,6 +28,7 @@ data:
           "type": "stat",
           "title": "Stuck Sagas",
           "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(saga_unresolved_count)",
@@ -40,6 +41,7 @@ data:
           "type": "stat",
           "title": "Ledger Imbalance",
           "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "max(ledger_imbalance)",
@@ -52,6 +54,7 @@ data:
           "type": "stat",
           "title": "Cumulative Idempotency Hits",
           "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(idempotency_hits_total)",
@@ -64,6 +67,7 @@ data:
           "type": "stat",
           "title": "DLQ Inflow Total",
           "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(dlq_ingestion_rate)",
@@ -76,6 +80,7 @@ data:
           "type": "timeseries",
           "title": "Saga Unresolved Count",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(saga_unresolved_count)",
@@ -88,6 +93,7 @@ data:
           "type": "timeseries",
           "title": "Dead Letter Queue (DLQ) Churn",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(dlq_ingestion_rate[1m])) by (topic)",
@@ -104,6 +110,7 @@ data:
           "type": "timeseries",
           "title": "DLQ Infrastructure Poison Flood Protection",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(dlq_infrastructure_flood_total[1m])) by (service, topic)",
@@ -116,6 +123,7 @@ data:
           "type": "timeseries",
           "title": "Webhook Bulkhead In-Flight & Rejections",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(bulkhead_in_flight) by (service)",
@@ -132,6 +140,7 @@ data:
           "type": "timeseries",
           "title": "Idempotency Protection: Replays vs Conflicts",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(idempotency_hits_total[1m])) by (shard)",
@@ -148,6 +157,7 @@ data:
           "type": "timeseries",
           "title": "Double-Entry Ledger Imbalance Drift",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "max(ledger_imbalance) by (shard, currency)",
@@ -160,6 +170,7 @@ data:
           "type": "timeseries",
           "title": "Consumer Commit Coordinator Queue Depth",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "max(commit_coordinator_queue_depth) by (topic, partition)",
@@ -172,6 +183,7 @@ data:
           "type": "timeseries",
           "title": "Worker Task Channel Fill Ratio",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+          "fieldConfig": { "defaults": { "unit": "percentunit" } },
           "targets": [
             {
               "expr": "max(task_channel_fill_ratio) by (topic, partition)",
@@ -184,6 +196,7 @@ data:
           "type": "timeseries",
           "title": "Consumer Backoff Latency Distribution",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+          "fieldConfig": { "defaults": { "unit": "s" } },
           "targets": [
             {
               "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))",
@@ -200,6 +213,7 @@ data:
           "type": "timeseries",
           "title": "Resilience Triggers: Retry Budgets & Redis Fail-Closed",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(retry_budget_exhausted_total[1m])) by (service)",

@@ -41,6 +41,7 @@ data:
           "type": "timeseries",
           "title": "Postgres Buffer Cache Hit Ratio",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
           "targets": [
             {
               "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m]))) * 100",
@@ -53,6 +54,7 @@ data:
           "type": "timeseries",
           "title": "Postgres Dead Tuples (Table Bloat)",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(pg_stat_user_tables_n_dead_tup) by (relname)",
@@ -65,6 +67,7 @@ data:
           "type": "timeseries",
           "title": "Postgres Database Query Latency (Auto-OTel Spans)",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "fieldConfig": { "defaults": { "unit": "s" } },
           "targets": [
             {
               "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, span_name))",
@@ -81,6 +84,7 @@ data:
           "type": "timeseries",
           "title": "Postgres Connection Pool Utilization",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(pg_pool_acquired_conns) by (service, db_pool, shard)",
@@ -101,6 +105,7 @@ data:
           "type": "timeseries",
           "title": "Kafka Consumer Group Lag (OTel Collector)",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(kafka_consumer_group_lag_ratio) by (group, topic)",
@@ -117,6 +122,7 @@ data:
           "type": "timeseries",
           "title": "Kafka Consumer Throughput & Active Members",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(kafka_consumer_group_offset_sum_ratio[1m])) by (group, topic)",
@@ -133,6 +139,7 @@ data:
           "type": "timeseries",
           "title": "Kafka Broker Health & Partition Balance",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(kafka_brokers)",
@@ -153,6 +160,7 @@ data:
           "type": "timeseries",
           "title": "Transactional Outbox: Lag & Buffer Fill",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "fieldConfig": { "defaults": { "unit": "s" } },
           "targets": [
             {
               "expr": "max(outbox_lag_seconds) by (shard)",
@@ -173,6 +181,7 @@ data:
           "type": "timeseries",
           "title": "Redis Memory Fragmentation & Evictions",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "max(redis_memory_fragmentation_ratio) by (pod)",
@@ -189,6 +198,7 @@ data:
           "type": "timeseries",
           "title": "Redis Connected Clients & Operations",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(redis_connected_clients) by (pod)",

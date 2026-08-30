@@ -4,7 +4,7 @@ metadata:
   name: rrq-tier5-compute-infrastructure
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
   rrq-tier5-compute-infrastructure.json: |-
     {
@@ -33,6 +33,7 @@ data:
             "x": 0,
             "y": 0
           },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(kube_pod_container_status_restarts_total{namespace=\"rrq\"}[5m])) by (pod)",
@@ -53,6 +54,7 @@ data:
             "x": 12,
             "y": 0
           },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
           "targets": [
             {
               "expr": "max(kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes) by (namespace, persistentvolumeclaim)",
@@ -73,6 +75,7 @@ data:
             "x": 0,
             "y": 8
           },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure\", status=\"true\"}",
@@ -93,6 +96,7 @@ data:
             "x": 12,
             "y": 8
           },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(node_network_transmit_errs_total[5m])) by (instance, device)",
@@ -113,6 +117,7 @@ data:
             "x": 0,
             "y": 16
           },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(rate(process_cpu_seconds_total[1m])) by (job)",
@@ -137,6 +142,7 @@ data:
             "x": 12,
             "y": 16
           },
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)",

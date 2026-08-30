@@ -42,6 +42,7 @@ data:
           "type": "stat",
           "title": "Service Throughput",
           "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\"}[1m]))",
@@ -54,6 +55,7 @@ data:
           "type": "stat",
           "title": "Span Errors (1m rate)",
           "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m]))",
@@ -66,6 +68,7 @@ data:
           "type": "stat",
           "title": "Open Circuit Breakers",
           "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "count(circuit_breaker_state{circuit_breaker!=\"\"} == 2) or vector(0)",
@@ -78,6 +81,7 @@ data:
           "type": "stat",
           "title": "Panics Recovered Total",
           "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(consumer_panics_total) + sum(outbox_panics_total)",
@@ -90,6 +94,7 @@ data:
           "type": "timeseries",
           "title": "API / Kafka Throughput",
           "gridPos": {"h": 8, "w": 14, "x": 0, "y": 4},
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
@@ -110,6 +115,7 @@ data:
           "type": "timeseries",
           "title": "Error Rate & Infrastructure Errors",
           "gridPos": {"h": 8, "w": 10, "x": 14, "y": 4},
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
           "targets": [
             {
               "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
@@ -126,6 +132,7 @@ data:
           "type": "timeseries",
           "title": "Latency Distribution (Quantiles)",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "fieldConfig": { "defaults": { "unit": "s" } },
           "targets": [
             {
               "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=~\"$service_name.*\"}[5m])) by (le, span_name))",
@@ -142,6 +149,7 @@ data:
           "type": "timeseries",
           "title": "Circuit Breakers: State & Trip History",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "max(circuit_breaker_state{job=~\"$service_name.*\"}) by (circuit_breaker)",
@@ -162,6 +170,7 @@ data:
           "type": "timeseries",
           "title": "Consumer & Outbox Panics (Recovered)",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "fieldConfig": { "defaults": { "unit": "ops" } },
           "targets": [
             {
               "expr": "sum(rate(consumer_panics_total{service=~\"$service_name.*\"}[5m])) by (topic)",
@@ -178,6 +187,7 @@ data:
           "type": "timeseries",
           "title": "DB Connection Pool Saturation & Starvation",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(pg_pool_acquired_conns{service=~\"$service_name.*\"}) by (db_pool, shard)",
@@ -198,6 +208,7 @@ data:
           "type": "timeseries",
           "title": "Go Goroutines & Memory Working Set",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+          "fieldConfig": { "defaults": { "unit": "bytes" } },
           "targets": [
             {
               "expr": "sum(go_goroutines{job=~\"$service_name.*\"}) by (pod)",
@@ -214,6 +225,7 @@ data:
           "type": "timeseries",
           "title": "Pod CPU & Memory Utilization",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+          "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
