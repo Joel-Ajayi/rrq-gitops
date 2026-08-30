@@ -4,7 +4,7 @@ metadata:
   name: rrq-tier4-middleware-data
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
   rrq-tier4-middleware-data.json: |-
     {
@@ -24,16 +24,15 @@ data:
         "list": [
           {
             "name": "shard",
-            "type": "custom",
-            "options": [
-              { "text": "All", "value": ".*", "selected": true },
-              { "text": "merchants-global", "value": "merchants-global" },
-              { "text": "shard-a", "value": "shard-a" },
-              { "text": "shard-b", "value": "shard-b" }
-            ],
-            "query": ".*,merchants-global,shard-a,shard-b",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(pg_pool_acquired_conns, shard)",
+            "refresh": 1,
             "includeAll": true,
-            "multi": false
+            "multi": true
           }
         ]
       },

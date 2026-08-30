@@ -4,7 +4,7 @@ metadata:
   name: rrq-tier3-service-health
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
   rrq-tier3-service-health.json: |-
     {
@@ -150,6 +150,10 @@ data:
             {
               "expr": "sum(rate(circuit_breaker_open_total{service=~\"$service_name.*\"}[1m])) by (circuit_breaker)",
               "legendFormat": "Trips/s: {{circuit_breaker}}"
+            },
+            {
+              "expr": "sum(rate(circuit_breaker_half_open_failure_total{service=~\"$service_name.*\"}[1m])) by (circuit_breaker)",
+              "legendFormat": "Half-Open Fails/s: {{circuit_breaker}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}

@@ -4,7 +4,7 @@ metadata:
   name: rrq-tier1-business-slos
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
   rrq-tier1-business-slos.json: |-
     {
