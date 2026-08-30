@@ -10,7 +10,7 @@ data:
     {
       "title": "Tier 1: Business & SLOs",
       "uid": "tier1-business-slos",
-      "version": 1,
+      "version": 2,
       "refresh": "10s",
       "time": {
         "from": "now-1h",
@@ -32,112 +32,100 @@ data:
       },
       "panels": [
         {
-          "type": "timeseries",
-          "title": "Total Processed Transfers",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
+          "type": "stat",
+          "title": "Total Transfers Processed",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
           "targets": [
             {
-              "expr": "sum(rate(business_transfers_total[1m])) by (status)",
-              "legendFormat": "{{status}}"
+              "expr": "sum(business_transfers_total)",
+              "legendFormat": "Total"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Successful Transfers",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(business_transfers_total{status=\"success\"})",
+              "legendFormat": "Success"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Failed / Declined Transfers",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(business_transfers_total{status=\"failed\"})",
+              "legendFormat": "Failed"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Cumulative GTV",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(business_gtv_total)",
+              "legendFormat": "GTV (NGN minor)"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Fraud / Velocity Rejections",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
+          "title": "Transfer Throughput by Status & Shard Type",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
           "targets": [
             {
-              "expr": "rate(velocity_limit_exceeded_total[1m])",
-              "legendFormat": "Rejections/sec"
+              "expr": "sum(rate(business_transfers_total[1m])) by (status, shard_type)",
+              "legendFormat": "{{status}} ({{shard_type}})"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Transfer Success Rate",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
+          "title": "Transfer Success Rate (TSR)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\", status_code=\"STATUS_CODE_OK\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\"}[1m]))",
-              "legendFormat": "Success Ratio"
+              "expr": "(sum(rate(business_transfers_total{status=\"success\"}[1m])) / sum(rate(business_transfers_total[1m]))) * 100",
+              "legendFormat": "TSR (%)"
+            },
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\", status_code=\"STATUS_CODE_OK\"}[1m])) / sum(rate(traces_span_metrics_calls_total{span_name=\"api.transfer_submitter.submit\"}[1m])) * 100",
+              "legendFormat": "API Submit Success (%)"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Active Merchants (Proxy)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(traces_span_metrics_calls_total{span_name=\"api.merchant_directory.shard_for\"}[1m]))",
-              "legendFormat": "Lookup RPS"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Gross Transaction Value (GTV)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 16
-          },
+          "title": "Gross Transaction Value (GTV Rate)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
           "targets": [
             {
               "expr": "sum(rate(business_gtv_total[1m])) by (currency)",
-              "legendFormat": "GTV ({{currency}})"
+              "legendFormat": "GTV Rate ({{currency}}/s)"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Decline Reasons",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "title": "Decline Reasons Breakdown",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
           "targets": [
             {
-              "expr": "sum(rate(business_declines_total[5m])) by (reason)",
+              "expr": "sum(rate(business_declines_total[1m])) by (reason)",
               "legendFormat": "{{reason}}"
             }
           ],
@@ -145,31 +133,79 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Deposit Activity",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "title": "Fraud / Velocity Rejections",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
           "targets": [
             {
-              "expr": "sum(rate(business_deposits_total[5m])) by (status)",
-              "legendFormat": "Count ({{status}})"
-            },
-            {
-              "expr": "sum(rate(business_deposits_amount_total[5m])) by (currency)",
-              "legendFormat": "Amount ({{currency}})"
+              "expr": "sum(rate(velocity_limit_exceeded_total[1m])) by (limit_type)",
+              "legendFormat": "Limit: {{limit_type}}"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Refund & Dispute Activity",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "title": "Deposit Operations & Inflow",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
           "targets": [
             {
-              "expr": "sum(rate(business_refunds_total[5m])) by (currency)",
+              "expr": "sum(rate(business_deposits_total[1m])) by (status, currency)",
+              "legendFormat": "Count: {{status}} ({{currency}})"
+            },
+            {
+              "expr": "sum(rate(business_deposits_amount_total[1m])) by (currency)",
+              "legendFormat": "Amount: {{currency}}/s"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Wallet Onboarding Rate",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+          "targets": [
+            {
+              "expr": "sum(rate(business_wallets_created_total[1m])) by (currency)",
+              "legendFormat": "Created ({{currency}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cross-Shard Saga Throughput & Latency",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+          "targets": [
+            {
+              "expr": "sum(rate(business_saga_initiated_total[1m]))",
+              "legendFormat": "Initiated/s"
+            },
+            {
+              "expr": "sum(rate(business_saga_completed_total[1m]))",
+              "legendFormat": "Completed/s"
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(business_saga_duration_seconds_bucket[1m])) by (le))",
+              "legendFormat": "p50 Latency (s)"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(business_saga_duration_seconds_bucket[1m])) by (le))",
+              "legendFormat": "p99 Latency (s)"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Refunds & Disputes Activity",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+          "targets": [
+            {
+              "expr": "sum(rate(business_refunds_total[1m])) by (currency)",
               "legendFormat": "Refunds ({{currency}})"
             },
             {
-              "expr": "sum(rate(business_disputes_total[5m])) by (dispute_status)",
+              "expr": "sum(rate(business_disputes_total[1m])) by (dispute_status)",
               "legendFormat": "Disputes ({{dispute_status}})"
             }
           ],
@@ -177,36 +213,12 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Wallet Onboarding",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "title": "Reconciliation Discrepancies",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
           "targets": [
             {
-              "expr": "sum(rate(business_wallets_created_total[5m])) by (currency)",
-              "legendFormat": "{{currency}}"
-            }
-          ],
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
-        },
-        {
-          "type": "timeseries",
-          "title": "Cross-Shard Saga Activity",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
-          "targets": [
-            {
-              "expr": "sum(rate(business_saga_initiated_total[5m]))",
-              "legendFormat": "Initiated/s"
-            },
-            {
-              "expr": "sum(rate(business_saga_completed_total[5m]))",
-              "legendFormat": "Completed/s"
-            },
-            {
-              "expr": "histogram_quantile(0.5, sum(rate(business_saga_duration_seconds_bucket[5m])) by (le))",
-              "legendFormat": "p50 (s)"
-            },
-            {
-              "expr": "histogram_quantile(0.99, sum(rate(business_saga_duration_seconds_bucket[5m])) by (le))",
-              "legendFormat": "p99 (s)"
+              "expr": "sum(rate(recon_discrepancies_total[1m])) by (shard)",
+              "legendFormat": "Discrepancy RPS ({{shard}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -214,8 +226,8 @@ data:
         {
           "type": "text",
           "title": "Per-Transfer Trace Lookup",
-          "description": "A7: paste a trace_id (32 hex chars) below to open the per-transfer trace in Jaeger. Find the trace_id from a canonical log in Kibana: filter by event:transfer.completed and job_id:<job_id>.",
-          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 40 },
+          "description": "Paste a trace_id (32 hex chars) below to open the per-transfer trace in Jaeger. Find the trace_id from a canonical log in Kibana: filter by event:transfer.completed and job_id:<job_id>.",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 44 },
           "options": {
             "mode": "markdown",
             "content": "## Per-Transfer Trace Lookup\n\n**Trace ID:**  ${trace_id}\n\n[Open in Jaeger](https://traces.127.0.0.1.nip.io/trace/${trace_id})\n\n> The Jaeger URL uses the local dev host (traces.127.0.0.1.nip.io). For prod, replace with https://traces.rrq.yotstack.tech/trace/${trace_id}.\n> A trace_id propagates through HTTP request → outbox event → Kafka header → consumer ctx → saga events → webhook delivery, all in one trace."

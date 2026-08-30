@@ -10,7 +10,7 @@ data:
     {
       "title": "Tier 3: Service Health (RED)",
       "uid": "tier3-service-health",
-      "version": 1,
+      "version": 2,
       "refresh": "10s",
       "time": {
         "from": "now-1h",
@@ -39,12 +39,60 @@ data:
       },
       "panels": [
         {
-          "type": "timeseries",
-          "title": "API / Kafka Throughput",
-          "gridPos": {"h": 8, "w": 18, "x": 0, "y": 0},
+          "type": "stat",
+          "title": "Service Throughput",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\"}[1m]))",
+              "legendFormat": "RPS"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "stat",
+          "title": "Span Errors (1m rate)",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m]))",
+              "legendFormat": "Errors/s"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "stat",
+          "title": "Open Circuit Breakers",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "count(circuit_breaker_state{circuit_breaker!=\"\"} == 2) or vector(0)",
+              "legendFormat": "Open CBs"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "stat",
+          "title": "Panics Recovered Total",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(consumer_panics_total) + sum(outbox_panics_total)",
+              "legendFormat": "Panics"
+            }
+          ],
+          "datasource": {"type": "prometheus", "uid": "prometheus"}
+        },
+        {
+          "type": "timeseries",
+          "title": "API / Kafka Throughput",
+          "gridPos": {"h": 8, "w": 14, "x": 0, "y": 4},
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
               "legendFormat": "API: {{span_name}}"
             },
             {
@@ -52,7 +100,7 @@ data:
               "legendFormat": "Consume: {{topic}}"
             },
             {
-              "expr": "sum(rate(outbox_events_published_total{exported_job=~\"$service_name.*\"}[1m]))",
+              "expr": "sum(rate(outbox_events_published_total{job=~\"$service_name.*\"}[1m]))",
               "legendFormat": "Events/s"
             }
           ],
@@ -60,96 +108,116 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Error Rate",
-          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+          "title": "Error Rate & Infrastructure Errors",
+          "gridPos": {"h": 8, "w": 10, "x": 14, "y": 4},
           "targets": [
             {
-              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=\"$service_name\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
               "legendFormat": "{{span_name}} Errors"
+            },
+            {
+              "expr": "sum(rate(infrastructure_errors_total{service=~\"$service_name.*\"}[1m])) by (component)",
+              "legendFormat": "Infra: {{component}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "Latency (Duration)",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "title": "Latency Distribution (Quantiles)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=\"$service_name\"}[5m])) by (le, span_name))",
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=~\"$service_name.*\"}[5m])) by (le, span_name))",
               "legendFormat": "{{span_name}} P99"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=~\"$service_name.*\"}[5m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} P50"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "Open Circuit Breakers",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "title": "Circuit Breakers: State & Trip History",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
           "targets": [
             {
-              "expr": "max(circuit_breaker_state{exported_job=~\"$service_name.*\"}) by (circuit_breaker)",
-              "legendFormat": "State: {{circuit_breaker}}"
+              "expr": "max(circuit_breaker_state{job=~\"$service_name.*\"}) by (circuit_breaker)",
+              "legendFormat": "State: {{circuit_breaker}} (0=Closed, 1=HalfOpen, 2=Open)"
+            },
+            {
+              "expr": "sum(rate(circuit_breaker_open_total{service=~\"$service_name.*\"}[1m])) by (circuit_breaker)",
+              "legendFormat": "Trips/s: {{circuit_breaker}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "Consumer Panics (recovered)",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+          "title": "Consumer & Outbox Panics (Recovered)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
           "targets": [
             {
-              "expr": "sum(rate(consumer_panics_total{exported_job=~\"$service_name.*\"}[5m]))",
-              "legendFormat": "Panics/s"
+              "expr": "sum(rate(consumer_panics_total{service=~\"$service_name.*\"}[5m])) by (topic)",
+              "legendFormat": "Consumer Panic: {{topic}}"
+            },
+            {
+              "expr": "sum(rate(outbox_panics_total{job=~\"$service_name.*\"}[5m])) by (shard)",
+              "legendFormat": "Outbox Panic: {{shard}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "DB Connection Pool Starvation",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+          "title": "DB Connection Pool Saturation & Starvation",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
           "targets": [
             {
-              "expr": "sum(rate(pg_pool_empty_acquire_count_total{exported_job=~\"$service_name.*\"}[1m])) by (db_pool)",
-              "legendFormat": "{{db_pool}} waits/sec"
+              "expr": "sum(pg_pool_acquired_conns{service=~\"$service_name.*\"}) by (db_pool, shard)",
+              "legendFormat": "Acquired: {{db_pool}} ({{shard}})"
+            },
+            {
+              "expr": "sum(pg_pool_idle_conns{service=~\"$service_name.*\"}) by (db_pool, shard)",
+              "legendFormat": "Idle: {{db_pool}} ({{shard}})"
+            },
+            {
+              "expr": "sum(rate(pg_pool_empty_acquire_count_total{service=~\"$service_name.*\"}[1m])) by (db_pool, shard)",
+              "legendFormat": "Starvation Waits/s: {{db_pool}} ({{shard}})"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "Go Goroutines",
-          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
+          "title": "Go Goroutines & Memory Working Set",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
           "targets": [
             {
-              "expr": "sum(go_goroutines{exported_job=~\"$service_name.*\"}) by (instance)",
-              "legendFormat": "{{instance}}"
+              "expr": "sum(go_goroutines{job=~\"$service_name.*\"}) by (pod)",
+              "legendFormat": "Goroutines: {{pod}}"
+            },
+            {
+              "expr": "sum(go_memstats_alloc_bytes{job=~\"$service_name.*\"}) by (pod)",
+              "legendFormat": "Alloc Bytes: {{pod}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
         },
         {
           "type": "timeseries",
-          "title": "Pod CPU Usage",
-          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 24},
+          "title": "Pod CPU & Memory Utilization",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
           "targets": [
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
-              "legendFormat": "{{pod}}"
-            }
-          ],
-          "datasource": {"type": "prometheus", "uid": "prometheus"}
-        },
-        {
-          "type": "timeseries",
-          "title": "Pod Memory Usage",
-          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 24},
-          "targets": [
+              "legendFormat": "CPU (cores): {{pod}}"
+            },
             {
               "expr": "sum(container_memory_working_set_bytes{namespace=\"rrq\", pod=~\"$service_name-.*\"}) by (pod)",
-              "legendFormat": "{{pod}}"
+              "legendFormat": "Memory: {{pod}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}

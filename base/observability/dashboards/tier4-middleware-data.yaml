@@ -271,16 +271,16 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
           "targets": [
             {
-              "expr": "sum(pg_pool_acquired_conns) by (exported_job, db_pool)",
-              "legendFormat": "Acquired ({{exported_job}}/{{db_pool}})"
+              "expr": "sum(pg_pool_acquired_conns) by (service, db_pool)",
+              "legendFormat": "Acquired ({{service}}/{{db_pool}})"
             },
             {
-              "expr": "sum(pg_pool_idle_conns) by (exported_job, db_pool)",
-              "legendFormat": "Idle ({{exported_job}}/{{db_pool}})"
+              "expr": "sum(pg_pool_idle_conns) by (service, db_pool)",
+              "legendFormat": "Idle ({{service}}/{{db_pool}})"
             },
             {
-              "expr": "sum(pg_pool_max_conns) by (exported_job, db_pool)",
-              "legendFormat": "Max ({{exported_job}}/{{db_pool}})"
+              "expr": "sum(pg_pool_max_conns) by (service, db_pool)",
+              "legendFormat": "Max ({{service}}/{{db_pool}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }

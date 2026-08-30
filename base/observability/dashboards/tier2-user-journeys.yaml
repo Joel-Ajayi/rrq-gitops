@@ -10,7 +10,7 @@ data:
     {
       "title": "Tier 2: User Journeys & Flows",
       "uid": "tier2-user-journeys",
-      "version": 1,
+      "version": 2,
       "refresh": "10s",
       "time": {
         "from": "now-1h",
@@ -25,34 +25,69 @@ data:
       },
       "panels": [
         {
+          "type": "stat",
+          "title": "Stuck Sagas",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(saga_unresolved_count)",
+              "legendFormat": "Unresolved"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Ledger Imbalance",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "targets": [
+            {
+              "expr": "max(ledger_imbalance)",
+              "legendFormat": "Imbalance"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "Cumulative Idempotency Hits",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(idempotency_hits_total)",
+              "legendFormat": "Hits"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "stat",
+          "title": "DLQ Inflow Total",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(dlq_ingestion_rate)",
+              "legendFormat": "DLQ Entries"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
           "type": "timeseries",
           "title": "Saga Unresolved Count",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
           "targets": [
             {
               "expr": "sum(saga_unresolved_count)",
               "legendFormat": "Stuck Sagas"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
           "title": "Dead Letter Queue (DLQ) Churn",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
           "targets": [
             {
               "expr": "sum(rate(dlq_ingestion_rate[1m])) by (topic)",
@@ -63,88 +98,116 @@ data:
               "legendFormat": "Replayed ({{shard}})"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Webhook Delivery vs Rejections",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
+          "title": "DLQ Infrastructure Poison Flood Protection",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
           "targets": [
             {
-              "expr": "sum(bulkhead_in_flight)",
-              "legendFormat": "Inflight In-Use"
+              "expr": "sum(rate(dlq_infrastructure_flood_total[1m])) by (service, topic)",
+              "legendFormat": "Infra Flood: {{service}} ({{topic}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Bulkhead In-Flight & Rejections",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "targets": [
+            {
+              "expr": "sum(bulkhead_in_flight) by (service)",
+              "legendFormat": "In-Flight ({{service}})"
             },
             {
-              "expr": "sum(rate(bulkhead_rejections_total[1m]))",
-              "legendFormat": "Rejections/sec"
+              "expr": "sum(rate(bulkhead_rejections_total[1m])) by (service)",
+              "legendFormat": "Rejections/s ({{service}})"
             }
           ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Idempotency Conflicts",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
+          "title": "Idempotency Protection: Replays vs Conflicts",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
           "targets": [
+            {
+              "expr": "sum(rate(idempotency_hits_total[1m])) by (shard)",
+              "legendFormat": "Replay Hits ({{shard}})"
+            },
             {
               "expr": "sum(rate(idempotency_conflicts_total[1m])) by (shard)",
-              "legendFormat": "Conflicts ({{shard}})"
-            }
-          ],
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "DLQ Inflow Quality",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-          "targets": [
-            {
-              "expr": "sum(rate(dlq_infrastructure_flood_total[5m])) by (service_name)",
-              "legendFormat": "Infra Flood ({{service_name}})"
+              "legendFormat": "Conflicts 422 ({{shard}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Ledger Imbalance",
-          "description": "ledger_imbalance is a gauge (not a counter); it carries the absolute imbalance sum, not a delta. Track for absolute drift, not rate.",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "title": "Double-Entry Ledger Imbalance Drift",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
           "targets": [
             {
-              "expr": "max(ledger_imbalance)",
-              "legendFormat": "Absolute Imbalance"
+              "expr": "max(ledger_imbalance) by (shard, currency)",
+              "legendFormat": "Imbalance: {{shard}} ({{currency}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
           "type": "timeseries",
-          "title": "Idempotency Replay",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "title": "Consumer Commit Coordinator Queue Depth",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
           "targets": [
             {
-              "expr": "sum(rate(idempotency_hits_total[5m])) by (shard)",
-              "legendFormat": "Hits ({{shard}})"
+              "expr": "max(commit_coordinator_queue_depth) by (topic, partition)",
+              "legendFormat": "{{topic}} [p{{partition}}]"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Worker Task Channel Fill Ratio",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+          "targets": [
+            {
+              "expr": "max(task_channel_fill_ratio) by (topic, partition)",
+              "legendFormat": "{{topic}} [p{{partition}}]"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer Backoff Latency Distribution",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))",
+              "legendFormat": "p99 Backoff ({{topic}})"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))",
+              "legendFormat": "p50 Backoff ({{topic}})"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Resilience Triggers: Retry Budgets & Redis Fail-Closed",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+          "targets": [
+            {
+              "expr": "sum(rate(retry_budget_exhausted_total[1m])) by (service)",
+              "legendFormat": "Retry Budget Exhausted ({{service}})"
+            },
+            {
+              "expr": "sum(rate(redis_fail_closed_total[1m])) by (service)",
+              "legendFormat": "Redis Fail Closed ({{service}})"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
