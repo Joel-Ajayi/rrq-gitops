@@ -8,7 +8,7 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  partitions: 5
+  partitions: 5 # Partition count dictates maximum concurrent worker consumer threads
   replicas: 2
   config:
     retention.ms: "86400000" # 1 day
@@ -21,7 +21,7 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  partitions: 14
+  partitions: 14 # Higher partition count supports high concurrency webhook delivery
   replicas: 2
   config:
     retention.ms: "86400000" # 1 day
@@ -34,7 +34,7 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  partitions: 8
+  partitions: 8 # Dedicated topic for cross-shard transfer saga messages targeting shard-a
   replicas: 2
   config:
     retention.ms: "86400000" # 1 day
@@ -47,7 +47,7 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  partitions: 8
+  partitions: 8 # Dedicated topic for cross-shard transfer saga messages targeting shard-b
   replicas: 2
   config:
     retention.ms: "86400000" # 1 day

@@ -8,20 +8,23 @@ spec:
   version: 8.17.0
   nodeSets:
     - name: default
-      count: 2
+      count: 1 # Single node avoids split-brain quorum deadlock in dev/local environment
       config:
-        node.store.allow_mmap: false
+        node.store.allow_mmap: false # Disable mmap to avoid host vm.max_map_count constraint issues
       podTemplate:
         spec:
           containers:
             - name: elasticsearch
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms1g -Xmx1g" # Explicit 1GB JVM heap leaves 1.5GB off-heap buffer to prevent cgroup OOMKill
               resources:
                 requests:
-                  cpu: 250m
-                  memory: 768Mi
-                limits:
-                  cpu: 1000m
+                  cpu: 500m
                   memory: 1536Mi
+                limits:
+                  cpu: 2000m
+                  memory: 2560Mi # Memory ceiling sized for 1GB heap + Lucene off-heap buffers
       volumeClaimTemplates:
         - metadata:
             name: elasticsearch-data # elasticsearch-data-elasticsearch-es-default-0/1
@@ -30,7 +33,7 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 20Gi
+                storage: 60Gi # Matches live persistent volume capacity for Elasticsearch data
 ---
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana
@@ -43,7 +46,7 @@ spec:
   http:
     tls:
       selfSignedCertificate:
-        disabled: true
+        disabled: true # Use plaintext HTTP between Kibana and internal reverse proxy
   elasticsearchRef:
     name: elasticsearch
   podTemplate:

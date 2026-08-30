@@ -1,11 +1,11 @@
-architecture: replication
+architecture: replication # Master-replica topology managed with Redis Sentinel for automated failover
 fullnameOverride: "fraud-redis"
 auth:
   enabled: true
   existingSecret: redis-secret
   existingSecretPasswordKey: redis-password
 sentinel:
-  enabled: true
+  enabled: true # Sentinel quorum monitors and orchestrates master failover
 master:
   resources:
     requests:
@@ -15,7 +15,7 @@ master:
       cpu: "4"
       memory: 4Gi
 replica:
-  replicaCount: 2
+  replicaCount: 2 # 2 read replicas for read-scaling and standby promotion
   resources:
     requests:
       cpu: "2"
@@ -24,5 +24,5 @@ replica:
       cpu: "4"
       memory: 4Gi
 commonConfiguration: |-
-  appendonly no
+  appendonly no # In-memory caching mode with disk persistence disabled for latency
   save ""

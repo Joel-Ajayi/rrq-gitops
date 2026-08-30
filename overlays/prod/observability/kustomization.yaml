@@ -3,6 +3,3 @@ kind: Kustomization
 resources:
   - ../../../base/observability
   - secrets.yaml
-
-patches:
-  - path: patches/elastic-storage.yaml

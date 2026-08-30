@@ -38,19 +38,17 @@ spec:
             endpoint: 0.0.0.0:4318
       filelog:
         include:
-          - /var/log/pods/*/*/*.log
-        exclude:
-          - /var/log/pods/observability_*/*/*.log
+          - /var/log/pods/rrq_*/*/*.log # Targets RRQ application container logs only
         start_at: beginning
         operators:
           - type: regex_parser
-            regex: '^(?P<time>[^ Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
+            regex: "^(?P<time>[^ Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$" # Standard containerd CRI log format
             timestamp:
               parse_from: attributes.time
-              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+              layout: "%Y-%m-%dT%H:%M:%S.%LZ"
           - type: json_parser
             parse_from: attributes.log
-            if: 'attributes.log matches "^\\{"'
+            if: 'attributes.log matches "^\\{"' # Parse structured JSON application logs
       hostmetrics:
         collection_interval: 30s
         scrapers:
@@ -59,13 +57,6 @@ spec:
           disk: {}
           network: {}
           load: {}
-      kubelet_stats:
-        auth_type: serviceAccount
-        collection_interval: 30s
-        metric_groups:
-          - container
-          - pod
-          - node
     processors:
       memory_limiter:
         check_interval: 1s
@@ -75,7 +66,7 @@ spec:
         error_mode: ignore
         traces:
           span:
-            - 'attributes["url.path"] == "/health"'
+            - 'attributes["url.path"] == "/health"' # Drop noise from k8s liveness/readiness probes
             - 'attributes["url.path"] == "/ready"'
             - 'attributes["url.path"] == "/.well-known/jwks.json"'
             - 'attributes["url.path"] == "/v1/traces"'
@@ -90,11 +81,12 @@ spec:
             - 'attributes["http.route"] == "/.well-known/jwks.json"'
             - 'attributes["server.port"] == 4318'
       batch:
-        send_batch_size: 1024
-        timeout: 1s
+        send_batch_size: 256 # Flushes smaller batches to prevent gRPC streaming timeouts
+        timeout: 500ms
     exporters:
       otlp/gateway:
         endpoint: gateway-collector.observability.svc.cluster.local:4317
+        timeout: 30s # Prevents deadline exceeded during batch export to gateway
         tls:
           insecure: true
     service:
@@ -104,7 +96,7 @@ spec:
           processors: [memory_limiter, filter/telemetry_noise, batch]
           exporters: [otlp/gateway]
         metrics:
-          receivers: [otlp, hostmetrics, kubelet_stats]
+          receivers: [otlp, hostmetrics]
           processors: [memory_limiter, batch]
           exporters: [otlp/gateway]
         logs:

@@ -9,9 +9,9 @@ metadata:
     app.kubernetes.io/part-of: rrq
     rrq.dev/role: control-plane
 spec:
-  instances: 3
+  instances: 3 # 1 Primary + 2 Standbys for high availability and automated failover
   imageName: ghcr.io/cloudnative-pg/postgresql:17.0
-  primaryUpdateStrategy: supervised
+  primaryUpdateStrategy: supervised # Requires explicit supervisor approval for primary switchovers during rollout
   bootstrap:
     initdb:
       database: merchants
@@ -23,9 +23,9 @@ spec:
     limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
-      max_connections: "239"
-      shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16MB"
+      max_connections: "239" # Sized for aggregated client connection pool limits across all replicas
+      shared_buffers: "512MB" # 50% of container memory limit allocated for PostgreSQL buffer cache
+      work_mem: "16MB" # Memory allocation per sorting/hashing operation
 
 ---
 # Ledger shard A: data for merchants with shard_id='shard-a'.
@@ -40,9 +40,9 @@ metadata:
     rrq.dev/role: ledger-shard
     rrq.dev/shard-id: shard-a
 spec:
-  instances: 3
+  instances: 3 # 1 Primary + 2 Standbys for high availability and automated failover
   imageName: ghcr.io/cloudnative-pg/postgresql:17.0
-  primaryUpdateStrategy: supervised
+  primaryUpdateStrategy: supervised # Requires explicit supervisor approval for primary switchovers during rollout
   bootstrap:
     initdb:
       database: rrq
@@ -54,9 +54,9 @@ spec:
     limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
-      max_connections: "239"
-      shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16MB"
+      max_connections: "239" # Sized for aggregated client connection pool limits across all replicas
+      shared_buffers: "512MB" # 50% of container memory limit allocated for PostgreSQL buffer cache
+      work_mem: "16MB" # Memory allocation per sorting/hashing operation
 
 ---
 # Ledger shard B: data for merchants with shard_id='shard-b'.
@@ -71,9 +71,9 @@ metadata:
     rrq.dev/role: ledger-shard
     rrq.dev/shard-id: shard-b
 spec:
-  instances: 3
+  instances: 3 # 1 Primary + 2 Standbys for high availability and automated failover
   imageName: ghcr.io/cloudnative-pg/postgresql:17.0
-  primaryUpdateStrategy: supervised
+  primaryUpdateStrategy: supervised # Requires explicit supervisor approval for primary switchovers during rollout
   bootstrap:
     initdb:
       database: rrq
@@ -85,6 +85,6 @@ spec:
     limits: { cpu: "1", memory: 1Gi }
   postgresql:
     parameters:
-      max_connections: "239"
-      shared_buffers: "512MB" #Industry standard: 25% of your RAM
-      work_mem: "16MB"
+      max_connections: "239" # Sized for aggregated client connection pool limits across all replicas
+      shared_buffers: "512MB" # 50% of container memory limit allocated for PostgreSQL buffer cache
+      work_mem: "16MB" # Memory allocation per sorting/hashing operation

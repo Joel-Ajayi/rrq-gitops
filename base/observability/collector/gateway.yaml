@@ -76,6 +76,11 @@ spec:
             - key: app.kubernetes.io/component
             - key: app.kubernetes.io/part-of
 
+      transform/elastic_mode:
+        log_statements:
+          - context: scope
+            statements:
+              - set(attributes["elastic.mapping.mode"], "none") # Prevents HTTP 400 schema mismatch on ECS templates
       batch:
         send_batch_size: 1024
         timeout: 1s
@@ -101,6 +106,8 @@ spec:
       elasticsearch:
         endpoints: ["https://elasticsearch-es-http.observability.svc:9200"]
         logs_index: "logs-rrq-default"
+        headers:
+          X-Elastic-Mapping-Mode: "none" # Client header fallback for raw JSON log ingest
         auth:
           authenticator: basicauth
         tls:
@@ -122,7 +129,7 @@ spec:
           exporters: [prometheus]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, k8sattributes, batch]
+          processors: [memory_limiter, transform/elastic_mode, batch] # Excludes k8sattributes to avoid log ingest bottleneck
           exporters: [elasticsearch]
       telemetry:
         metrics:
