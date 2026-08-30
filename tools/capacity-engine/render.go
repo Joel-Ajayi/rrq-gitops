@@ -251,6 +251,11 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 			r := svc.Relay
 			m["STAGING_KB"] = fmt.Sprintf("%d", r.StagingKB)
 			m["RELAY_MAX_PAYLOAD_BYTES"] = fmt.Sprintf("%d", r.MaxPayloadKB*1024)
+			maxPayloadKB := r.MaxPayloadKB
+			if maxPayloadKB <= 0 {
+				maxPayloadKB = 64
+			}
+			m["RELAY_MAX_PAYLOAD_BYTES"] = fmt.Sprintf("%d", maxPayloadKB*1024)
 			m["RELAY_BUFFER_SAMPLE_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferSampleIntervalMS)
 			m["RELAY_BUFFER_MAX_THROTTLE_LEVEL"] = fmt.Sprintf("%d", r.BufferMaxThrottleLevel)
 			m["RELAY_BUFFER_MAX_POLL_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferMaxPollIntervalMS)
@@ -422,6 +427,11 @@ func serviceValues(name string, d Derived, svc *Service, input *SLOInput) map[st
 			r := svc.Relay
 			m["STAGING_KB"] = fmt.Sprintf("%d", r.StagingKB)
 			m["RELAY_MAX_PAYLOAD_BYTES"] = fmt.Sprintf("%d", r.MaxPayloadKB*1024)
+			maxPayloadKB := r.MaxPayloadKB
+			if maxPayloadKB <= 0 {
+				maxPayloadKB = 64
+			}
+			m["RELAY_MAX_PAYLOAD_BYTES"] = fmt.Sprintf("%d", maxPayloadKB*1024)
 			m["RELAY_BUFFER_SAMPLE_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferSampleIntervalMS)
 			m["RELAY_BUFFER_MAX_THROTTLE_LEVEL"] = fmt.Sprintf("%d", r.BufferMaxThrottleLevel)
 			m["RELAY_BUFFER_MAX_POLL_INTERVAL_MS"] = fmt.Sprintf("%d", r.BufferMaxPollIntervalMS)

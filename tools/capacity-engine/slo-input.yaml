@@ -209,6 +209,7 @@ services:
       error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
     relay:
       staging_kb: 1024 # Capacity Team - staging buffer budget (1MB)
+      max_payload_kb: 64 # Capacity Team - max payload limit (64KB = 65536 bytes)
       buffer_sample_interval_ms: 100 # Capacity Team - AIMD buffer sample frequency
       buffer_max_throttle_level: 3 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: kafka_producer_buffer_fill
       buffer_max_poll_interval_ms: 48 # SHOULD BE DERIVED: Redundant with relayDerived math

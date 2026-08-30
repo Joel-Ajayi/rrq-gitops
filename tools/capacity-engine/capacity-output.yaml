@@ -207,7 +207,7 @@ services:
         backoff_base_ms: 5
         backoff_cap_ms: 80
         cpu_request: 267
-        mem_request: 66
+        mem_request: 75
         latency_ms:
             poll: 6.805313774423276
         webhook_max_concurrency: 0
