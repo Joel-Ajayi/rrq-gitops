@@ -18,11 +18,31 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # ── Seed command: create merchants, wallets, and pre-fund ──
+# ── Seed command: create merchants and wallets ──
 if [ "${1:-}" = "seed" ]; then
   echo "══════════════════════════════════════════════════════════════"
   echo "  SEED: Creating test merchants & wallets in DB"
   echo "══════════════════════════════════════════════════════════════"
   NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/seed-test-data.mjs"
+  NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/seed-test-data.mts"
+  exit 0
+fi
+
+# ── Deposit / Fund command: pre-fund all test wallets ──
+if [ "${1:-}" = "deposit" ] || [ "${1:-}" = "fund" ]; then
+  echo "══════════════════════════════════════════════════════════════"
+  echo "  DEPOSIT: Pre-funding all test wallets in DB"
+  echo "══════════════════════════════════════════════════════════════"
+  NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/deposit-test-data.mts"
+  exit 0
+fi
+
+# ── Refresh tokens command: acquire fresh JWTs for all merchants ──
+if [ "${1:-}" = "refresh" ] || [ "${1:-}" = "refresh-tokens" ]; then
+  echo "══════════════════════════════════════════════════════════════"
+  echo "  REFRESH: Refreshing JWT tokens for all merchants"
+  echo "══════════════════════════════════════════════════════════════"
+  NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/refresh-tokens.mts"
   exit 0
 fi
 

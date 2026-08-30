@@ -7,6 +7,10 @@
   "scripts": {
     "seed": "node seed-test-data.mjs",
     "seed:balances": "node seed-test-data.mjs --fund",
+    "seed": "NODE_TLS_REJECT_UNAUTHORIZED=0 node seed-test-data.mts",
+    "deposit": "NODE_TLS_REJECT_UNAUTHORIZED=0 node deposit-test-data.mts",
+    "fund": "NODE_TLS_REJECT_UNAUTHORIZED=0 node deposit-test-data.mts",
+    "refresh": "NODE_TLS_REJECT_UNAUTHORIZED=0 node refresh-tokens.mts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

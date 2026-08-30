@@ -1,5 +1,3 @@
-package main
-
 import (
 	"fmt"
 	"math"
@@ -484,12 +482,9 @@ func hpaCap(gap, pool, minReplicas int) int {
 }
 
 // STANDARD CPU REQUEST — rounds up raw mcores to standard 100m units (minimum 200m floor)
-func standardCPURequest(mcores int) int {
 	if mcores <= 200 {
 		return 200
 	}
-	return int(math.Ceil(float64(mcores)/100.0)) * 100
-}
 
 // STANDARD MEMORY REQUEST — rounds up raw MiB to standard cloud power-of-2 / tier (64, 128, 256, 512, 1024 MiB)
 func standardMemRequest(mib int) int {
@@ -518,8 +513,6 @@ func standardCPULimit(svc Service, input *SLOInput) string {
 	}
 	return "1"
 }
-
-// STANDARD MEMORY LIMIT — resolves pod Memory limit (in MiB) from service or infra config
 func standardMemLimit(svc Service, input *SLOInput) int {
 	if svc.MemLimitBytes > 0 {
 		return int(svc.MemLimitBytes / (1024 * 1024))
@@ -529,4 +522,3 @@ func standardMemLimit(svc Service, input *SLOInput) int {
 	}
 	return 256
 }
-
