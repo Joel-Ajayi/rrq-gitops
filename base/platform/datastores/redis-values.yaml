@@ -24,5 +24,6 @@ replica:
       cpu: "4"
       memory: 4Gi
 commonConfiguration: |-
-  appendonly no # In-memory caching mode with disk persistence disabled for latency
+  # In-memory caching mode with disk persistence disabled for latency
+  appendonly no
   save ""
