@@ -25,4 +25,3 @@ images:
     newTag: d39e0ce96b6f0b1bec7d4a8fe7a61d852895937c
 patches:
   - path: patches/image-pull-policy.yaml
-  - path: patches/local-resources.yaml
