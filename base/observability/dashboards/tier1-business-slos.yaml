@@ -126,7 +126,7 @@ data:
           "targets": [
             {
               "expr": "sum(rate(business_declines_total[1m])) by (reason)",
-              "legendFormat": "{{reason}}"
+              "legendFormat": "Decline: {{reason}}"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -166,7 +166,7 @@ data:
           "targets": [
             {
               "expr": "sum(rate(business_wallets_created_total[1m])) by (currency)",
-              "legendFormat": "Created ({{currency}})"
+              "legendFormat": "Wallets: {{currency}}"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
