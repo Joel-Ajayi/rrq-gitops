@@ -269,6 +269,14 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
+      - name: merchant-lookup
+        nominal_qps: 120 # Shard resolution lookup in merchants DB
+        peak_qps: 200
+        avg_query_time_ms: 2
+        c_s_squared: 1.0
+        c_a_squared: 0.5
+        db_instance: merchants
+        writes_per_message: 0
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
       - xshard.shard-a # Architecture definition - Consumer topic subscriptions
@@ -309,6 +317,14 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
+      - name: merchant-lookup
+        nominal_qps: 120 # Webhook URL & Secret lookup in merchants DB
+        peak_qps: 200
+        avg_query_time_ms: 2
+        c_s_squared: 1.0
+        c_a_squared: 0.5
+        db_instance: merchants
+        writes_per_message: 0
     topics:
       - notify # Architecture definition - Consumer topic subscriptions
     http_outbound:
@@ -348,7 +364,7 @@ services:
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 1 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 268435456 # k8s pod Memory limit
-    velocity_threshold: 50 # Risk/Trust Team - Max transfers allowed per window
+    velocity_threshold: 6000 # Risk/Trust Team - Max transfers allowed per window (for merchant disbursements)
     velocity_window_ms: 60000 # Risk/Trust Team - Transfer velocity window (1 minute)
     endpoints:
       - name: velocity-check
@@ -367,6 +383,14 @@ services:
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
+      - name: merchant-lookup
+        nominal_qps: 120 # Shard resolution lookup in merchants DB
+        peak_qps: 200
+        avg_query_time_ms: 2
+        c_s_squared: 1.0
+        c_a_squared: 0.5
+        db_instance: merchants
+        writes_per_message: 0
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:
