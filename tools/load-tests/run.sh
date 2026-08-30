@@ -17,13 +17,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# ── Seed command: create merchants, wallets, and pre-fund ──
 # ── Seed command: create merchants and wallets ──
 if [ "${1:-}" = "seed" ]; then
   echo "══════════════════════════════════════════════════════════════"
   echo "  SEED: Creating test merchants & wallets in DB"
   echo "══════════════════════════════════════════════════════════════"
-  NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/seed-test-data.mjs"
   NODE_TLS_REJECT_UNAUTHORIZED=0 node "${ROOT}/load-tests/seed-test-data.mts"
   exit 0
 fi
