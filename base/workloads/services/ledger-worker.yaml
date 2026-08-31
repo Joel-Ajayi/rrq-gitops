@@ -139,7 +139,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: ledger-worker
         topic: jobs
-        lagThreshold: "2022"
+        lagThreshold: "1401"
         offsetResetPolicy: earliest
 
 ---

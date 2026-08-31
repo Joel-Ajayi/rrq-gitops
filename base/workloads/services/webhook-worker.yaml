@@ -129,7 +129,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: webhook-worker
         topic: notify
-        lagThreshold: "6237"
+        lagThreshold: "6816"
         offsetResetPolicy: earliest
     - type: postgresql
       metadata:
