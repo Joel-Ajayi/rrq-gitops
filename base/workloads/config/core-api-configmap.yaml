@@ -32,7 +32,7 @@ data:
     CORE_API_SERVER_IDLE_TIMEOUT_MS: "16448"
     CORE_API_SERVER_TIMEOUT_MS: "12336"
     CORE_API_SHUTDOWN_TIMEOUT_MS: "30000"
-    CORE_API_WORKER_POOL_SIZE: "60"
+    CORE_API_WORKER_POOL_SIZE: "14"
 kind: ConfigMap
 metadata:
     name: core-api-config

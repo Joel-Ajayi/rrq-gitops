@@ -33,7 +33,7 @@ services:
     core-api:
         name: core-api
         pool_size: 18
-        workers: 60
+        workers: 14
         min_replicas: 4
         max_replicas: 10
         max_replicas_cap: 10
@@ -51,16 +51,16 @@ services:
         backoff_base_ms: 2
         backoff_cap_ms: 64
         cpu_request: 1712
-        mem_request: 70
+        mem_request: 66
         latency_ms:
-            admin-dlq-replay: 10.925633772170505
-            auth-token: 2.185126754434101
-            create-merchant: 5.462816886085252
-            create-transfer: 1.115704221521313
-            create-wallet: 5.462816886085252
-            get-balance: 5.578521107606566
-            get-job: 2.185126754434101
-            merchant-lookup: 2.185126754434101
+            admin-dlq-replay: 2.5063154255932067
+            auth-token: 1.2531577127966034
+            create-merchant: 1.879736569194905
+            create-transfer: 1.3164471409957543
+            create-wallet: 1.879736569194905
+            get-balance: 1.3164471409957543
+            get-job: 1.2531577127966034
+            merchant-lookup: 1.2531577127966034
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 1700
@@ -84,13 +84,13 @@ services:
     fraud-worker:
         name: fraud-worker
         pool_size: 18
-        workers: 5
+        workers: 1
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             jobs: 5
-        lag_threshold: 15250
+        lag_threshold: 5981
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -100,16 +100,16 @@ services:
         relay_batch_timeout_ms: 0
         session_ms: 15842
         heartbeat_ms: 5280
-        max_retries: 7
-        backoff_base_ms: 2
+        max_retries: 8
+        backoff_base_ms: 1
         backoff_cap_ms: 128
         cpu_request: 61
         mem_request: 66
         latency_ms:
-            dlq-ingest: 15.470494417862835
-            merchant-lookup: 2.820574162679425
+            dlq-ingest: 1.5470494417862837
+            merchant-lookup: 1.4102870813397126
             velocity-check: 0.7051435406698563
-            wallet-status-check: 2.820574162679425
+            wallet-status-check: 1.4102870813397126
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 4250
@@ -133,7 +133,7 @@ services:
     ledger-worker:
         name: ledger-worker
         pool_size: 12
-        workers: 9
+        workers: 3
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
@@ -141,7 +141,7 @@ services:
             jobs: 5
             xshard.shard-a: 5
             xshard.shard-b: 5
-        lag_threshold: 1692
+        lag_threshold: 2022
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -151,18 +151,18 @@ services:
         relay_batch_timeout_ms: 0
         session_ms: 12336
         heartbeat_ms: 4112
-        max_retries: 4
-        backoff_base_ms: 11
-        backoff_cap_ms: 88
+        max_retries: 5
+        backoff_base_ms: 3
+        backoff_cap_ms: 48
         cpu_request: 245
         mem_request: 68
         latency_ms:
-            dlq-ingest: 14.01180838760728
-            merchant-lookup: 2.601771258141092
-            process-transfer: 28.02361677521456
-            xshard-failed: 14.01180838760728
-            xshard-requested: 14.01180838760728
-            xshard-settled: 14.01180838760728
+            dlq-ingest: 1.401180838760728
+            merchant-lookup: 1.300885629070546
+            process-transfer: 7.00590419380364
+            xshard-failed: 4.203542516282184
+            xshard-requested: 4.203542516282184
+            xshard-settled: 4.203542516282184
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 1700
@@ -184,7 +184,7 @@ services:
     outbox-relay:
         name: outbox-relay
         pool_size: 6
-        workers: 5
+        workers: 2
         min_replicas: 3
         max_replicas: 5
         max_replicas_cap: 5
@@ -198,18 +198,18 @@ services:
         http_per_host: 0
         http_per_host_cap: 0
         relay_replicas: 1
-        relay_fetch_batch: 160
+        relay_fetch_batch: 400
         relay_pool_interval_ms: 1000
         relay_batch_timeout_ms: 800
         session_ms: 12336
         heartbeat_ms: 4112
-        max_retries: 5
-        backoff_base_ms: 5
-        backoff_cap_ms: 80
+        max_retries: 6
+        backoff_base_ms: 2
+        backoff_cap_ms: 64
         cpu_request: 267
-        mem_request: 75
+        mem_request: 90
         latency_ms:
-            poll: 6.805313774423276
+            poll: 2.7221255097693104
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 1700
@@ -228,15 +228,15 @@ services:
     webhook-worker:
         name: webhook-worker
         pool_size: 12
-        workers: 214
+        workers: 21
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             notify: 5
-        lag_threshold: 6420
-        http_pool: 214
-        http_per_host: 72
+        lag_threshold: 6237
+        http_pool: 21
+        http_per_host: 7
         http_per_host_cap: 16
         relay_replicas: 0
         relay_fetch_batch: 0
@@ -244,16 +244,16 @@ services:
         relay_batch_timeout_ms: 0
         session_ms: 45060
         heartbeat_ms: 15020
-        max_retries: 1
-        backoff_base_ms: 1024
-        backoff_cap_ms: 1024
+        max_retries: 4
+        backoff_base_ms: 102
+        backoff_cap_ms: 816
         cpu_request: 101
-        mem_request: 96
+        mem_request: 68
         latency_ms:
-            delivery-tracking: 1093.5393258426966
-            dlq-ingest: 1020.7865168539325
-            merchant-lookup: 1003.6179775280899
-        webhook_max_concurrency: 22
+            delivery-tracking: 103.1179775280899
+            dlq-ingest: 102.07865168539325
+            merchant-lookup: 101.80898876404494
+        webhook_max_concurrency: 3
         breaker_eviction_ttl_ms: 300000
         process_timeout_ms: 25500
         circuit_breaker_timeout_ms: 25500
@@ -268,10 +268,10 @@ services:
         per_shard_ro:
             merchants: 3
         dlq_write_timeout_ms: 9560
-        fast_lane_worker_pool_size: 214
+        fast_lane_worker_pool_size: 21
         retry_budget_min_tokens: 4
         retry_budget_max_tokens: 31
 warnings:
+    - 'pg/shard-a: total peak demand 111 > optimal 9'
     - 'pg/shard-b: total peak demand 111 > optimal 9'
     - 'pg/merchants: total peak demand 114 > optimal 9'
-    - 'pg/shard-a: total peak demand 111 > optimal 9'

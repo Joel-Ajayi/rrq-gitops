@@ -101,7 +101,7 @@ spec:
               memory: 128Mi
             limits:
               cpu: "1"
-              memory: 256Mi
+              memory: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

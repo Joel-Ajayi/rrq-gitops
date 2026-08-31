@@ -302,7 +302,7 @@ func cpuRequest(nominal float64, rpsPerCore float64) int {
 // MEMORY REQUEST — pool + TLS + runtime baseline + in-flight concurrency heap (B17)
 // [DERIVED] mem_mib = (pool × 50KB + http × 50KB + 64MiB) / BytesPerMiB + inFlightMB
 func memRequest(poolSize, httpPool, inFlightMB int) int {
-	return int((int64(poolSize*PodPGConnMemBytes) + int64(httpPool*PodHTTPTLSMemBytes) + PodAPPBaselineMemBytes) /
+	return int((int64(poolSize*PodPGConnMemBytes)+int64(httpPool*PodHTTPTLSMemBytes)+PodAPPBaselineMemBytes)/
 		int64(BytesPerMiB)) + inFlightMB
 }
 
