@@ -32,11 +32,11 @@ redis_cap:
 services:
     core-api:
         name: core-api
-        pool_size: 19
+        pool_size: 25
         workers: 200
-        min_replicas: 7
-        max_replicas: 7
-        max_replicas_cap: 7
+        min_replicas: 4
+        max_replicas: 4
+        max_replicas_cap: 4
         lag_threshold: 0
         http_pool: 0
         http_per_host: 0
@@ -50,17 +50,17 @@ services:
         max_retries: 5
         backoff_base_ms: 4
         backoff_cap_ms: 64
-        cpu_request: 978
-        mem_request: 67
+        cpu_request: 1712
+        mem_request: 70
         latency_ms:
-            admin-dlq-replay: 5.621269766315839
-            auth-token: 2.8106348831579195
-            create-merchant: 3.934888836421088
-            create-transfer: 8.664880811842199
-            create-wallet: 3.934888836421088
-            get-balance: 2.8882936039473996
-            get-job: 1.6863809298947519
-            merchant-lookup: 2.248507906526336
+            admin-dlq-replay: 5.276560967744794
+            auth-token: 2.638280483872397
+            create-merchant: 3.6935926774213566
+            create-transfer: 8.01855181452149
+            create-wallet: 3.6935926774213566
+            get-balance: 2.6728506048404967
+            get-job: 1.5829682903234383
+            merchant-lookup: 2.1106243870979178
         webhook_max_concurrency: 0
         breaker_eviction_ttl_ms: 0
         process_timeout_ms: 1700
@@ -71,16 +71,16 @@ services:
         dlq_cap_delay_ms: 212
         per_shard_rw:
             merchants: 3
-            shard-a: 3
-            shard-b: 3
+            shard-a: 5
+            shard-b: 5
         per_shard_ro:
-            merchants: 4
+            merchants: 6
             shard-a: 3
             shard-b: 3
         dlq_write_timeout_ms: 636
         fast_lane_worker_pool_size: 0
-        retry_budget_min_tokens: 48
-        retry_budget_max_tokens: 476
+        retry_budget_min_tokens: 84
+        retry_budget_max_tokens: 832
     fraud-worker:
         name: fraud-worker
         pool_size: 18
@@ -272,6 +272,6 @@ services:
         retry_budget_min_tokens: 10
         retry_budget_max_tokens: 91
 warnings:
-    - 'pg/merchants: total peak demand 67 > optimal 9'
-    - 'pg/shard-a: total peak demand 57 > optimal 9'
-    - 'pg/shard-b: total peak demand 57 > optimal 9'
+    - 'pg/shard-b: total peak demand 47 > optimal 9'
+    - 'pg/merchants: total peak demand 54 > optimal 9'
+    - 'pg/shard-a: total peak demand 47 > optimal 9'

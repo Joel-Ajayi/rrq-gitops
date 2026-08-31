@@ -98,7 +98,7 @@ services:
       target_utilization: 0.65 # Capacity Team - Maximum allowed sustained CPU/Pool utilization
     role: api # Architecture definition - synchronous HTTP ingress
     rps_per_core: 1250 # Tier 5 | Panel: Compute Saturation Curve | Metric: process_cpu_seconds_total vs traces_span_metrics_calls_total
-    cores_per_pod: 1 # Single-core calibration mode
+    cores_per_pod: 2 # k8s pod CPU allocation profile
     hpa_target_cpu: 0.70 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
     worker_floor: 200 # Single-core test bulkhead capacity for 500 concurrent VUs

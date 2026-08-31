@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: core-api
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 7
+  replicas: 4
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -106,10 +106,10 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 1000m
+              cpu: 1800m
               memory: 128Mi
             limits:
-              cpu: "1"
+              cpu: "2"
               memory: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -159,8 +159,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: core-api
-  minReplicas: 7
-  maxReplicas: 7
+  minReplicas: 4
+  maxReplicas: 4
   metrics:
     - type: Resource
       resource:
