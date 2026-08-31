@@ -72,7 +72,6 @@ defaults:
   retry_budget_min_tokens: 10 # Baseline token floor to allow initial cold-start retries
   retry_budget_max_tokens: 100 # Token bucket capacity ceiling for retries
   worker_amplification: 1.30 # Capacity Team - Max queueing buildup multiplier under saturation
-  worker_floor: 2 # Capacity Team - Absolute minimum worker concurrency floor per pod
   http_headroom: 1.50 # Capacity Team - Downstream HTTP connection burst multiplier
   pool_floor: 3 # Capacity Team - Absolute minimum worker/connection pool size
   min_replicas: 3 # Capacity Team - Minimum baseline replica floor for KEDA/HPA (N+1 across 3 AZs)
@@ -404,8 +403,6 @@ services:
     topics:
       - jobs # Architecture definition - Consumer topic subscriptions
     redis:
-      merchants: 100000 # Data Analytics - Number of total active merchants to track
-      window_buckets: 2 # Risk/Trust Team - Sub-buckets for sliding window precision
       pipeline_window_ms: 10 # Capacity Team - Redis command pipeline buffer
       max_pipeline_batch: 50 # Tier 4 | Panel: Redis Memory & Operations | Metric: redis_commands_total
       eval_sha_ttl_sec: 86400 # Capacity Team - Lua script SHA cache validity (24h)

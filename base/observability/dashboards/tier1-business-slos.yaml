@@ -33,10 +33,10 @@ data:
       "panels": [
         {
           "type": "stat",
-          "title": "Total Transfers Processed",
+          "title": "Total Transfers (API Ingress)",
           "gridPos": {
             "h": 4,
-            "w": 6,
+            "w": 4,
             "x": 0,
             "y": 0
           },
@@ -47,8 +47,8 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(traces_span_metrics_calls_total{span_name=\"POST /v1/transfers\"}) or sum(business_transfers_total) or vector(0)",
-              "legendFormat": "Total"
+              "expr": "sum(traces_span_metrics_calls_total{span_name=\"POST /v1/transfers\"}) or vector(0)",
+              "legendFormat": "Total API"
             }
           ],
           "datasource": {
@@ -58,11 +58,11 @@ data:
         },
         {
           "type": "stat",
-          "title": "Successful Transfers",
+          "title": "API Ingress Errors (5xx)",
           "gridPos": {
             "h": 4,
-            "w": 6,
-            "x": 6,
+            "w": 4,
+            "x": 4,
             "y": 0
           },
           "fieldConfig": {
@@ -72,8 +72,8 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(traces_span_metrics_calls_total{span_name=\"POST /v1/transfers\", status_code!=\"STATUS_CODE_ERROR\"}) or sum(business_transfers_total{status=\"success\"}) or vector(0)",
-              "legendFormat": "Success"
+              "expr": "sum(traces_span_metrics_calls_total{span_name=\"POST /v1/transfers\", status_code=\"STATUS_CODE_ERROR\"}) or vector(0)",
+              "legendFormat": "HTTP 5xx"
             }
           ],
           "datasource": {
@@ -83,10 +83,35 @@ data:
         },
         {
           "type": "stat",
-          "title": "Failed / Declined Transfers",
+          "title": "Settled Transfers (Async)",
           "gridPos": {
             "h": 4,
-            "w": 6,
+            "w": 4,
+            "x": 8,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(business_transfers_total{status=\"success\"}) or vector(0)",
+              "legendFormat": "Settled"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Business Declined Transfers",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
             "x": 12,
             "y": 0
           },
@@ -97,8 +122,33 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(traces_span_metrics_calls_total{span_name=\"POST /v1/transfers\", status_code=\"STATUS_CODE_ERROR\"}) or sum(business_transfers_total{status=\"failed\"}) or vector(0)",
-              "legendFormat": "Failed"
+              "expr": "sum(business_transfers_total{status=\"failed\"}) or sum(business_declines_total) or vector(0)",
+              "legendFormat": "Declined"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Unresolved Sagas",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(saga_unresolved_count) or vector(0)",
+              "legendFormat": "In-Flight"
             }
           ],
           "datasource": {
@@ -111,8 +161,8 @@ data:
           "title": "Cumulative GTV",
           "gridPos": {
             "h": 4,
-            "w": 6,
-            "x": 18,
+            "w": 4,
+            "x": 20,
             "y": 0
           },
           "fieldConfig": {
