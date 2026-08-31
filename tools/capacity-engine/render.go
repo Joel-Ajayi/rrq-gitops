@@ -73,10 +73,6 @@ func renderPlatform(dir string, pg map[string]PGCeiling, rc []RedisCeiling, inpu
 		"RETRY_BUDGET_FRACTION":             fmt.Sprintf("%g", d.RetryBudgetFraction),
 	}
 
-	if input.Infra.Pod.MemLimitBytes > 0 {
-		m["GOMEMLIMIT"] = fmt.Sprintf("%dMiB", int(float64(input.Infra.Pod.MemLimitBytes)/float64(BytesPerMiB)*GoMemLimitFraction))
-	}
-
 	if len(rc) > 0 {
 		m["REDIS_MAXMEMORY_MIB"] = fmt.Sprintf("%d", rc[0].MaxMemoryBytes/(1024*1024))
 	}
@@ -206,7 +202,6 @@ func renderService(dir, name string, d Derived, svc *Service, input *SLOInput) e
 	// Per-service pod memory limit (overrides infra pod default)
 	if svc.MemLimitBytes > 0 {
 		m["POD_MEM_LIMIT_BYTES"] = fmt.Sprintf("%d", svc.MemLimitBytes)
-		m["GOMEMLIMIT"] = fmt.Sprintf("%dMiB", int(float64(svc.MemLimitBytes)/float64(BytesPerMiB)*GoMemLimitFraction))
 	}
 
 	// Kafka — only for consumer/producer roles

@@ -98,18 +98,26 @@ func patchScaledObject(yaml string, d Derived) (string, error) {
 		cap = 1
 	}
 
-	// Patch minReplicaCount from the engine's MinReplicas
+	// Patch minReplicaCount / minReplicas from the engine's MinReplicas
 	if d.MinReplicas > 0 {
 		minRe := regexp.MustCompile(`(?m)^(\s+)minReplicaCount:\s*\d+(\s*)$`)
 		if minRe.MatchString(yaml) {
 			yaml = minRe.ReplaceAllString(yaml, fmt.Sprintf("${1}minReplicaCount: %d${2}", d.MinReplicas))
 		}
+		minHPA := regexp.MustCompile(`(?m)^(\s+)minReplicas:\s*\d+(\s*)$`)
+		if minHPA.MatchString(yaml) {
+			yaml = minHPA.ReplaceAllString(yaml, fmt.Sprintf("${1}minReplicas: %d${2}", d.MinReplicas))
+		}
 	}
 
-	// Cap maxReplicaCount
+	// Cap maxReplicaCount / maxReplicas
 	maxRe := regexp.MustCompile(`(?m)^(\s+)maxReplicaCount:\s*\d+(\s*)$`)
 	if maxRe.MatchString(yaml) {
 		yaml = maxRe.ReplaceAllString(yaml, fmt.Sprintf("${1}maxReplicaCount: %d${2}", cap))
+	}
+	maxHPA := regexp.MustCompile(`(?m)^(\s+)maxReplicas:\s*\d+(\s*)$`)
+	if maxHPA.MatchString(yaml) {
+		yaml = maxHPA.ReplaceAllString(yaml, fmt.Sprintf("${1}maxReplicas: %d${2}", cap))
 	}
 
 	// Cap lagThreshold (if present) — for ScaledObjects with Kafka triggers
