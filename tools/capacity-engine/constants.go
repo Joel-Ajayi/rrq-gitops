@@ -16,5 +16,6 @@ const (
 	PodAPPBaselineMemBytes    = 64 * 1024 * 1024 // 64 MiB Go runtime + GC + libraries
 	InFlightRequestAllocBytes = 64 * 1024        // ~64 KB per in-flight request (buffers, JSON AST, JWT crypto, OTel spans)
 	GoGCMemoryMultiplier      = 2.0              // Standard Go GOGC=100 doubling headroom
+	GoMemLimitFraction        = 0.85             // Go runtime soft ceiling (85% of container cgroup memory limit to prevent OOMKills)
 	BytesPerMiB               = 1024 * 1024
 )

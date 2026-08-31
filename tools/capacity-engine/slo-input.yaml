@@ -62,7 +62,7 @@ infrastructure:
 
   pod:
     cpu_limit_millicores: 1000 # k8s Deployment hardware resource limits
-    mem_limit_bytes: 268435456 # k8s Deployment hardware resource limits (256 MiB)
+    mem_limit_bytes: 536870912 # k8s Deployment hardware resource limits (512 MiB)
 
 defaults:
   slack_percent: 0.15 # Capacity Team - 15% SLO budget buffer for GC/network overhead
