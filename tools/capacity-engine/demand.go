@@ -106,6 +106,7 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 	}
 	if maxKingman < 1 {
 		maxKingman = 1
+	}
 	wFloor := inp.Defaults.WorkerFloor
 	if svc.WorkerFloor > 0 {
 		wFloor = svc.WorkerFloor
@@ -350,5 +351,4 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 	}
 
 	return rwCaps, roCaps
-}
 }

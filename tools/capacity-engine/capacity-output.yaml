@@ -272,6 +272,6 @@ services:
         retry_budget_min_tokens: 10
         retry_budget_max_tokens: 91
 warnings:
-    - 'pg/shard-b: total peak demand 47 > optimal 9'
     - 'pg/merchants: total peak demand 54 > optimal 9'
     - 'pg/shard-a: total peak demand 47 > optimal 9'
+    - 'pg/shard-b: total peak demand 47 > optimal 9'
