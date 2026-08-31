@@ -4,10 +4,181 @@ metadata:
   name: rrq-tier5-compute-infrastructure
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
-  rrq-tier5-compute-infrastructure.json: "{\n  \"title\": \"Tier 5: Compute Infrastructure (USE)\",\n  \"uid\": \"tier5-compute-infrastructure\",\n  \"version\": 3,\n  \"refresh\": \"10s\",\n  \"time\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n  \"tags\": [\n    \"rrq\",\n    \"reorganized\"\n  ],\n  \"templating\": {\n    \"list\": []\n  },\n  \"panels\": [\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Pod Restarts (CrashLoopBackOff)\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(kube_pod_container_status_restarts_total{namespace=\\\"rrq\\\"}[5m])) by (pod)\",\n          \"legendFormat\": \"{{pod}} Restarts/sec\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
-    \  }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"PVC Saturation\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"percentunit\",\n          \"min\": 0,\n          \"max\": 1\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes) by (namespace, persistentvolumeclaim)\",\n          \"legendFormat\": \"{{namespace}}/{{persistentvolumeclaim}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Node CPU/Memory Pressure\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 8\n      },\n      \"fieldConfig\": {\n      \
-    \  \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"kube_node_status_condition{condition=~\\\"MemoryPressure|DiskPressure\\\", status=\\\"true\\\"}\",\n          \"legendFormat\": \"{{node}} {{condition}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Network Transmit Errors\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 8\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(node_network_transmit_errs_total[5m])) by (instance, device)\",\n          \"legendFormat\": \"{{instance}} [{{device}}]\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
-    prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Compute Saturation Curve\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 16\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(container_cpu_usage_seconds_total{namespace=\\\"rrq\\\", container!=\\\"\\\"}[1m])) by (pod)\",\n          \"legendFormat\": \"CPU (cores): {{pod}}\"\n        },\n        {\n          \"expr\": \"sum(rate(traces_span_metrics_calls_total[1m])) by (service_name)\",\n          \"legendFormat\": \"RPS: {{service_name}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Latency/Arrival Variance (C_s^2 / C_a^2)\",\n      \"gridPos\": {\n        \"h\": 8,\n      \
-    \  \"w\": 12,\n        \"x\": 12,\n        \"y\": 16\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)\",\n          \"legendFormat\": \"C_s^2 ({{service_name}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    }\n  ]\n}"
+  rrq-tier5-compute-infrastructure.json: |-
+    {
+      "title": "Tier 5: Compute Infrastructure (USE)",
+      "uid": "tier5-compute-infrastructure",
+      "version": 3,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Pod Restarts (CrashLoopBackOff)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(kube_pod_container_status_restarts_total{namespace=\"rrq\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}} Restarts/sec"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "PVC Saturation",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(kubelet_volume_stats_used_bytes / on(namespace, persistentvolumeclaim) kubelet_volume_stats_capacity_bytes) by (namespace, persistentvolumeclaim)",
+              "legendFormat": "{{namespace}}/{{persistentvolumeclaim}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Node CPU/Memory Pressure",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "kube_node_status_condition{condition=~\"MemoryPressure|DiskPressure\", status=\"true\"}",
+              "legendFormat": "{{node}} {{condition}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Network Transmit Errors",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(node_network_transmit_errs_total[5m])) by (instance, device)",
+              "legendFormat": "{{instance}} [{{device}}]"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Compute Saturation Curve",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", container!=\"\"}[1m])) by (pod)",
+              "legendFormat": "CPU (cores): {{pod}}"
+            },
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total[1m])) by (service_name)",
+              "legendFormat": "RPS: {{service_name}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Latency/Arrival Variance (C_s^2 / C_a^2)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)",
+              "legendFormat": "C_s^2 ({{service_name}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

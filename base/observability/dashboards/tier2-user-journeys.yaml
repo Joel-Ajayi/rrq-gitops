@@ -4,15 +4,395 @@ metadata:
   name: rrq-tier2-user-journeys
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
-  rrq-tier2-user-journeys.json: "{\n  \"title\": \"Tier 2: User Journeys & Flows\",\n  \"uid\": \"tier2-user-journeys\",\n  \"version\": 3,\n  \"refresh\": \"10s\",\n  \"time\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n  \"tags\": [\n    \"rrq\",\n    \"reorganized\"\n  ],\n  \"templating\": {\n    \"list\": []\n  },\n  \"panels\": [\n    {\n      \"type\": \"stat\",\n      \"title\": \"Stuck Sagas\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 0,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(saga_unresolved_count) or vector(0)\",\n          \"legendFormat\": \"Unresolved\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"Ledger Imbalance\",\n      \"gridPos\": {\n\
-    \        \"h\": 4,\n        \"w\": 6,\n        \"x\": 6,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(ledger_imbalance) or vector(0)\",\n          \"legendFormat\": \"Imbalance\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"Cumulative Idempotency Hits\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 12,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(idempotency_hits_total) or vector(0)\",\n          \"legendFormat\": \"Hits\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\
-    \n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"DLQ Inflow Total\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 18,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(dlq_ingestion_rate) or vector(0)\",\n          \"legendFormat\": \"DLQ Entries\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Saga Unresolved Count\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 4\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(saga_unresolved_count) or vector(0)\",\n          \"legendFormat\"\
-    : \"Stuck Sagas\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Dead Letter Queue (DLQ) Churn\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 4\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(dlq_ingestion_rate[1m])) by (topic)\",\n          \"legendFormat\": \"Ingested ({{topic}})\"\n        },\n        {\n          \"expr\": \"sum(rate(admin_dlq_replayed_total[1m])) by (shard)\",\n          \"legendFormat\": \"Replayed ({{shard}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"DLQ Infrastructure Poison Flood Protection\"\
-    ,\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 12\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(dlq_infrastructure_flood_total[1m])) by (service, topic)\",\n          \"legendFormat\": \"Infra Flood: {{service}} ({{topic}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Webhook Bulkhead In-Flight & Rejections\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 12\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(bulkhead_in_flight) by (service)\",\n          \"legendFormat\": \"In-Flight ({{service}})\"\
-    \n        },\n        {\n          \"expr\": \"sum(rate(bulkhead_rejections_total[1m])) by (service)\",\n          \"legendFormat\": \"Rejections/s ({{service}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Idempotency Protection: Replays vs Conflicts\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 20\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"reqps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(idempotency_hits_total[1m])) by (shard)\",\n          \"legendFormat\": \"Replay Hits ({{shard}})\"\n        },\n        {\n          \"expr\": \"sum(rate(idempotency_conflicts_total[1m])) by (shard)\",\n          \"legendFormat\": \"Conflicts 422 ({{shard}})\"\n        }\n      ],\n      \"datasource\": {\n        \"\
-    type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Double-Entry Ledger Imbalance Drift\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 20\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(ledger_imbalance) by (exported_job)\",\n          \"legendFormat\": \"Imbalance: {{exported_job}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Consumer Commit Coordinator Queue Depth\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 28\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n    \
-    \  \"targets\": [\n        {\n          \"expr\": \"max(commit_coordinator_queue_depth) by (topic, partition)\",\n          \"legendFormat\": \"{{topic}} [p{{partition}}]\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Worker Task Channel Fill Ratio\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 28\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"percentunit\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(task_channel_fill_ratio) by (topic, partition)\",\n          \"legendFormat\": \"{{topic}} [p{{partition}}]\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Consumer Backoff Latency\
-    \ Distribution\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 36\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"s\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"histogram_quantile(0.99, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))\",\n          \"legendFormat\": \"p99 Backoff ({{topic}})\"\n        },\n        {\n          \"expr\": \"histogram_quantile(0.50, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))\",\n          \"legendFormat\": \"p50 Backoff ({{topic}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Resilience Triggers: Retry Budgets & Redis Fail-Closed\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\"\
-    : 36\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(retry_budget_exhausted_total[1m])) by (service)\",\n          \"legendFormat\": \"Retry Budget Exhausted ({{service}})\"\n        },\n        {\n          \"expr\": \"sum(rate(redis_fail_closed_total[1m])) by (service)\",\n          \"legendFormat\": \"Redis Fail Closed ({{service}})\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    }\n  ]\n}"
+  rrq-tier2-user-journeys.json: |-
+    {
+      "title": "Tier 2: User Journeys & Flows",
+      "uid": "tier2-user-journeys",
+      "version": 3,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Stuck Sagas",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(saga_unresolved_count) or vector(0)",
+              "legendFormat": "Unresolved"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Ledger Imbalance",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(ledger_imbalance) or vector(0)",
+              "legendFormat": "Imbalance"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Cumulative Idempotency Hits",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(idempotency_hits_total) or vector(0)",
+              "legendFormat": "Hits"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "DLQ Inflow Total",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(dlq_ingestion_rate) or vector(0)",
+              "legendFormat": "DLQ Entries"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Saga Unresolved Count",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(saga_unresolved_count) or vector(0)",
+              "legendFormat": "Stuck Sagas"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Dead Letter Queue (DLQ) Churn",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(dlq_ingestion_rate[1m])) by (topic)",
+              "legendFormat": "Ingested ({{topic}})"
+            },
+            {
+              "expr": "sum(rate(admin_dlq_replayed_total[1m])) by (shard)",
+              "legendFormat": "Replayed ({{shard}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "DLQ Infrastructure Poison Flood Protection",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(dlq_infrastructure_flood_total[1m])) by (service, topic)",
+              "legendFormat": "Infra Flood: {{service}} ({{topic}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Webhook Bulkhead In-Flight & Rejections",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 12
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(bulkhead_in_flight) by (service)",
+              "legendFormat": "In-Flight ({{service}})"
+            },
+            {
+              "expr": "sum(rate(bulkhead_rejections_total[1m])) by (service)",
+              "legendFormat": "Rejections/s ({{service}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Idempotency Protection: Replays vs Conflicts",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 20
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(idempotency_hits_total[1m])) by (shard)",
+              "legendFormat": "Replay Hits ({{shard}})"
+            },
+            {
+              "expr": "sum(rate(idempotency_conflicts_total[1m])) by (shard)",
+              "legendFormat": "Conflicts 422 ({{shard}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Double-Entry Ledger Imbalance Drift",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 20
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(ledger_imbalance) by (exported_job)",
+              "legendFormat": "Imbalance: {{exported_job}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer Commit Coordinator Queue Depth",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 28
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(commit_coordinator_queue_depth) by (topic, partition)",
+              "legendFormat": "{{topic}} [p{{partition}}]"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Worker Task Channel Fill Ratio",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 28
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(task_channel_fill_ratio) by (topic, partition)",
+              "legendFormat": "{{topic}} [p{{partition}}]"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer Backoff Latency Distribution",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 36
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            }
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))",
+              "legendFormat": "p99 Backoff ({{topic}})"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_backoff_duration_seconds_bucket[1m])) by (le, topic))",
+              "legendFormat": "p50 Backoff ({{topic}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Resilience Triggers: Retry Budgets & Redis Fail-Closed",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 36
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(retry_budget_exhausted_total[1m])) by (service)",
+              "legendFormat": "Retry Budget Exhausted ({{service}})"
+            },
+            {
+              "expr": "sum(rate(redis_fail_closed_total[1m])) by (service)",
+              "legendFormat": "Redis Fail Closed ({{service}})"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }

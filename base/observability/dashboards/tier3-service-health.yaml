@@ -4,16 +4,376 @@ metadata:
   name: rrq-tier3-service-health
   namespace: observability
   labels:
-    grafana_dashboard: '1'
+    grafana_dashboard: "1"
 data:
-  rrq-tier3-service-health.json: "{\n  \"title\": \"Tier 3: Service Health (RED)\",\n  \"uid\": \"tier3-service-health\",\n  \"version\": 3,\n  \"refresh\": \"10s\",\n  \"time\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n  \"tags\": [\n    \"rrq\",\n    \"reorganized\"\n  ],\n  \"templating\": {\n    \"list\": [\n      {\n        \"name\": \"service_name\",\n        \"type\": \"query\",\n        \"datasource\": {\n          \"type\": \"prometheus\",\n          \"uid\": \"prometheus\"\n        },\n        \"query\": \"label_values(traces_span_metrics_calls_total, service_name)\",\n        \"refresh\": 1\n      }\n    ]\n  },\n  \"panels\": [\n    {\n      \"type\": \"stat\",\n      \"title\": \"Service Throughput\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 0,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"reqps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\"\
-    : \"sum(rate(traces_span_metrics_calls_total{service_name=~\\\"$service_name.*\\\"}[1m])) or vector(0)\",\n          \"legendFormat\": \"RPS\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"Span Errors (1m rate)\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 6,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"reqps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(traces_span_metrics_calls_total{service_name=~\\\"$service_name.*\\\", status_code=\\\"STATUS_CODE_ERROR\\\"}[1m])) or vector(0)\",\n          \"legendFormat\": \"Errors/s\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"Open Circuit\
-    \ Breakers\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 12,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"count(circuit_breaker_state{circuit_breaker!=\\\"\\\"} == 2) or vector(0)\",\n          \"legendFormat\": \"Open CBs\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"stat\",\n      \"title\": \"Panics Recovered Total\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 18,\n        \"y\": 0\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(consumer_panics_total) + sum(outbox_panics_total) or vector(0)\",\n          \"legendFormat\": \"Panics\"\n        }\n\
-    \      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"API / Kafka Throughput\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 14,\n        \"x\": 0,\n        \"y\": 4\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"reqps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(traces_span_metrics_calls_total{service_name=~\\\"$service_name.*\\\", span_kind=\\\"SPAN_KIND_SERVER\\\"}[1m])) by (span_name)\",\n          \"legendFormat\": \"API: {{span_name}}\"\n        },\n        {\n          \"expr\": \"sum(rate(kafka_consumer_group_offset_sum_ratio{group=~\\\"$service_name.*\\\"}[1m])) by (topic)\",\n          \"legendFormat\": \"Consume: {{topic}}\"\n        },\n        {\n          \"expr\": \"sum(rate(outbox_events_published_total{exported_job=~\\\"$service_name.*\\\"}[1m]))\",\n \
-    \         \"legendFormat\": \"Outbox Events/s\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Error Rate & Infrastructure Errors\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 10,\n        \"x\": 14,\n        \"y\": 4\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"reqps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(traces_span_metrics_calls_total{service_name=~\\\"$service_name.*\\\", status_code=\\\"STATUS_CODE_ERROR\\\"}[1m])) by (span_name)\",\n          \"legendFormat\": \"{{span_name}} Errors\"\n        },\n        {\n          \"expr\": \"sum(rate(infrastructure_errors_total{service=~\\\"$service_name.*\\\"}[1m])) by (component)\",\n          \"legendFormat\": \"Infra: {{component}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\"\
-    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Latency Distribution (Quantiles)\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 12\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"s\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(traces_span_metrics_duration_seconds_sum{service_name=~\\\"$service_name.*\\\"}[1m])) by (span_name) / sum(rate(traces_span_metrics_duration_seconds_count{service_name=~\\\"$service_name.*\\\"}[1m])) by (span_name)\",\n          \"legendFormat\": \"{{span_name}} (Avg)\"\n        },\n        {\n          \"expr\": \"histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=~\\\"$service_name.*\\\"}[5m])) by (le, span_name))\",\n          \"legendFormat\": \"{{span_name}} (P99)\"\n        }\n      ],\n      \"datasource\": {\n\
-    \        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Circuit Breakers: State & Trip History\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 12\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(circuit_breaker_state{exported_job=~\\\"$service_name.*\\\"}) by (circuit_breaker)\",\n          \"legendFormat\": \"State: {{circuit_breaker}} (0=Closed, 1=HalfOpen, 2=Open)\"\n        },\n        {\n          \"expr\": \"sum(rate(circuit_breaker_open_total{service=~\\\"$service_name.*\\\"}[1m])) by (circuit_breaker)\",\n          \"legendFormat\": \"Trips/s: {{circuit_breaker}}\"\n        },\n        {\n          \"expr\": \"sum(rate(circuit_breaker_half_open_failure_total{service=~\\\"$service_name.*\\\"}[1m])) by (circuit_breaker)\"\
-    ,\n          \"legendFormat\": \"Half-Open Fails/s: {{circuit_breaker}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Consumer & Outbox Panics (Recovered)\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 20\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"ops\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(consumer_panics_total{service=~\\\"$service_name.*\\\"}[5m])) by (topic)\",\n          \"legendFormat\": \"Consumer Panic: {{topic}}\"\n        },\n        {\n          \"expr\": \"sum(rate(outbox_panics_total{exported_job=~\\\"$service_name.*\\\"}[5m])) by (shard)\",\n          \"legendFormat\": \"Outbox Panic: {{shard}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
-    uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"DB Connection Pool Saturation & Starvation\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 20\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"short\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(pg_pool_acquired_conns{exported_job=~\\\"$service_name.*\\\"}) by (db_pool)\",\n          \"legendFormat\": \"Acquired: {{db_pool}}\"\n        },\n        {\n          \"expr\": \"sum(pg_pool_idle_conns{exported_job=~\\\"$service_name.*\\\"}) by (db_pool)\",\n          \"legendFormat\": \"Idle: {{db_pool}}\"\n        },\n        {\n          \"expr\": \"sum(rate(pg_pool_empty_acquire_count_total{exported_job=~\\\"$service_name.*\\\"}[1m])) by (db_pool)\",\n          \"legendFormat\": \"Starvation Waits/s: {{db_pool}}\"\n        }\n      ],\n      \"datasource\": {\n       \
-    \ \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"Pod Network I/O (RX / TX)\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 28\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"Bps\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(container_network_receive_bytes_total{namespace=\\\"rrq\\\", pod=~\\\"$service_name-.*\\\"}[1m])) by (pod)\",\n          \"legendFormat\": \"RX: {{pod}}\"\n        },\n        {\n          \"expr\": \"sum(rate(container_network_transmit_bytes_total{namespace=\\\"rrq\\\", pod=~\\\"$service_name-.*\\\"}[1m])) by (pod)\",\n          \"legendFormat\": \"TX: {{pod}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    },\n    {\n      \"type\": \"timeseries\",\n      \"title\": \"\
-    Pod CPU & Memory Utilization\",\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\": 28\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"cores\"\n        }\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(container_cpu_usage_seconds_total{namespace=\\\"rrq\\\", pod=~\\\"$service_name-.*\\\", container=~\\\"$service_name\\\"}[1m])) by (pod)\",\n          \"legendFormat\": \"CPU (cores): {{pod}}\"\n        }\n      ],\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      }\n    }\n  ]\n}"
+  rrq-tier3-service-health.json: |-
+    {
+      "title": "Tier 3: Service Health (RED)",
+      "uid": "tier3-service-health",
+      "version": 3,
+      "refresh": "10s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "tags": [
+        "rrq",
+        "reorganized"
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "service_name",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(traces_span_metrics_calls_total, service_name)",
+            "refresh": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Service Throughput",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\"}[1m])) or vector(0)",
+              "legendFormat": "RPS"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Span Errors (1m rate)",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)",
+              "legendFormat": "Errors/s"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Open Circuit Breakers",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "count(circuit_breaker_state{circuit_breaker!=\"\"} == 2) or vector(0)",
+              "legendFormat": "Open CBs"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Panics Recovered Total",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(consumer_panics_total) + sum(outbox_panics_total) or vector(0)",
+              "legendFormat": "Panics"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "API / Kafka Throughput",
+          "gridPos": {
+            "h": 8,
+            "w": 14,
+            "x": 0,
+            "y": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", span_kind=\"SPAN_KIND_SERVER\"}[1m])) by (span_name)",
+              "legendFormat": "API: {{span_name}}"
+            },
+            {
+              "expr": "sum(rate(kafka_consumer_group_offset_sum_ratio{group=~\"$service_name.*\"}[1m])) by (topic)",
+              "legendFormat": "Consume: {{topic}}"
+            },
+            {
+              "expr": "sum(rate(outbox_events_published_total{exported_job=~\"$service_name.*\"}[1m]))",
+              "legendFormat": "Outbox Events/s"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Rate & Infrastructure Errors",
+          "gridPos": {
+            "h": 8,
+            "w": 10,
+            "x": 14,
+            "y": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_calls_total{service_name=~\"$service_name.*\", status_code=\"STATUS_CODE_ERROR\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} Errors"
+            },
+            {
+              "expr": "sum(rate(infrastructure_errors_total{service=~\"$service_name.*\"}[1m])) by (component)",
+              "legendFormat": "Infra: {{component}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Latency Distribution (Quantiles)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{service_name=~\"$service_name.*\"}[1m])) by (span_name) / sum(rate(traces_span_metrics_duration_seconds_count{service_name=~\"$service_name.*\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} (Avg)"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{service_name=~\"$service_name.*\"}[5m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} (P99)"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Circuit Breakers: State & Trip History",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 12
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(circuit_breaker_state{exported_job=~\"$service_name.*\"}) by (circuit_breaker)",
+              "legendFormat": "State: {{circuit_breaker}} (0=Closed, 1=HalfOpen, 2=Open)"
+            },
+            {
+              "expr": "sum(rate(circuit_breaker_open_total{service=~\"$service_name.*\"}[1m])) by (circuit_breaker)",
+              "legendFormat": "Trips/s: {{circuit_breaker}}"
+            },
+            {
+              "expr": "sum(rate(circuit_breaker_half_open_failure_total{service=~\"$service_name.*\"}[1m])) by (circuit_breaker)",
+              "legendFormat": "Half-Open Fails/s: {{circuit_breaker}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Consumer & Outbox Panics (Recovered)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 20
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(consumer_panics_total{service=~\"$service_name.*\"}[5m])) by (topic)",
+              "legendFormat": "Consumer Panic: {{topic}}"
+            },
+            {
+              "expr": "sum(rate(outbox_panics_total{exported_job=~\"$service_name.*\"}[5m])) by (shard)",
+              "legendFormat": "Outbox Panic: {{shard}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "DB Connection Pool Saturation & Starvation",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 20
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(pg_pool_acquired_conns{exported_job=~\"$service_name.*\"}) by (db_pool)",
+              "legendFormat": "Acquired: {{db_pool}}"
+            },
+            {
+              "expr": "sum(pg_pool_idle_conns{exported_job=~\"$service_name.*\"}) by (db_pool)",
+              "legendFormat": "Idle: {{db_pool}}"
+            },
+            {
+              "expr": "sum(rate(pg_pool_empty_acquire_count_total{exported_job=~\"$service_name.*\"}[1m])) by (db_pool)",
+              "legendFormat": "Starvation Waits/s: {{db_pool}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod Network I/O (RX / TX)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 28
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "legendFormat": "RX: {{pod}}"
+            },
+            {
+              "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "legendFormat": "TX: {{pod}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod CPU & Memory Utilization",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 28
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\", container=~\"$service_name\"}[1m])) by (pod)",
+              "legendFormat": "CPU (cores): {{pod}}"
+            }
+          ],
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ]
+    }
