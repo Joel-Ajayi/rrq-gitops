@@ -154,7 +154,7 @@ spec:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: fraud-worker
         topic: jobs
-        lagThreshold: "5981"
+        lagThreshold: "11962"
         offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1

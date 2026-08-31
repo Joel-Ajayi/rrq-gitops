@@ -107,7 +107,7 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 	if maxKingman < 1 {
 		maxKingman = 1
 	}
-	d.Workers = workerConcurrency(peakPerPod, maxKingman, inp.Defaults.WorkerAmplification)
+	d.Workers = workerConcurrency(peakPerPod, maxKingman, inp.Defaults.WorkerAmplification, inp.Defaults.WorkerFloor)
 
 	// models.go: Retry Budget — derived from SLO (NOT per-endpoint query time)
 	d.BackoffBaseMS = int(math.Ceil(avgMS))

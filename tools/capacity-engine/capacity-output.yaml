@@ -84,13 +84,13 @@ services:
     fraud-worker:
         name: fraud-worker
         pool_size: 18
-        workers: 1
+        workers: 2
         min_replicas: 3
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
             jobs: 5
-        lag_threshold: 5981
+        lag_threshold: 11962
         http_pool: 0
         http_per_host: 0
         http_per_host_cap: 0
@@ -272,6 +272,6 @@ services:
         retry_budget_min_tokens: 4
         retry_budget_max_tokens: 31
 warnings:
+    - 'pg/merchants: total peak demand 114 > optimal 9'
     - 'pg/shard-a: total peak demand 111 > optimal 9'
     - 'pg/shard-b: total peak demand 111 > optimal 9'
-    - 'pg/merchants: total peak demand 114 > optimal 9'

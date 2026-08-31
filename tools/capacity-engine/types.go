@@ -83,6 +83,7 @@ type Defaults struct {
 	RetryBudgetMinTokens     int     `yaml:"retry_budget_min_tokens"`
 	RetryBudgetMaxTokens     int     `yaml:"retry_budget_max_tokens"`
 	WorkerAmplification      float64 `yaml:"worker_amplification"`
+	WorkerFloor              int     `yaml:"worker_floor"`
 	HTTPHeadroom             float64 `yaml:"http_headroom"`
 	PoolFloor                int     `yaml:"pool_floor"`
 	MinReplicas              int     `yaml:"min_replicas"`
