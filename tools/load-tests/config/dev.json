@@ -103,24 +103,24 @@
       "maxVUs": 1500,
       "stages": [
         {
-          "target": 900,
-          "duration": "1m"
+          "target": 1000,
+          "duration": "30s"
         },
         {
-          "target": 1800,
-          "duration": "1m"
-        },
-        {
-          "target": 2700,
-          "duration": "1m"
+          "target": 2000,
+          "duration": "30s"
         },
         {
           "target": 3000,
-          "duration": "1m"
+          "duration": "45s"
+        },
+        {
+          "target": 3000,
+          "duration": "15s"
         },
         {
           "target": 0,
-          "duration": "1m"
+          "duration": "30s"
         }
       ]
     },
@@ -128,15 +128,15 @@
       "executor": "ramping-arrival-rate",
       "startRate": 100,
       "timeUnit": "1s",
-      "preAllocatedVUs": 200,
-      "maxVUs": 1000,
+      "preAllocatedVUs": 300,
+      "maxVUs": 2500,
       "stages": [
         {
           "target": 500,
           "duration": "30s"
         },
         {
-          "target": 2500,
+          "target": 3000,
           "duration": "30s"
         },
         {
