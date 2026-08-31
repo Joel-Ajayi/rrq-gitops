@@ -106,7 +106,7 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 1400m
+              cpu: 600m
               memory: 128Mi
             limits:
               cpu: "2"
@@ -160,7 +160,7 @@ spec:
     kind: Deployment
     name: core-api
   minReplicas: 3
-  maxReplicas: 6
+  maxReplicas: 4
   metrics:
     - type: Resource
       resource:

@@ -106,32 +106,32 @@ services:
     max_request_bytes: 524288 # Security Team - WAF payload size limit (512KB)
     endpoints:
       - name: create-transfer
-        nominal_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 5000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        nominal_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 38.7 # Tier 4 | Panel: Database Query Latency | Span: POST /v1/transfers
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 2 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: get-balance
-        nominal_qps: 500 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        nominal_qps: 400 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 1200 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 19.8 # Tier 4 | Panel: Database Query Latency | Span: GET /v1/balances
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 0 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: merchant-lookup
-        nominal_qps: 3500 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 6000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        nominal_qps: 1400 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 4200 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 6.4 # Tier 4 | Panel: Database Query Latency | Span: api.merchant_directory.shard_for
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instance: merchants # Architecture definition - Target DB cluster
         writes_per_message: 0 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: auth-token
-        nominal_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 2000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        nominal_qps: 200 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 600 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 2.5 # Tier 4 | Panel: Database Query Latency | Span: POST /v1/auth/token
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
@@ -139,7 +139,7 @@ services:
         writes_per_message: 0 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: create-merchant
         nominal_qps: 5 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 10 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 15 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 3.5 # Tier 4 | Panel: Database Query Latency | Span: POST /v1/merchants
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
@@ -147,15 +147,15 @@ services:
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: create-wallet
         nominal_qps: 50 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 100 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 150 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 18.2 # Tier 4 | Panel: Database Query Latency | Span: POST /v1/wallets
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 2 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: get-job
-        nominal_qps: 500 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        nominal_qps: 300 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 900 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 13.5 # Tier 4 | Panel: Database Query Latency | Span: GET /v1/jobs/{id}
         c_s_squared: 13.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.7 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
@@ -163,7 +163,7 @@ services:
         writes_per_message: 0 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: admin-dlq-replay
         nominal_qps: 1 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        peak_qps: 5 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
+        peak_qps: 10 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         avg_query_time_ms: 5.0 # Tier 4 | Panel: Database Query Latency | Span: POST /v1/admin/dlq/replay
         c_s_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: variance(duration)/mean(duration)^2
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
@@ -191,8 +191,8 @@ services:
     producer_throughput_rps: 4000 # Tier 4 | Panel: Transactional Outbox: Lag & Buffer Fill | Metric: outbox_events_published_total
     endpoints:
       - name: poll
-        nominal_qps: 400 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
-        peak_qps: 1500 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
+        nominal_qps: 1000 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
+        peak_qps: 3000 # Tier 4 | Panel: Database Query Latency | Metric: pg_stat_statements
         avg_query_time_ms: 4.0 # Tier 4 | Panel: Database Query Latency | Span: outbox.poll
         c_s_squared: 5.6 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 5.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
@@ -233,48 +233,48 @@ services:
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
     endpoints:
       - name: process-transfer
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 0.8 # Tier 4 | Panel: Database Query Latency | Span: kafka.process_transfer
         c_s_squared: 18.2 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 7 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: xshard-requested
-        nominal_qps: 60 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 100 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 500 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 1500 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 35.7 # Tier 4 | Panel: Database Query Latency | Span: xshard.handle_requested
         c_s_squared: 18.2 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 7 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: xshard-settled
-        nominal_qps: 60 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 100 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 500 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 1500 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 37.0 # Tier 4 | Panel: Database Query Latency | Span: xshard.handle_settled
         c_s_squared: 18.2 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 8 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: xshard-failed
-        nominal_qps: 6 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 10 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 20 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 60 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 35.7 # Tier 4 | Panel: Database Query Latency | Span: xshard.handle_failed
         c_s_squared: 18.2 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 9.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 8 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: dlq-ingest
-        nominal_qps: 1 # Ingestion of dead-lettered ledger jobs to global DLQ
-        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        nominal_qps: 10 # Ingestion of dead-lettered ledger jobs to global DLQ
+        peak_qps: 30 # Bounded by 5% poison pill arrival during incident
         avg_query_time_ms: 2.0 # DB write latency to dlq_messages table
         c_s_squared: 18.2 # Tier 5 | Panel: Latency/Arrival Variance
         c_a_squared: 9.0 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
       - name: merchant-lookup
-        nominal_qps: 120 # Shard resolution lookup in merchants DB
-        peak_qps: 200
+        nominal_qps: 1000 # Shard resolution lookup in merchants DB
+        peak_qps: 3000
         avg_query_time_ms: 6.4 # Tier 4 | Panel: Database Query Latency | Span: api.merchant_directory.shard_for
         c_s_squared: 18.2
         c_a_squared: 9.0
@@ -305,24 +305,24 @@ services:
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
     endpoints:
       - name: delivery-tracking
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 5.4 # Tier 4 | Panel: Database Query Latency | Span: webhook.handle_message
         c_s_squared: 16.8 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 6.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 2 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: dlq-ingest
-        nominal_qps: 1 # Ingestion of dead-lettered webhook deliveries to global DLQ
-        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        nominal_qps: 10 # Ingestion of dead-lettered webhook deliveries to global DLQ
+        peak_qps: 30 # Bounded by 5% poison pill arrival during incident
         avg_query_time_ms: 2.0 # DB write latency to dlq_messages table
         c_s_squared: 16.8 # Tier 5 | Panel: Latency/Arrival Variance
         c_a_squared: 6.9 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
       - name: merchant-lookup
-        nominal_qps: 120 # Webhook URL & Secret lookup in merchants DB
-        peak_qps: 200
+        nominal_qps: 1000 # Webhook URL & Secret lookup in merchants DB
+        peak_qps: 3000
         avg_query_time_ms: 6.4 # Tier 4 | Panel: Database Query Latency | Span: api.merchant_directory.shard_for
         c_s_squared: 16.8
         c_a_squared: 6.9
@@ -371,32 +371,32 @@ services:
     velocity_window_ms: 60000 # Risk/Trust Team - Transfer velocity window (1 minute)
     endpoints:
       - name: velocity-check
-        nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
-        peak_qps: 200 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        nominal_qps: 1000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
+        peak_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
         avg_query_time_ms: 1.0 # Tier 4 | Panel: Database Query Latency | Span: fraud.velocity_eval
         c_s_squared: 10.9 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(duration)/mean(duration)^2
         c_a_squared: 6.5 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stdvar(RPS)/mean(RPS)^2
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
       - name: dlq-ingest
-        nominal_qps: 1 # Ingestion of dead-lettered fraud checks to global DLQ
-        peak_qps: 10 # Bounded by 5% poison pill arrival during incident
+        nominal_qps: 10 # Ingestion of dead-lettered fraud checks to global DLQ
+        peak_qps: 30 # Bounded by 5% poison pill arrival during incident
         avg_query_time_ms: 2.0 # DB write latency to dlq_messages table
         c_s_squared: 10.9 # Tier 5 | Panel: Latency/Arrival Variance
         c_a_squared: 6.5 # Tier 5 | Panel: Latency/Arrival Variance
         db_instance: merchants # Architecture definition - Global DLQ storage in merchants DB
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request
       - name: merchant-lookup
-        nominal_qps: 120 # Shard resolution lookup in merchants DB
-        peak_qps: 200
+        nominal_qps: 1000 # Shard resolution lookup in merchants DB
+        peak_qps: 3000
         avg_query_time_ms: 6.4 # Tier 4 | Panel: Database Query Latency | Span: api.merchant_directory.shard_for
         c_s_squared: 10.9
         c_a_squared: 6.5
         db_instance: merchants
         writes_per_message: 0
       - name: wallet-status-check
-        nominal_qps: 120 # Check wallet status on shard prior to freeze
-        peak_qps: 200
+        nominal_qps: 1000 # Check wallet status on shard prior to freeze
+        peak_qps: 3000
         avg_query_time_ms: 1.0 # Tier 4 | Panel: Database Query Latency | Span: fraud.wallet_status_check
         c_s_squared: 10.9
         c_a_squared: 6.5

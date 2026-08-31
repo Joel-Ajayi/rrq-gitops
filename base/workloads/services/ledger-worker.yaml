@@ -97,8 +97,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 200m
-              memory: 128Mi
+              cpu: 500m
+              memory: 256Mi
             limits:
               cpu: "1"
               memory: 512Mi
@@ -132,14 +132,14 @@ spec:
   scaleTargetRef:
     name: ledger-worker
   minReplicaCount: 3
-  maxReplicaCount: 3
+  maxReplicaCount: 6
   triggers:
     - type: kafka
       metadata:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: ledger-worker
         topic: jobs
-        lagThreshold: "9727"
+        lagThreshold: "22331"
         offsetResetPolicy: earliest
 
 ---
