@@ -84,6 +84,7 @@ type Defaults struct {
 	RetryBudgetMaxTokens     int     `yaml:"retry_budget_max_tokens"`
 	WorkerAmplification      float64 `yaml:"worker_amplification"`
 	WorkerFloor              int     `yaml:"worker_floor"`
+	WorkerCeil               int     `yaml:"worker_ceil"`
 	HTTPHeadroom             float64 `yaml:"http_headroom"`
 	PoolFloor                int     `yaml:"pool_floor"`
 	MinReplicas              int     `yaml:"min_replicas"`
@@ -117,9 +118,6 @@ type Service struct {
 	CoresPerPod           int            `yaml:"cores_per_pod"`
 	HPATargetCPU          float64        `yaml:"hpa_target_cpu"`
 	MemLimitBytes         int64          `yaml:"mem_limit_bytes"`
-	MinReplicas           int            `yaml:"min_replicas"`
-	MaxReplicas           int            `yaml:"max_replicas"`
-	WorkerFloor           int            `yaml:"worker_floor"`
 }
 
 type WebhookConfig struct {

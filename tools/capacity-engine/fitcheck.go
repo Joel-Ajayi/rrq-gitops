@@ -93,10 +93,10 @@ func fitcheck(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling,
 		}
 	}
 
-	// models.go: Memory Request — pod memory fit-check
-	// Uses the engine-derived MemRequest (which includes relay staging + fetch
-	// batch buffers for producer services) and compares against the per-service
-	// or infra pod memory limit.
+	// models.go: Memory Request & Limit — pod memory fit-check
+	// Uses the engine-derived MemRequest (which includes DB connection pools,
+	// HTTP connection pools, Little's Law in-flight heap, Kafka buffers, and relay staging)
+	// and compares against the per-service or infra pod memory limit specified in slo-input.yaml.
 	for _, d := range svcs {
 		svc := findService(input, d.Name)
 		limit := input.Infra.Pod.MemLimitBytes
@@ -104,8 +104,9 @@ func fitcheck(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling,
 			limit = svc.MemLimitBytes
 		}
 		memLimitMiB := int(limit / (1024 * 1024))
-		if d.MemRequest > memLimitMiB {
-			warns = append(warns, fmt.Sprintf("pod/%s: mem request %dMiB > limit %dMiB", d.Name, d.MemRequest, memLimitMiB))
+		reqMiB := standardMemRequest(d.MemRequest)
+		if d.MemRequest > memLimitMiB || reqMiB > memLimitMiB {
+			warns = append(warns, fmt.Sprintf("pod/%s: calculated memory requirement %dMiB (request %dMiB) exceeds SLO specified limit %dMiB", d.Name, d.MemRequest, reqMiB, memLimitMiB))
 		}
 	}
 

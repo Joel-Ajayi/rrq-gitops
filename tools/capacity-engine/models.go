@@ -130,12 +130,15 @@ func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas, poolFloor
 // throughput demand for APIs.
 //
 //		[DERIVED] wTime = kingmanLatency(tau) × workerAmp
-//	 workerConcurrency computes the required worker pool size per pod.
-func workerConcurrency(throughputPerPod, kingmanLatencyMs, workerAmp float64, workerFloor int) int {
+//	 workerConcurrency computes the required worker pool size per pod bounded by [workerFloor, workerCeil].
+func workerConcurrency(throughputPerPod, kingmanLatencyMs, workerAmp float64, workerFloor, workerCeil int) int {
 	wTime := kingmanLatencyMs * workerAmp / 1000.0
 	w := int(math.Ceil(throughputPerPod * wTime))
-	if w < workerFloor {
+	if workerFloor > 0 && w < workerFloor {
 		w = workerFloor
+	}
+	if workerCeil > 0 && w > workerCeil {
+		w = workerCeil
 	}
 	return w
 }

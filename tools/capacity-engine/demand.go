@@ -64,15 +64,7 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 
 	// models.go: Replica Count — pod capacity from k6 benchmark
 	podCap := podCapacity(svc.RPSPerCore, svc.CoresPerPod)
-	minFloor := inp.Defaults.MinReplicas
-	if svc.MinReplicas > 0 {
-		minFloor = svc.MinReplicas
-	}
-	maxCap := inp.Defaults.MaxReplicas
-	if svc.MaxReplicas > 0 {
-		maxCap = svc.MaxReplicas
-	}
-	d.MinReplicas, d.MaxReplicas = replicaCounts(totalNominal, totalPeak, podCap, az, minFloor, maxCap)
+	d.MinReplicas, d.MaxReplicas = replicaCounts(totalNominal, totalPeak, podCap, az, inp.Defaults.MinReplicas, inp.Defaults.MaxReplicas)
 	d.MaxReplicasCap = d.MaxReplicas
 
 	// models.go: Weighted Average Service Time
@@ -107,11 +99,7 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 	if maxKingman < 1 {
 		maxKingman = 1
 	}
-	wFloor := inp.Defaults.WorkerFloor
-	if svc.WorkerFloor > 0 {
-		wFloor = svc.WorkerFloor
-	}
-	d.Workers = workerConcurrency(peakPerPod, maxKingman, inp.Defaults.WorkerAmplification, wFloor)
+	d.Workers = workerConcurrency(peakPerPod, maxKingman, inp.Defaults.WorkerAmplification, inp.Defaults.WorkerFloor, inp.Defaults.WorkerCeil)
 
 	// models.go: Retry Budget — derived from SLO (NOT per-endpoint query time)
 	d.BackoffBaseMS = int(math.Ceil(avgMS))

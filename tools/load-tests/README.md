@@ -151,10 +151,10 @@ Ramp load from 900 to 3,000 RPS to evaluate peak limits, outbox producer limits,
      - **Dashboard:** `Tier 3 — Application & Services` / Panel: `API / Kafka Throughput`
      - **Metric:** Highest sustained `rate(traces_span_metrics_calls_total[1m])` without violating p99 latency SLO.
   2. **`producer_throughput_rps`** (`services[outbox-relay]`):
-     - **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Outbox AIMD Backpressure`
+     - **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Transactional Outbox: Lag & Buffer Fill`
      - **Metric:** Maximum `rate(outbox_events_published_total[1m])`
   3. **Outbox AIMD Backpressure Ratios (`aimd_*_frac`, `buffer_max_throttle_level`)**:
-     - **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Outbox AIMD Backpressure`
+     - **Dashboard:** `Tier 4 — Database & Middleware` / Panel: `Transactional Outbox: Lag & Buffer Fill`
      - **Metric:** Buffer fill fractions at which AIMD throttling kicks in.
   4. **Webhook Outbound HTTP Concurrency:**
      - **`peak_qps_per_pod`**: Max concurrent requests sustained per worker pod.
@@ -180,19 +180,19 @@ Ramp load beyond system capacity to trigger failure modes, observe circuit break
 
 ## Mapping Reference Table
 
-| Section in `slo-input.yaml`                      | Value Type / Source                | Target Scenario           | Grafana Dashboard & Panel           |
-| :----------------------------------------------- | :--------------------------------- | :------------------------ | :---------------------------------- |
-| `endpoints[*].nominal_qps`                       | Target Business SLA (Demand Input) | Configured in `dev.json`  | Demand Requirement                  |
-| `endpoints[*].writes_per_message`                | Empirical Measurement              | Phase 1 (`smoke`)         | Tier 4 — DB Write Spans per Request |
-| `services[*].rps_per_core`                       | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 5 — Compute Saturation Curve   |
-| `endpoints[*].avg_query_time_ms`                 | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Database Query Latency     |
-| `endpoints[*].c_s_squared` / `c_a_squared`       | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 5 — Latency / Arrival Variance |
-| `infrastructure.kafka.partition_consume_rps`     | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 3 — API / Kafka Throughput     |
-| `infrastructure.postgres.workload`               | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Database Active Sessions   |
-| `infrastructure.redis.fragmentation_factor`      | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Redis Memory Fragmentation |
-| `endpoints[*].peak_qps`                          | Empirical Measurement              | Phase 3 (`stress`)        | Tier 3 — API / Kafka Throughput     |
-| `services[outbox-relay].producer_throughput_rps` | Empirical Measurement              | Phase 3 (`stress`)        | Tier 4 — Outbox AIMD Backpressure   |
-| `services[*].circuit_breaker.*`                  | Empirical Measurement              | Phase 4 (`breakpoint`)    | Tier 3 — Open Circuit Breakers      |
+| Section in `slo-input.yaml`                      | Value Type / Source                | Target Scenario           | Grafana Dashboard & Panel                        |
+| :----------------------------------------------- | :--------------------------------- | :------------------------ | :----------------------------------------------- |
+| `endpoints[*].nominal_qps`                       | Target Business SLA (Demand Input) | Configured in `dev.json`  | Demand Requirement                               |
+| `endpoints[*].writes_per_message`                | Empirical Measurement              | Phase 1 (`smoke`)         | Tier 4 — DB Write Spans per Request              |
+| `services[*].rps_per_core`                       | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 5 — Compute Saturation Curve                |
+| `endpoints[*].avg_query_time_ms`                 | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Database Query Latency                  |
+| `endpoints[*].c_s_squared` / `c_a_squared`       | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 5 — Latency / Arrival Variance              |
+| `infrastructure.kafka.partition_consume_rps`     | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 3 — API / Kafka Throughput                  |
+| `infrastructure.postgres.workload`               | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Postgres Connection Pool Utilization    |
+| `infrastructure.redis.fragmentation_factor`      | Empirical Measurement              | Phase 2 (`full_workload`) | Tier 4 — Redis Memory Fragmentation              |
+| `endpoints[*].peak_qps`                          | Empirical Measurement              | Phase 3 (`stress`)        | Tier 3 — API / Kafka Throughput                  |
+| `services[outbox-relay].producer_throughput_rps` | Empirical Measurement              | Phase 3 (`stress`)        | Tier 4 — Transactional Outbox: Lag & Buffer Fill |
+| `services[*].circuit_breaker.*`                  | Empirical Measurement              | Phase 4 (`breakpoint`)    | Tier 3 — Open Circuit Breakers                   |
 
 ---
 
