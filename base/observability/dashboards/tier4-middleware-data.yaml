@@ -23,13 +23,13 @@ data:
       "templating": {
         "list": [
           {
-            "name": "shard",
+            "name": "db_pool",
             "type": "query",
             "datasource": {
               "type": "prometheus",
               "uid": "prometheus"
             },
-            "query": "label_values(pg_pool_acquired_conns, shard)",
+            "query": "label_values(pg_pool_acquired_conns, db_pool)",
             "refresh": 1,
             "includeAll": true,
             "multi": true
@@ -72,10 +72,14 @@ data:
             {
               "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, span_name))",
               "legendFormat": "{{span_name}} P99"
+              "expr": "sum(rate(traces_span_metrics_duration_seconds_sum{db_system_name=\"postgresql\"}[1m])) by (span_name) / sum(rate(traces_span_metrics_duration_seconds_count{db_system_name=\"postgresql\"}[1m])) by (span_name)",
+              "legendFormat": "{{span_name}} (Avg Latency)"
             },
             {
               "expr": "histogram_quantile(0.50, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[5m])) by (le, span_name))",
               "legendFormat": "{{span_name}} P50"
+              "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_seconds_bucket{db_system_name=\"postgresql\"}[1m])) by (le, span_name))",
+              "legendFormat": "{{span_name}} (P99 Latency)"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }
@@ -87,15 +91,15 @@ data:
           "fieldConfig": { "defaults": { "unit": "short" } },
           "targets": [
             {
-              "expr": "sum(pg_pool_acquired_conns) by (service, db_pool, shard)",
-              "legendFormat": "Acquired: {{service}} ({{db_pool}} / {{shard}})"
+              "expr": "sum(pg_pool_acquired_conns{db_pool=~\"$db_pool\"}) by (service, db_pool)",
+              "legendFormat": "Acquired: {{service}} ({{db_pool}})"
             },
             {
-              "expr": "sum(pg_pool_idle_conns) by (service, db_pool, shard)",
-              "legendFormat": "Idle: {{service}} ({{db_pool}} / {{shard}})"
+              "expr": "sum(pg_pool_idle_conns{db_pool=~\"$db_pool\"}) by (service, db_pool)",
+              "legendFormat": "Idle: {{service}} ({{db_pool}})"
             },
             {
-              "expr": "sum(rate(pg_pool_empty_acquire_count_total[1m])) by (service, db_pool)",
+              "expr": "sum(rate(pg_pool_empty_acquire_count_total{db_pool=~\"$db_pool\"}[1m])) by (service, db_pool)",
               "legendFormat": "Waits/s: {{service}} ({{db_pool}})"
             }
           ],
