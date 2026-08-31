@@ -207,16 +207,22 @@ data:
         {
           "type": "timeseries",
           "title": "Go Goroutines & Memory Working Set",
+          "title": "Pod Network I/O (RX / TX)",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
           "fieldConfig": { "defaults": { "unit": "bytes" } },
+          "fieldConfig": { "defaults": { "unit": "Bps" } },
           "targets": [
             {
               "expr": "sum(go_goroutines{job=~\"$service_name.*\"}) by (pod)",
               "legendFormat": "Goroutines: {{pod}}"
+              "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "legendFormat": "RX: {{pod}}"
             },
             {
               "expr": "sum(go_memstats_alloc_bytes{job=~\"$service_name.*\"}) by (pod)",
               "legendFormat": "Alloc Bytes: {{pod}}"
+              "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "legendFormat": "TX: {{pod}}"
             }
           ],
           "datasource": {"type": "prometheus", "uid": "prometheus"}
@@ -224,11 +230,14 @@ data:
         {
           "type": "timeseries",
           "title": "Pod CPU & Memory Utilization",
+          "title": "Pod CPU Utilization (Cores)",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
           "fieldConfig": { "defaults": { "unit": "short" } },
+          "fieldConfig": { "defaults": { "unit": "cores" } },
           "targets": [
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\"}[1m])) by (pod)",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", pod=~\"$service_name-.*\", container=~\"$service_name\"}[1m])) by (pod)",
               "legendFormat": "CPU (cores): {{pod}}"
             },
             {

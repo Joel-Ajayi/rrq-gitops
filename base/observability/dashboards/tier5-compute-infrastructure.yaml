@@ -122,10 +122,13 @@ data:
             {
               "expr": "sum(rate(process_cpu_seconds_total[1m])) by (job)",
               "legendFormat": "CPU ({{job}})"
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"rrq\", container!=\"\"}[1m])) by (pod)",
+              "legendFormat": "CPU (cores): {{pod}}"
             },
             {
               "expr": "sum(rate(traces_span_metrics_calls_total[1m])) by (service_name)",
               "legendFormat": "RPS ({{service_name}})"
+              "legendFormat": "RPS: {{service_name}}"
             }
           ],
           "datasource": {

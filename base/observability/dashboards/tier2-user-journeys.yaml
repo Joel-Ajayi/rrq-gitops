@@ -32,6 +32,7 @@ data:
           "targets": [
             {
               "expr": "sum(saga_unresolved_count)",
+              "expr": "sum(saga_unresolved_count) or vector(0)",
               "legendFormat": "Unresolved"
             }
           ],
@@ -45,6 +46,7 @@ data:
           "targets": [
             {
               "expr": "max(ledger_imbalance)",
+              "expr": "max(ledger_imbalance) or vector(0)",
               "legendFormat": "Imbalance"
             }
           ],
@@ -58,6 +60,7 @@ data:
           "targets": [
             {
               "expr": "sum(idempotency_hits_total)",
+              "expr": "sum(idempotency_hits_total) or vector(0)",
               "legendFormat": "Hits"
             }
           ],
@@ -71,6 +74,7 @@ data:
           "targets": [
             {
               "expr": "sum(dlq_ingestion_rate)",
+              "expr": "sum(dlq_ingestion_rate) or vector(0)",
               "legendFormat": "DLQ Entries"
             }
           ],
@@ -84,6 +88,7 @@ data:
           "targets": [
             {
               "expr": "sum(saga_unresolved_count)",
+              "expr": "sum(saga_unresolved_count) or vector(0)",
               "legendFormat": "Stuck Sagas"
             }
           ],
@@ -162,6 +167,8 @@ data:
             {
               "expr": "max(ledger_imbalance) by (shard, currency)",
               "legendFormat": "Imbalance: {{shard}} ({{currency}})"
+              "expr": "max(ledger_imbalance) by (exported_job)",
+              "legendFormat": "Imbalance: {{exported_job}}"
             }
           ],
           "datasource": { "type": "prometheus", "uid": "prometheus" }

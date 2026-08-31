@@ -9,6 +9,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: gateway-collector
+      operator.opentelemetry.io/collector-service-type: headless # Match the headless service so that we can scrape all pods in the deployment once
   endpoints:
     - port: prometheus
       interval: 15s
