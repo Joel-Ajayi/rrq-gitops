@@ -11,7 +11,10 @@ const (
 
 // Pod — source: go pgx, net/http Transport memory profiles
 const (
-	PodPGConnMemBytes      = 50_000           // ~50 KB per PG conn (pgx client-side overhead)
-	PodHTTPTLSMemBytes     = 50_000           // ~50 KB per TLS conn (net/http Transport)
-	PodAPPBaselineMemBytes = 64 * 1024 * 1024 // 64 MiB Go runtime + GC + libraries
+	PodPGConnMemBytes         = 50_000           // ~50 KB per PG conn (pgx client-side overhead)
+	PodHTTPTLSMemBytes        = 50_000           // ~50 KB per TLS conn (net/http Transport)
+	PodAPPBaselineMemBytes    = 64 * 1024 * 1024 // 64 MiB Go runtime + GC + libraries
+	InFlightRequestAllocBytes = 64 * 1024        // ~64 KB per in-flight request (buffers, JSON AST, JWT crypto, OTel spans)
+	GoGCMemoryMultiplier      = 2.0              // Standard Go GOGC=100 doubling headroom
+	BytesPerMiB               = 1024 * 1024
 )

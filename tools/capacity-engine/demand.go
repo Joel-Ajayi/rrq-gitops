@@ -225,6 +225,21 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 				inp.Defaults.RelayMaxFetchBatch)
 	}
 
+	// models.go: Per-Pod Per-Shard RW & RO Caps
+	d.PerShardRW, d.PerShardRO = perShardCaps(svc, inp, &d)
+
+	// Total client-side DB connection pool size across all shards
+	totalPool := 0
+	for _, c := range d.PerShardRW {
+		totalPool += c
+	}
+	for _, c := range d.PerShardRO {
+		totalPool += c
+	}
+	if totalPool > 0 {
+		d.PoolSize = totalPool
+	}
+
 	// models.go: CPU & Memory Request
 	d.CPURequest = cpuRequest(totalNominal/float64(d.MinReplicas), svc.RPSPerCore)
 	if svc.Role == "producer" && svc.Relay != nil {
@@ -237,17 +252,20 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 				kafkaBufferMB += (podPart * inp.Infra.Kafka.ReaderMaxBytes) / (1024 * 1024)
 			}
 		}
-		d.MemRequest = memRequest(d.PoolSize, d.HTTPPool) + kafkaBufferMB
-	}
 
-	// models.go: Per-Pod Per-Shard RW & RO Caps
-	d.PerShardRW, d.PerShardRO = perShardCaps(svc, inp, &d)
+		// In-flight heap allocation from Little's Law: L = λ_pod × W_max
+		inFlightConcurrency := peakPerPod * (maxKingman / 1000.0)
+		inFlightHeapMB := int(math.Ceil((inFlightConcurrency * InFlightRequestAllocBytes * GoGCMemoryMultiplier) / float64(BytesPerMiB)))
+
+		d.MemRequest = memRequest(d.PoolSize, d.HTTPPool, inFlightHeapMB) + kafkaBufferMB
+	}
 
 	return d
 }
 
 // perShardCaps computes per-pod per-shard connection caps for both RW and RO pools.
-// Ensures that total (RW + RO) across all shards for a pod does not exceed d.PoolSize.
+// Each shard's pool is mathematically constrained by that shard's PostgreSQL hard ceiling
+// and floored at pool_floor to eliminate serial bottlenecks.
 func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[string]int) {
 	rwCaps := make(map[string]int)
 	roCaps := make(map[string]int)
@@ -263,6 +281,11 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 	minR := float64(d.MinReplicas)
 	if minR <= 0 {
 		minR = 1
+	}
+
+	floor := inp.Defaults.PoolFloor
+	if floor < 2 {
+		floor = 2
 	}
 
 	for shardName := range shards {
@@ -308,36 +331,17 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 
 		if rwQPSMS > 0 {
 			rwPoolDemand := int(math.Ceil((rwQPSMS / rho) / minR))
-			if rwPoolDemand < 1 {
-				rwPoolDemand = 1
+			if rwPoolDemand < floor {
+				rwPoolDemand = floor
 			}
-			rwCaps[shardName] = perShardRWCap(rwPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
+			rwCaps[shardName] = perShardRWCap(rwPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap, floor)
 		}
 		if roQPSMS > 0 {
 			roPoolDemand := int(math.Ceil((roQPSMS / rho) / minR))
-			if roPoolDemand < 1 {
-				roPoolDemand = 1
+			if roPoolDemand < floor {
+				roPoolDemand = floor
 			}
-			roCaps[shardName] = perShardRWCap(roPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap)
-		}
-	}
-
-	// Scale down if total (RW + RO) across all shards exceeds d.PoolSize
-	totalAlloc := 0
-	for _, c := range rwCaps {
-		totalAlloc += c
-	}
-	for _, c := range roCaps {
-		totalAlloc += c
-	}
-
-	if totalAlloc > d.PoolSize && totalAlloc > 0 {
-		scale := float64(d.PoolSize) / float64(totalAlloc)
-		for s, c := range rwCaps {
-			rwCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
-		}
-		for s, c := range roCaps {
-			roCaps[s] = max(1, int(math.Floor(float64(c)*scale)))
+			roCaps[shardName] = perShardRWCap(roPoolDemand, ceiling, numServicesOnShard, d.MaxReplicasCap, floor)
 		}
 	}
 

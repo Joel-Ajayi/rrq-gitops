@@ -16,9 +16,10 @@ func fitcheck(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling,
 
 		// First, aggregate total demand across all services for this instance
 		for _, d := range svcs {
-			if serviceHitsInstance(input, d.Name, instName) {
-				totalPeakDemand += connectionDemand(d.PoolSize, d.MaxReplicas)
-				totalMinDemand += connectionDemand(d.PoolSize, d.MinReplicas)
+			conns := d.PerShardRW[instName] + d.PerShardRO[instName]
+			if conns > 0 {
+				totalPeakDemand += connectionDemand(conns, d.MaxReplicas)
+				totalMinDemand += connectionDemand(conns, d.MinReplicas)
 			}
 		}
 
@@ -37,14 +38,16 @@ func fitcheck(svcs map[string]Derived, pg map[string]PGCeiling, kc KafkaCeiling,
 
 		// Calculate clamped HPA caps for each service on this instance
 		for _, d := range svcs {
-			if d.PoolSize > 0 && serviceHitsInstance(input, d.Name, instName) {
+			conns := d.PerShardRW[instName] + d.PerShardRO[instName]
+			if conns > 0 {
 				gap := usable
 				for _, other := range svcs {
-					if other.Name != d.Name && serviceHitsInstance(input, other.Name, instName) {
-						gap -= connectionDemand(other.PoolSize, other.MaxReplicas)
+					if other.Name != d.Name {
+						otherConns := other.PerShardRW[instName] + other.PerShardRO[instName]
+						gap -= connectionDemand(otherConns, other.MaxReplicas)
 					}
 				}
-				cap := hpaCap(gap, d.PoolSize, d.MinReplicas)
+				cap := hpaCap(gap, conns, d.MinReplicas)
 				if cap > 0 && cap < svcs[d.Name].MaxReplicasCap {
 					updated := svcs[d.Name]
 					updated.MaxReplicasCap = cap

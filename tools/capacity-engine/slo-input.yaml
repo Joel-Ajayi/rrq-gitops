@@ -99,14 +99,14 @@ services:
     rps_per_core: 1250 # Tier 5 | Panel: Compute Saturation Curve | Metric: process_cpu_seconds_total vs traces_span_metrics_calls_total
     cores_per_pod: 2 # k8s pod CPU allocation profile
     hpa_target_cpu: 0.70 # k8s HPA autoscale trigger threshold
-    mem_limit_bytes: 268435456 # k8s pod Memory limit (256 MiB)
+    mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
     jwt_access_hrs: 24 # Security Team - JWT Token expiration policy
     max_request_bytes: 524288 # Security Team - WAF payload size limit (512KB)
     endpoints:
       - name: create-transfer
         nominal_qps: 3000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
         peak_qps: 5000 # Tier 3 | Panel: API / Kafka Throughput | Metric: traces_span_metrics_calls_total
-        avg_query_time_ms: 3 # Tier 4 | Panel: Database Query Latency | Metric: traces_span_metrics_duration_seconds
+        avg_query_time_ms: 1.0 # Tier 4 | Panel: Database Query Latency | Measured: 0.79ms INSERT / 0.90ms combined
         c_s_squared: 1.5 # Tier 5 | Panel: Latency/Arrival Variance | Metric: variance(duration)/mean(duration)^2
         c_a_squared: 1.0 # Tier 5 | Panel: Latency/Arrival Variance | Metric: stddev(RPS)/mean(RPS)
         db_instances: [shard-a, shard-b] # Architecture definition - Target DB cluster

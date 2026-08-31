@@ -95,7 +95,7 @@ func perPodPool(maxDemand float64, minReplicas, poolFloor int) int {
 }
 
 // PER-POD PER-SHARD RW CAP — connection pool per pod, per shard
-// [DERIVED] per_pod_per_shard = max(2, min(poolSize, ceiling / num_services_on_shard / max_replicas))
+// [DERIVED] per_pod_per_shard = max(poolFloor, min(poolSize, ceiling / num_services_on_shard / max_replicas))
 //
 //	ceiling = PG's hard max_connections (RAM-derived, output in capacity-output.yaml)
 //	poolSize = the service's per-pod pool (d.PoolSize, the demand-driven value)
@@ -105,7 +105,7 @@ func perPodPool(maxDemand float64, minReplicas, poolFloor int) int {
 //	Why divide by num_services_on_shard × max_replicas: ensures that
 //	even at peak (all replicas, all services), the total per-shard
 //	connections fit under the PG hard limit.
-func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas int) int {
+func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas, poolFloor int) int {
 	if numServicesOnShard == 0 {
 		return poolSize
 	}
@@ -119,9 +119,9 @@ func perShardRWCap(poolSize, ceiling, numServicesOnShard, maxReplicas int) int {
 	if poolSize > safeCap {
 		poolSize = safeCap
 	}
-	// Floor at 2 to prevent serial bottlenecks (pool of 1)
-	if poolSize < 2 {
-		poolSize = 2
+	// Floor at poolFloor to prevent serial bottlenecks (pool of 1)
+	if poolSize < poolFloor {
+		poolSize = poolFloor
 	}
 	return poolSize
 }
@@ -299,18 +299,18 @@ func cpuRequest(nominal float64, rpsPerCore float64) int {
 	return int(math.Ceil(nominal / rpsPerCore * 1000))
 }
 
-// MEMORY REQUEST — pool + TLS + runtime baseline (B17)
-// [DERIVED] mem_mib = (pool × 50KB + http × 50KB + 64MiB) / (1024×1024)
-func memRequest(poolSize, httpPool int) int {
+// MEMORY REQUEST — pool + TLS + runtime baseline + in-flight concurrency heap (B17)
+// [DERIVED] mem_mib = (pool × 50KB + http × 50KB + 64MiB) / BytesPerMiB + inFlightMB
+func memRequest(poolSize, httpPool, inFlightMB int) int {
 	return int((int64(poolSize*PodPGConnMemBytes) + int64(httpPool*PodHTTPTLSMemBytes) + PodAPPBaselineMemBytes) /
-		(1024 * 1024))
+		int64(BytesPerMiB)) + inFlightMB
 }
 
 // RELAY MEMORY REQUEST — adds staging buffer + fetch batch buffer to the
 // baseline memory calculation for the outbox-relay service.
-// [DERIVED] relay_mem_mib = memRequest(pool, 0) + staging_kb/1024 + max(1, fetchBatch × maxPayloadKB / 1024)
+// [DERIVED] relay_mem_mib = memRequest(pool, 0, 0) + staging_kb/1024 + max(1, fetchBatch × maxPayloadKB / 1024)
 func relayMemRequest(poolSize, stagingKB, fetchBatch, maxPayloadKB int) int {
-	base := memRequest(poolSize, 0)
+	base := memRequest(poolSize, 0, 0)
 	stagingMiB := stagingKB / 1024
 	fetchMiB := fetchBatch * maxPayloadKB / 1024
 	if fetchMiB < 1 {

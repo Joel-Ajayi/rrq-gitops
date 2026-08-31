@@ -9,6 +9,7 @@
       "preAllocatedVUs": 5
     },
     "full_workload": {
+      "executor": "ramping-arrival-rate",
       "startRate": 100,
       "timeUnit": "1s",
       "preAllocatedVUs": 100,
