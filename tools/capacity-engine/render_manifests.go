@@ -185,6 +185,13 @@ func patchDeploymentResources(path string, d Derived, svc Service, input *SLOInp
 		text = resRe.ReplaceAllString(text, fmt.Sprintf(`${1} %dm${2} %dMi${3} "%s"${4} %dMi`, reqCPU, reqMem, limCPU, limMem))
 	}
 
+	if d.MinReplicas > 0 {
+		repRe := regexp.MustCompile(`(?m)^(\s+replicas:)\s*\d+(\s*)$`)
+		if repRe.MatchString(text) {
+			text = repRe.ReplaceAllString(text, fmt.Sprintf("${1} %d${2}", d.MinReplicas))
+		}
+	}
+
 	if text != string(data) {
 		return os.WriteFile(path, []byte(text), 0644)
 	}
