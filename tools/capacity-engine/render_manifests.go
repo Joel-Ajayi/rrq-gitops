@@ -153,7 +153,7 @@ func patchKafkaTopics(path string, partitions map[string]int) error {
 		if !ok {
 			continue
 		}
-		partRe := regexp.MustCompile(`(?m)^(\s+)partitions:\s*\d+(\s*)$`)
+		partRe := regexp.MustCompile(`(?m)^(\s+)partitions:\s*\d+(.*)$`)
 		if partRe.MatchString(block) {
 			blocks[i] = partRe.ReplaceAllString(block, fmt.Sprintf("${1}partitions: %d${2}", newPart))
 		}

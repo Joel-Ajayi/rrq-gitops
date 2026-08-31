@@ -33,7 +33,6 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 
 	rho := svc.SLO.TargetUtilization
 	az := inp.Defaults.AZRedundancy
-	gr := inp.Defaults.GrowthHeadroom
 	slack := inp.Defaults.SlackPercent
 
 	var totalPeak, totalNominal float64
@@ -161,9 +160,16 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 	d.ShutdownTimeoutMs = shutdownTimeout(d.SessionMs)
 
 	// models.go: Kafka Partition Count
-	for _, topic := range svc.Topics {
-		perPart := inp.Infra.Kafka.PartitionConsumeRPS[topic]
-		d.Partitions[topic] = partitionCount(totalPeak, perPart, d.MinReplicas, gr)
+	if svc.Role == "consumer" {
+		for _, topic := range svc.Topics {
+			perPart := inp.Infra.Kafka.PartitionConsumeRPS[topic]
+			if perPart > 0 {
+				tPeak := topicPeakQPS(svc, topic)
+				if tPeak > 0 {
+					d.Partitions[topic] = partitionCount(tPeak, perPart, d.MaxReplicas)
+				}
+			}
+		}
 	}
 
 	// models.go: KEDA Lag Threshold
@@ -338,4 +344,29 @@ func perShardCaps(svc Service, inp *SLOInput, d *Derived) (map[string]int, map[s
 	}
 
 	return rwCaps, roCaps
+}
+
+// topicPeakQPS returns the peak ingress message rate targeting a specific Kafka topic.
+func topicPeakQPS(svc Service, topic string) float64 {
+	switch topic {
+	case "jobs":
+		for _, ep := range svc.Endpoints {
+			if ep.Name == "process-transfer" || ep.Name == "velocity-check" {
+				return ep.PeakQPS
+			}
+		}
+	case "notify":
+		for _, ep := range svc.Endpoints {
+			if ep.Name == "delivery-tracking" {
+				return ep.PeakQPS
+			}
+		}
+	case "xshard.shard-a", "xshard.shard-b":
+		for _, ep := range svc.Endpoints {
+			if ep.Name == "xshard-requested" || ep.Name == "xshard-settled" {
+				return ep.PeakQPS
+			}
+		}
+	}
+	return 0
 }

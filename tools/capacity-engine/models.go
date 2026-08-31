@@ -219,11 +219,9 @@ func sessionTiming(processTO, dlqTotal, bufferMS int) (session, heartbeat int) {
 }
 
 // KAFKA PARTITION COUNT
-// [SOURCED] partitions = max(ceil(λ / per_partition_consume), consumers)
-// [DERIVED] × growth_headroom for 1–2 yr growth
-func partitionCount(totalPeak float64, perPartRPS float64, minReplicas int, growth float64) int {
-	base := int(math.Max(math.Ceil(totalPeak/perPartRPS), float64(minReplicas)))
-	return int(math.Ceil(float64(base) * growth))
+// [SOURCED] partitions = max(ceil(λ_topic / per_partition_consume), maxReplicas)
+func partitionCount(topicPeak float64, perPartRPS float64, maxReplicas int) int {
+	return int(math.Max(math.Ceil(topicPeak/perPartRPS), float64(maxReplicas)))
 }
 
 // KEDA LAG THRESHOLD — acceptable backlog per pod based on Little's Law.

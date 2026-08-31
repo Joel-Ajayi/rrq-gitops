@@ -21,10 +21,10 @@ kafka_cap:
     latency_warning: false
     storage_gb_per_day: 494.384765625
     topics:
-        jobs: 51
-        notify: 68
-        xshard.shard-a: 150
-        xshard.shard-b: 150
+        jobs: 10
+        notify: 20
+        xshard.shard-a: 15
+        xshard.shard-b: 15
 redis_cap:
     - node: 0
       max_memory_bytes: 3435973836
@@ -89,7 +89,7 @@ services:
         max_replicas: 3
         max_replicas_cap: 3
         partitions:
-            jobs: 51
+            jobs: 10
         lag_threshold: 76884
         http_pool: 0
         http_per_host: 0
@@ -104,7 +104,7 @@ services:
         backoff_base_ms: 3
         backoff_cap_ms: 192
         cpu_request: 194
-        mem_request: 86
+        mem_request: 73
         latency_ms:
             dlq-ingest: 3.063333214756705
             merchant-lookup: 9.802666287221456
@@ -138,9 +138,9 @@ services:
         max_replicas: 6
         max_replicas_cap: 6
         partitions:
-            jobs: 51
-            xshard.shard-a: 150
-            xshard.shard-b: 150
+            jobs: 10
+            xshard.shard-a: 15
+            xshard.shard-b: 15
         lag_threshold: 22331
         http_pool: 0
         http_per_host: 0
@@ -155,7 +155,7 @@ services:
         backoff_base_ms: 15
         backoff_cap_ms: 60
         cpu_request: 401
-        mem_request: 190
+        mem_request: 91
         latency_ms:
             dlq-ingest: 2.0323640054352645
             merchant-lookup: 6.5035648173928475
@@ -188,11 +188,6 @@ services:
         min_replicas: 3
         max_replicas: 10
         max_replicas_cap: 10
-        partitions:
-            jobs: 18
-            notify: 35
-            xshard.shard-a: 51
-            xshard.shard-b: 51
         lag_threshold: 0
         http_pool: 0
         http_per_host: 0
@@ -233,7 +228,7 @@ services:
         max_replicas: 5
         max_replicas_cap: 5
         partitions:
-            notify: 68
+            notify: 20
         lag_threshold: 56800
         http_pool: 200
         http_per_host: 67
@@ -248,7 +243,7 @@ services:
         backoff_base_ms: 106
         backoff_cap_ms: 848
         cpu_request: 311
-        mem_request: 130
+        mem_request: 115
         latency_ms:
             delivery-tracking: 120.76550261835828
             dlq-ingest: 107.69092689568825
