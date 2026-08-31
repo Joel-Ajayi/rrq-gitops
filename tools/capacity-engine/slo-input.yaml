@@ -170,7 +170,7 @@ services:
         db_instance: merchants # Architecture definition - Target DB cluster
         writes_per_message: 1 # Tier 4 | Panel: DB Write Spans per Request | Metric: traces_span_metrics_calls_total
     circuit_breaker:
-      error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
+      error_threshold: 0.10 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       max_fails: 3 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
@@ -208,7 +208,7 @@ services:
       half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
       interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
-      error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
+      error_threshold: 0.10 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
     relay:
       staging_kb: 1024 # Capacity Team - staging buffer budget (1MB)
       max_payload_kb: 64 # Capacity Team - max payload limit (64KB = 65536 bytes)
@@ -289,7 +289,7 @@ services:
       half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
       interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
-      error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
+      error_threshold: 0.10 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
 
   # === webhook-worker: Kafka consumer + HTTPS delivery ===
   - name: webhook-worker
@@ -344,7 +344,7 @@ services:
       half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
       interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
-      error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
+      error_threshold: 0.10 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
     webhook:
       delivery_max_attempts: 15 # Product Policy - Merchant webhook delivery absolute retry limit
       delivery_backoff_base_ms: 1000 # Product Policy - Initial exponential backoff delay
@@ -415,4 +415,4 @@ services:
       half_open_probes: 1 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_half_open_failures_total
       interval_ms: 10000 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
       min_requests: 90 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
-      error_threshold: 0.00005 # Circuit Breaker tuning - trip at 0.005% error rate
+      error_threshold: 0.10 # Tier 3 | Panel: Open Circuit Breakers | Metric: circuit_breaker_state
