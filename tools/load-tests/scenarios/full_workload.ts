@@ -37,6 +37,8 @@ export const options: Options = {
   thresholds: CONFIG.thresholds.load,
 };
 
+const recentJobsByMerchant: Record<number, string[]> = {};
+
 export default function (): void {
   const rand: number = Math.random();
   const vu: number = exec.vu.idInTest;
@@ -58,6 +60,20 @@ export default function (): void {
     const res = submitTransfer(fromWallet, toWallet, 100, activeJwt);
     if (res.status === 401) {
       refreshToken(merchantIdx, apiKey);
+    } else if (res.status === 202 || res.status === 200) {
+      try {
+        const body = res.json() as Record<string, unknown>;
+        const jId = (body.jobId || body.job_id) as string;
+        if (jId) {
+          if (!recentJobsByMerchant[merchantIdx]) {
+            recentJobsByMerchant[merchantIdx] = [];
+          }
+          if (recentJobsByMerchant[merchantIdx].length >= 20) {
+            recentJobsByMerchant[merchantIdx].shift();
+          }
+          recentJobsByMerchant[merchantIdx].push(jId);
+        }
+      } catch {}
     }
   } else if (rand < 0.75) {
     // 10% Get Balance
@@ -69,15 +85,25 @@ export default function (): void {
       refreshToken(merchantIdx, apiKey);
     }
   } else if (rand < 0.85) {
-    // 10% Get Job Status
+    // 10% Get Job Status (Querying real jobs created by this merchant)
     const { jwt, apiKey, merchantIdx }: DepositContext = selectDepositWallet(
       vu,
       iter,
     );
     const activeJwt = getActiveJwt(merchantIdx, jwt);
-    const res = getJobStatus("job_sample_id", activeJwt);
-    if (res.status === 401) {
-      refreshToken(merchantIdx, apiKey);
+    const mJobs = recentJobsByMerchant[merchantIdx];
+    if (mJobs && mJobs.length > 0) {
+      const jobId = mJobs[Math.floor(Math.random() * mJobs.length)];
+      const res = getJobStatus(jobId, activeJwt);
+      if (res.status === 401) {
+        refreshToken(merchantIdx, apiKey);
+      }
+    } else {
+      const { walletId } = selectDepositWallet(vu, iter);
+      const res = getWalletBalance(walletId, activeJwt);
+      if (res.status === 401) {
+        refreshToken(merchantIdx, apiKey);
+      }
     }
   } else if (rand < 0.95) {
     // 10% Wallet Deposit (create-transfer with empty from_wallet)
@@ -87,6 +113,20 @@ export default function (): void {
     const res = submitDeposit(walletId, 500, activeJwt);
     if (res.status === 401) {
       refreshToken(merchantIdx, apiKey);
+    } else if (res.status === 202 || res.status === 200) {
+      try {
+        const body = res.json() as Record<string, unknown>;
+        const jId = (body.jobId || body.job_id) as string;
+        if (jId) {
+          if (!recentJobsByMerchant[merchantIdx]) {
+            recentJobsByMerchant[merchantIdx] = [];
+          }
+          if (recentJobsByMerchant[merchantIdx].length >= 20) {
+            recentJobsByMerchant[merchantIdx].shift();
+          }
+          recentJobsByMerchant[merchantIdx].push(jId);
+        }
+      } catch {}
     }
   } else if (rand < 0.98) {
     // 3% Create Wallet
