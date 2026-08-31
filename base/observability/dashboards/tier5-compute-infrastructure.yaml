@@ -173,6 +173,10 @@ data:
             {
               "expr": "stdvar(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) / (avg(rate(traces_span_metrics_duration_seconds_sum[5m])) by (service_name) ^ 2)",
               "legendFormat": "C_s^2 ({{service_name}})"
+            },
+            {
+              "expr": "stdvar(rate(traces_span_metrics_calls_total[5m])) by (service_name) / (avg(rate(traces_span_metrics_calls_total[5m])) by (service_name) ^ 2)",
+              "legendFormat": "C_a^2 ({{service_name}})"
             }
           ],
           "datasource": {
