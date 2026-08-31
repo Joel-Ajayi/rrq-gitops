@@ -119,6 +119,7 @@ type Service struct {
 	MemLimitBytes         int64          `yaml:"mem_limit_bytes"`
 	MinReplicas           int            `yaml:"min_replicas"`
 	MaxReplicas           int            `yaml:"max_replicas"`
+	WorkerFloor           int            `yaml:"worker_floor"`
 }
 
 type WebhookConfig struct {

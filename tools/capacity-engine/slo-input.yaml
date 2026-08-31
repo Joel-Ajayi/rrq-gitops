@@ -66,8 +66,8 @@ infrastructure:
 
 defaults:
   slack_percent: 0.15 # Capacity Team - 15% SLO budget buffer for GC/network overhead
-  az_redundancy_factor: 1.5 # Capacity Team - N+1 scaling for 3 Availability Zones (1.5x multiplier)
-  growth_headroom: 1.5 # Capacity Team - Future traffic growth buffer (50% headroom)
+  az_redundancy_factor: 1.0 # Single-core calibration mode (1 instance)
+  growth_headroom: 1.0 # Single-core calibration mode (exact nominal load)
   retry_budget_fraction: 0.10 # Capacity Team - Max allowable throughput penalty for retries (10%)
   retry_budget_min_tokens: 10 # Baseline token floor to allow initial cold-start retries
   retry_budget_max_tokens: 100 # Token bucket capacity ceiling for retries
@@ -75,8 +75,8 @@ defaults:
   worker_floor: 2 # Capacity Team - Absolute minimum worker concurrency floor per pod
   http_headroom: 1.50 # Capacity Team - Downstream HTTP connection burst multiplier
   pool_floor: 3 # Capacity Team - Absolute minimum worker/connection pool size
-  min_replicas: 3 # Capacity Team - Minimum baseline replica floor for KEDA/HPA (N+1 across 3 AZs)
-  max_replicas: 10 # Capacity Team - Default maximum replica ceiling for KEDA/HPA
+  min_replicas: 1 # Single-core calibration mode (1 pod per service)
+  max_replicas: 1 # Single-core calibration mode (no autoscaling)
 
   consumer_session_buffer_ms: 5000 # Capacity Team - Network jitter buffer over ProcessTimeout
   consumer_commit_flush_ms: 1000 # Kafka client 'auto.commit.interval.ms' tuning
@@ -98,9 +98,10 @@ services:
       target_utilization: 0.65 # Capacity Team - Maximum allowed sustained CPU/Pool utilization
     role: api # Architecture definition - synchronous HTTP ingress
     rps_per_core: 1250 # Tier 5 | Panel: Compute Saturation Curve | Metric: process_cpu_seconds_total vs traces_span_metrics_calls_total
-    cores_per_pod: 2 # k8s pod CPU allocation profile
+    cores_per_pod: 1 # Single-core calibration mode
     hpa_target_cpu: 0.70 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
+    worker_floor: 200 # Single-core test bulkhead capacity for 500 concurrent VUs
     jwt_access_hrs: 24 # Security Team - JWT Token expiration policy
     max_request_bytes: 524288 # Security Team - WAF payload size limit (512KB)
     endpoints:
@@ -187,6 +188,7 @@ services:
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 1 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
+    worker_floor: 10 # Single-core calibration worker concurrency floor
     producer_throughput_rps: 4000 # Tier 4 | Panel: Outbox AIMD Backpressure | Metric: outbox_events_published_total
     endpoints:
       - name: poll
@@ -230,6 +232,7 @@ services:
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 0.9 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
+    worker_floor: 20 # Single-core calibration worker concurrency floor
     endpoints:
       - name: process-transfer
         nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
@@ -302,6 +305,7 @@ services:
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 1 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
+    worker_floor: 100 # Single-core calibration worker concurrency floor
     endpoints:
       - name: delivery-tracking
         nominal_qps: 120 # Tier 3 | Panel: API / Kafka Throughput | Metric: kafka_consumer_offset
@@ -366,6 +370,7 @@ services:
     cores_per_pod: 1 # k8s pod CPU allocation profile
     hpa_target_cpu: 1 # k8s HPA autoscale trigger threshold
     mem_limit_bytes: 536870912 # k8s pod Memory limit (512 MiB)
+    worker_floor: 10 # Single-core calibration worker concurrency floor
     velocity_threshold: 6000 # Risk/Trust Team - Max transfers allowed per window (for merchant disbursements)
     velocity_window_ms: 60000 # Risk/Trust Team - Transfer velocity window (1 minute)
     endpoints:

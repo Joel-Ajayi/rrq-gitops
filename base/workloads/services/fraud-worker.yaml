@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: fraud-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -146,15 +146,15 @@ metadata:
 spec:
   scaleTargetRef:
     name: fraud-worker
-  minReplicaCount: 3
-  maxReplicaCount: 3
+  minReplicaCount: 1
+  maxReplicaCount: 1
   triggers:
     - type: kafka
       metadata:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: fraud-worker
         topic: jobs
-        lagThreshold: "5000"
+        lagThreshold: "25000"
         offsetResetPolicy: earliest
 ---
 apiVersion: policy/v1

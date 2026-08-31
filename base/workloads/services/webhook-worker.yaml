@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: webhook-worker
     app.kubernetes.io/part-of: rrq
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -87,7 +87,7 @@ spec:
 
           resources:
             requests:
-              cpu: 200m
+              cpu: 400m
               memory: 128Mi
             limits:
               cpu: "1"
@@ -121,15 +121,15 @@ metadata:
 spec:
   scaleTargetRef:
     name: webhook-worker
-  minReplicaCount: 3
-  maxReplicaCount: 3
+  minReplicaCount: 1
+  maxReplicaCount: 1
   triggers:
     - type: kafka
       metadata:
         bootstrapServers: rrq-kafka-bootstrap.rrq.svc.cluster.local:9092
         consumerGroup: webhook-worker
         topic: notify
-        lagThreshold: "6816"
+        lagThreshold: "28400"
         offsetResetPolicy: earliest
     - type: postgresql
       metadata:

@@ -12,3 +12,4 @@ resources:
 
 patches:
   - path: instrumentation.yaml
+  - path: per-core.yaml
