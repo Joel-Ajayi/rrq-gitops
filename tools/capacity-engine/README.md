@@ -200,10 +200,12 @@ worst case = 2 × (base + max) = ¾ × budget ≤ budget ✓
 #### Partition Count
 
 ```
-partitions = ceil( max( ceil( λ_peak / per_partition_consume ), consumers ) × growth_headroom )
+partitions = max( ceil( λ_topic_peak / per_partition_consume ), max_replicas )
 ```
 
-_Consumers = `min_replicas`; growth headroom covers 1–2 yr traffic growth._
+* `λ_topic_peak`: Isolated peak message rate for the specific topic (`jobs`, `notify`, `xshard.*`).
+* `max_replicas`: Enforces consumer pod scaling concurrency as a hard floor so scaled pods are never partition-starved.
+* Automatically patched into `base/platform/datastores/kafka/topics.yaml`.
 
 #### Cluster Capacity & File Descriptors
 

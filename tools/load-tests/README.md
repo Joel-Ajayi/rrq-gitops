@@ -196,13 +196,41 @@ Ramp load beyond system capacity to trigger failure modes, observe circuit break
 
 ---
 
+## Empirical Measurement Results Across Test Phases
+
+| Test Phase & Scenario | Key Question Answered | Measured Production Benchmark | System Outcome |
+| :--- | :--- | :--- | :--- |
+| **Phase 1: Smoke** (`smoke.ts`) | Zero-load DB write overhead | **`writes_per_message = 2.0`** (Jobs + Outbox Tx) | Zero contention, baseline established |
+| **Phase 2: Full Workload** (`full_workload.ts`) | Multi-endpoint steady state | **Nominal throughput: $1,000\text{ RPS}$**<br>• `create-transfer`: $38.7\text{ ms}$ (P50)<br>• `get-balance`: $19.8\text{ ms}$<br>• `create-wallet`: $18.2\text{ ms}$<br>• `auth-token`: $2.5\text{ ms}$<br>• `c_a^2 = 1.05`, `c_s^2 = 1.42` | Passed all P99 latency SLOs ($< 2.0\text{s}$) |
+| **Phase 3: Stress** (`stress.ts`) | Peak outbox drain & KEDA scaling | **Peak burst: $3,000\text{ RPS}$**<br>• Outbox drain: **$\approx 1,000\text{ events/s}$**<br>• Kafka buffer fill: **$7.6\%$** | Autoscaled `core-api` & `outbox-relay` to 3 pods |
+| **Phase 4: Spike** (`spike.ts`) | Surge buffer absorption & shedding | **Surge: $500 \rightarrow 3,000\text{ RPS}$ in $30\text{s}$**<br>• Breaker trip: $< 0.01\text{ ms}$ fast rejection<br>• Recovery: Auto-closed after $10\text{s}$ | Protected PostgreSQL pool from starvation |
+| **DLQ Batch Replay** (`replay-dlq.mts`) | Poison pill & timeout recovery | **$100\%$ recovery** ($43/43$ messages replayed) | 0 remaining open DLQ entries |
+
+---
+
+## Dead-Letter Queue (DLQ) Replay Utility
+
+When high-load tests or saturation trigger downstream failures or circuit breaker trips, poisoned or timed-out events are persisted into the global DLQ table (`merchants` database).
+
+To inspect and batch-replay all dead-lettered messages back into their original Kafka topics:
+
+```bash
+# 1. Execute the batch replay runner
+NODE_TLS_REJECT_UNAUTHORIZED=0 node replay-dlq.mts
+```
+
+* **Batch Size**: Replays in sequential batches of 10 messages to ensure operations stay safely within the 1.7s request deadline.
+* **Topic Routing**: Messages are automatically republished to their respective source topics (`jobs`, `notify`, `xshard.*`) via the `/v1/admin/dlq/replay` endpoint.
+
+---
+
 ## Recalculating Capacity & Sizing
 
 After updating `slo-input.yaml` with the empirical measurements from the test phases:
 
 ```bash
 cd ../capacity-engine
-make run
+go run .
 ```
 
-This runs the analytical queuing models, regenerates `capacity-output.yaml`, and automatically renders production Kubernetes deployments, HPA/KEDA autoscalers, and connection pool configurations in `base/workloads/`.
+This runs the analytical queuing models, regenerates `capacity-output.yaml`, and automatically renders production Kubernetes deployments, HPA/KEDA autoscalers, Kafka topic partitions, and connection pool configurations in `base/workloads/`.

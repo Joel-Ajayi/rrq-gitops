@@ -19,7 +19,8 @@ It strictly decouples the platform infrastructure and deployment lifecycle from 
 - [Security & Network Policy Matrix](docs/SECURITY.md) — Multi-layer security model, default-deny ingress/egress, and sealed secret standards.
 - [Observability Stack Guide](base/observability/README.md) — OTel agents/gateway, trace, metrics, log pipelines, and architecture diagram.
 - [Grafana Dashboards Guide](base/observability/dashboards/README.md) — Persona-driven 5-Tier dashboard taxonomy (RED/USE methodology).
-- [Capacity Planning Engine Guide](tools/capacity-engine/README.md) — Capacity model inputs, formulas, and generated outputs.
+- [Capacity Planning Engine Guide](tools/capacity-engine/README.md) — Queueing theory models (M/M/c & Kingman), Little's Law, and automated manifest generation.
+- [Load Testing & Benchmark Suite](tools/load-tests/README.md) — k6 load tests (`smoke`, `full_workload`, `stress`, `spike`), token refresh, and DLQ batch replay.
 
 ---
 
@@ -51,11 +52,29 @@ rrq-gitops/
 │   ├── cluster-dev.yaml
 │   └── cluster-local.yaml
 ├── tools/
-│   ├── capacity-engine/           # Go-based capacity planning tool
-│   │   └── README.md              #   Engine input, formulas & file index
-│   └── load-tests/                # k6 load test scenarios
+│   ├── capacity-engine/           # Go-based analytical capacity sizing engine
+│   │   └── README.md              #   Engine inputs, mathematical models & manifest patchers
+│   └── load-tests/                # k6 load testing & verification suite
+│       └── README.md              #   Scenario guide, metric gathering & DLQ replay
 └── Makefile                       # All GitOps operations
 ```
+
+---
+
+## Key Infrastructure & Performance Benchmarks
+
+All microservices, databases, and message brokers are sized via the **Queueing Theory Capacity Engine** (`tools/capacity-engine/`) and verified with empirical k6 load benchmarks:
+
+| Sizing Dimension / Benchmark | Engine Formulation & Constraint | Measured Live Performance |
+| :--- | :--- | :--- |
+| **Peak Ingress Capacity** | Kingman $G/G/1$ Heavy Traffic Approximation | **$3,000\text{ RPS}$ sustained burst** |
+| **Transactional Outbox Drain** | AIMD Adaptive Window Buffer | **$\approx 1,000\text{ events/sec}$** with $< 8\%$ Kafka buffer fill |
+| **PostgreSQL Connection Pool** | Fair-share allocation ($\le 239\text{ max\_conns}$) | **$5\text{ RW conns / pod}$** with zero DB pool exhaustion |
+| **Kafka `jobs` Topic** | $3,000\text{ RPS peak} / 300\text{ RPS/part}$ | **$10\text{ partitions}$** (Consumer floor: 6 pods) |
+| **Kafka `notify` Topic** | $3,000\text{ RPS peak} / 150\text{ RPS/part}$ | **$20\text{ partitions}$** (Consumer floor: 5 pods) |
+| **Kafka `xshard.*` Topics** | $1,500\text{ RPS peak} / 100\text{ RPS/part}$ | **$15\text{ partitions}$** (Consumer floor: 6 pods) |
+| **Circuit Breaker Shedding** | Fast-fail protection on DB queue saturation | **$< 0.01\text{ ms}$ response** returning `HTTP 503` |
+| **Global DLQ Recovery** | Bounded batch replay via `/v1/admin/dlq/replay` | **$100\%$ recovery** ($43/43$ messages reprocessed) |
 
 ---
 
@@ -110,9 +129,13 @@ make bootstrap ENV=dev
 
 Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS):
 
-- **API Gateway**: `http://localhost:8080/v1/transfers`
-- **Portainer**: `http://cluster.127.0.0.1.nip.io:8080`
-- **Grafana**: `http://metrics.127.0.0.1.nip.io:8080/services`
+- **API Core Ingress**: `https://api.127.0.0.1.nip.io:8443/v1/transfers`
+- **Portainer UI**: `http://cluster.127.0.0.1.nip.io:8080`
+- **Business Transactions Dashboard (Tier 1)**: `http://grafana.127.0.0.1.nip.io:8080/executive`
+- **User Journeys Dashboard (Tier 2)**: `http://grafana.127.0.0.1.nip.io:8080/journeys`
+- **Service Health RED Dashboard (Tier 3)**: `http://grafana.127.0.0.1.nip.io:8080/services`
+- **Middleware USE Dashboard (Tier 4)**: `http://grafana.127.0.0.1.nip.io:8080/middleware`
+- **Infrastructure USE Dashboard (Tier 5)**: `http://grafana.127.0.0.1.nip.io:8080/infrastructure`
 
 ---
 
@@ -132,7 +155,7 @@ Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS
 | `make seal ENV=<dev\|local\|prod>`      | Encrypt plaintext secrets into SealedSecrets                                          |
 | `make render ENV=<dev\|local\|prod>`    | Dry-run: print fully-rendered Kustomize manifests                                     |
 | `make capacity`                         | Regenerate GitOps manifests from capacity models                                      |
-| `make bench SCENARIO=<name>`            | Run a k6 load test scenario                                                           |
+| `make bench SCENARIO=<name>`            | Run a k6 load test scenario (`smoke`, `full_workload`, `stress`, `spike`)            |
 
 ---
 

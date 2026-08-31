@@ -129,13 +129,23 @@ flowchart LR
 
 ---
 
-## Dashboards
+## Dashboards & SRE Portals
 
-Grafana dashboards follow a **Persona-Driven 5-Tier Taxonomy** (RED + USE methods) and are shipped as labeled `ConfigMap`s auto-imported by the Grafana sidecar.
+Grafana dashboards follow a **Persona-Driven 5-Tier Taxonomy** (RED + USE methods) and are shipped as labeled `ConfigMap` resources auto-imported by the Grafana sidecar:
 
-- [`dashboards/README.md`](dashboards/README.md) — Full tier breakdown: Business SLOs, User Journeys, Service Health (RED), Middleware & Data (USE), Compute & Infrastructure (USE).
+| Tier | Name | Target Persona | Local Kind URL | Production URL |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tier 1** | Business Transactions & SLOs | Executive & Product | `http://grafana.127.0.0.1.nip.io:8080/executive` | `https://metrics.<domain>/executive` |
+| **Tier 2** | User Journeys & Critical Paths | Architects & Backend Leads | `http://grafana.127.0.0.1.nip.io:8080/journeys` | `https://metrics.<domain>/journeys` |
+| **Tier 3** | Service Health & RED Metrics | On-Call Engineers | `http://grafana.127.0.0.1.nip.io:8080/services` | `https://metrics.<domain>/services` |
+| **Tier 4** | Middleware & Data Layer USE | DBAs & Platform SREs | `http://grafana.127.0.0.1.nip.io:8080/middleware` | `https://metrics.<domain>/middleware` |
+| **Tier 5** | Compute & Infrastructure USE | Systems Admins & K8s SREs | `http://grafana.127.0.0.1.nip.io:8080/infrastructure` | `https://metrics.<domain>/infrastructure` |
 
-## GitOps
+See [`dashboards/README.md`](dashboards/README.md) for full panel queries, metric definitions, and capacity engine links.
 
-- Deployed as part of **Wave 1** by `apps/01-observability.yaml`.
-- Dashboards reference the capacity engine's `slo-input.yaml` baselines 1:1.
+---
+
+## GitOps Deployment
+
+- Deployed as part of **Wave 1** by `bootstrap/root-app.yaml` / `overlays/prod/observability`.
+- Metric panels map 1:1 to the empirical baseline inputs declared in `tools/capacity-engine/slo-input.yaml`.
