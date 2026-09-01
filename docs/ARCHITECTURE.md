@@ -9,26 +9,62 @@ This document provides the canonical technical specification for the **RRQ Infra
 RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **Argo CD**.
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 60, "rankSpacing": 80, "curve": "basis"}}}%%
-graph TD
-  subgraph GitRepo ["Git Repository (rrq-gitops)"]
-    rootApp["bootstrap/root-app.yaml<br/>(Root ApplicationSet)"]
-    apps["apps/<br/>(5 child Application manifests)"]
-    overlays["overlays/prod/<br/>(Kustomize overlays)"]
-
-    rootApp -->|"Generates"| apps
-    apps -->|"Each Application points to"| overlays
+%%{init: {
+  "theme": "base",
+  "themeCSS": ".node foreignObject, .node foreignObject div, .node .label { white-space: nowrap !important; font-size: 22px !important; }",
+  "themeVariables": {
+    "fontSize": "24px",
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "primaryColor": "#0f172a",
+    "primaryTextColor": "#ffffff",
+    "primaryBorderColor": "#60a5fa",
+    "lineColor": "#64748b",
+    "secondaryColor": "#111827",
+    "tertiaryColor": "#1e293b",
+    "clusterBkg": "transparent",
+    "clusterBorder": "#475569"
+  },
+  "flowchart": {
+    "useMaxWidth": true,
+    "htmlLabels": true,
+    "nodeSpacing": 45,
+    "rankSpacing": 70,
+    "padding": 24,
+    "curve": "basis"
+  }
+}}%%
+flowchart LR
+  subgraph Git ["GitOps Source of Truth"]
+    rootApp["bootstrap/root-app.yaml"]
+    apps["apps/"]
+    overlays["overlays/<env>"]
+    base["base/"]
   end
 
-  subgraph K8sCluster ["Target Kubernetes Cluster"]
-    argocd["Argo CD Controller"]
-    waves["Sync Wave Engine<br/>(Strict ordering -2 → 0 → 1 → 2)"]
-    cluster[("Live Cluster State")]
-
-    rootApp -.->|"kubectl apply"| argocd
-    argocd --> waves
-    waves -->|"Reconcile & Self-Heal"| cluster
+  subgraph Argo ["GitOps Control Plane"]
+    argocd["Argo CD"]
+    sync["Sync Waves<br/>-2 → 0 → 1 → 2"]
   end
+
+  rootApp --> apps --> overlays --> base
+  base -->|"reconcile"| argocd
+  argocd --> sync
+
+  subgraph K8s ["Kubernetes Platform Layer"]
+    ops["Operators<br/>CNPG • Strimzi • Envoy • KEDA<br/>cert-manager • ECK • OTel"]
+    gateway["Envoy Gateway"]
+    pg["CloudNativePG<br/>DB clusters"]
+    kafka["Strimzi Kafka<br/>Brokers + topics"]
+    redis["Redis"]
+    obs["Observability<br/>Prometheus • Grafana • OTel"]
+  end
+
+  sync --> ops
+  ops --> gateway
+  ops --> pg
+  ops --> kafka
+  ops --> redis
+  ops --> obs
 ```
 
 ---
@@ -46,13 +82,14 @@ graph TD
 
 The infrastructure uses an **Argo CD ApplicationSet** (`bootstrap/root-app.yaml` for production, `bootstrap/root-app-local.yaml` for local production) to declaratively generate the deployment cascade with strict sync-waves across all environments without duplicate manifests:
 
-| ---------------- | --------- | --------------------------------- | -------------------------------------------------------------------- |
-| `sealed-secrets` | `-3` | `overlays/<env>/sealed-secrets` | Secret decryption operator |
-| `operators` | `-2` | `overlays/<env>/operators` | CRD installers (CNPG, Strimzi, Envoy, KEDA, cert-manager, ECK, OTel) |
-| `gateway` | `-1` | `overlays/<env>/gateway` | Envoy Gateway & HTTP listener infrastructure |
-| `datastores` | `0` | `overlays/<env>/datastores` | Stateful databases (PostgreSQL clusters, Kafka, Redis) |
-| `observability` | `1` | `overlays/<env>/observability` | OTel pipelines, Elasticsearch, Prometheus, Grafana |
-| `workloads` | `2` | `overlays/<env>/workloads` | Application microservices (core-api, workers) & HTTPRoutes |
+| Application      | Sync Wave | Path                            | Purpose                                                              |
+| ---------------- | --------- | ------------------------------- | -------------------------------------------------------------------- |
+| `sealed-secrets` | `-3`      | `overlays/<env>/sealed-secrets` | Secret decryption operator                                           |
+| `operators`      | `-2`      | `overlays/<env>/operators`      | CRD installers (CNPG, Strimzi, Envoy, KEDA, cert-manager, ECK, OTel) |
+| `gateway`        | `-1`      | `overlays/<env>/gateway`        | Envoy Gateway & HTTP listener infrastructure                         |
+| `datastores`     | `0`       | `overlays/<env>/datastores`     | Stateful databases (PostgreSQL clusters, Kafka, Redis)               |
+| `observability`  | `1`       | `overlays/<env>/observability`  | OTel pipelines, Elasticsearch, Prometheus, Grafana                   |
+| `workloads`      | `2`       | `overlays/<env>/workloads`      | Application microservices (core-api, workers) & HTTPRoutes           |
 
 ## 3. Sync Wave Execution Order
 

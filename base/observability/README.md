@@ -6,22 +6,17 @@ This directory contains the complete observability platform for the **RRQ (River
 
 ## Architecture
 
-<style>
-  .diagram-container svg { min-width: 1000px !important; }
-</style>
-<div class="diagram-container" style="overflow: auto; max-height: 80vh;">
+This page focuses only on the observability pipeline. For the runtime topology, data flow, and the observability architecture diagram, see the canonical RRQ architecture reference in [the River Rust Queue architecture document](https://github.com/Joel-Ajayi/river-rust-queue/blob/main/docs/ARCHITECTURE.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px", "fontFamily": "Inter, sans-serif", "lineColor": "#5b6472", "edgeLabelBackground": "#ffffff"}, "flowchart": {"useMaxWidth": true, "nodeSpacing": 40, "rankSpacing": 50}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "13px", "fontFamily": "Inter, sans-serif", "lineColor": "#475569", "primaryTextColor": "#ffffff", "primaryBorderColor": "#475569", "clusterBkg": "transparent", "clusterBorder": "#475569", "tertiaryColor": "#0f172a", "mainBkg": "#0f172a"}, "flowchart": {"useMaxWidth": true, "nodeSpacing": 20, "rankSpacing": 28, "padding": 8}}}%%
 flowchart LR
-    classDef app fill:#0d3b66,stroke:#0a2e4d,color:#ffffff,font-weight:bold
-    classDef instr fill:#5e548e,stroke:#4b4176,color:#ffffff,font-weight:bold
-    classDef agent fill:#006d77,stroke:#00535b,color:#ffffff,font-weight:bold
-    classDef gateway fill:#1b6ca8,stroke:#155a8c,color:#ffffff,font-weight:bold
-    classDef backend fill:#8f3e00,stroke:#7a3500,color:#ffffff,font-weight:bold
-    classDef channel fill:#6d6875,stroke:#5a5662,color:#ffffff,font-weight:bold
+    classDef app fill:#0f172a,stroke:#334155,color:#ffffff,stroke-width:1px
+    classDef otel fill:#1e293b,stroke:#475569,color:#ffffff,stroke-width:1px
+    classDef backend fill:#374151,stroke:#64748b,color:#ffffff,stroke-width:1px
+    classDef alert fill:#111827,stroke:#475569,color:#ffffff,stroke-width:1px
 
-    subgraph Apps["RRQ Workloads - namespace: rrq"]
+    subgraph Apps["RRQ Workloads"]
         API["core-api"]
         LDG["ledger-worker"]
         OBR["outbox-relay"]
@@ -29,53 +24,54 @@ flowchart LR
         FRD["fraud-worker"]
     end
 
-    subgraph INSTR["OTel Operator - observability"]
-        AUTO["Instrumentation - eBPF Go Auto-Instrumentation"]
+    subgraph INSTR["OTel Operator"]
+        AUTO["Instrumentation"]
     end
 
-    subgraph AGENT["OTel Agent - DaemonSet"]
-        OTLP_A["OTLP Receiver - 4317 / 4318"]
-        FILELOG["Filelog Receiver - /var/log/pods"]
-        HOSTM["Hostmetrics + Kubelet Stats"]
+    subgraph AGENT["OTel Agent"]
+        OTLP_A["OTLP\n4317 / 4318"]
+        FILELOG["Filelog"]
+        HOSTM["Hostmetrics"]
     end
 
-    subgraph GATEWAY["OTel Gateway - Deployment"]
-        OTLP_G["OTLP Receiver"]
-        KAFKA_M["Kafka Metrics Receiver - rrq-kafka-bootstrap:9092"]
-        PROC["Processors - memory_limiter / k8sattributes / batch"]
-        SPAN_METRICS["span_metrics Connector"]
+    subgraph GATEWAY["OTel Gateway"]
+        OTLP_G["OTLP"]
+        KAFKA_M["Kafka Metrics"]
+        PROC["Processors"]
+        SPAN_METRICS["span_metrics"]
     end
 
     subgraph BACKENDS["Backends"]
-        JAEGER["Jaeger - Query UI :16686"]
-        ELASTIC["Elasticsearch (ECK) - 8.17.0"]
+        JAEGER["Jaeger"]
+        ELASTIC["Elasticsearch"]
         KIBANA["Kibana"]
-        PROM["Prometheus - kube-prometheus-stack"]
-        GRAFANA["Grafana - 5-Tier Dashboards"]
+        PROM["Prometheus"]
+        GRAFANA["Grafana"]
         ALERT["Alertmanager"]
     end
 
     subgraph CHANNELS["Alerting"]
-        SLACK["Slack - critical / warning"]
+        SLACK["Slack"]
     end
 
     class API,LDG,OBR,WHK,FRD app
-    class AUTO instr
-    class OTLP_A,FILELOG,HOSTM agent
-    class OTLP_G,KAFKA_M,PROC,SPAN_METRICS gateway
+    class AUTO otel
+    class OTLP_A,FILELOG,HOSTM otel
+    class OTLP_G,KAFKA_M,PROC,SPAN_METRICS otel
     class JAEGER,ELASTIC,KIBANA,PROM,GRAFANA,ALERT backend
-    class SLACK channel
+    class SLACK alert
 
     API --> OTLP_A
     LDG --> OTLP_A
     OBR --> OTLP_A
     WHK --> OTLP_A
     FRD --> OTLP_A
-    AUTO -.->|inject agent| API
-    AUTO -.->|inject agent| LDG
-    AUTO -.->|inject agent| OBR
-    AUTO -.->|inject agent| WHK
-    AUTO -.->|inject agent| FRD
+
+    AUTO -.->|inject| API
+    AUTO -.->|inject| LDG
+    AUTO -.->|inject| OBR
+    AUTO -.->|inject| WHK
+    AUTO -.->|inject| FRD
 
     FILELOG -->|logs| OTLP_A
     HOSTM -->|metrics| OTLP_A
@@ -84,20 +80,19 @@ flowchart LR
     KAFKA_M -->|broker metrics| OTLP_G
     OTLP_G --> PROC --> SPAN_METRICS
 
-    SPAN_METRICS -->|RED metrics| PROM
+    SPAN_METRICS -->|RED| PROM
     PROC -->|traces| JAEGER
     JAEGER -->|trace index| ELASTIC
     PROC -->|logs| ELASTIC
     ELASTIC --> KIBANA
-    PROM -->|scrape :8889| SPAN_METRICS
+    PROM -->|scrape| SPAN_METRICS
     PROM --> GRAFANA
-    GRAFANA -->|dashboards via sidecar| PROM
+    GRAFANA -->|dashboards| PROM
 
-    PROM -.->|PrometheusRule| ALERT
-    ALERT -.->|AlertmanagerConfig| SLACK
+    PROM -.->|rules| ALERT
+    ALERT -.->|route| SLACK
 ```
 
-</div>
 ### Data Flow Summary
 
 | Signal      | Collection                                                             | Pipeline                                                                     | Destination                                        |
