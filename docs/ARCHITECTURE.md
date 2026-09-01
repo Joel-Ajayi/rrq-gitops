@@ -8,24 +8,19 @@ This document provides the canonical technical specification for the **RRQ Infra
 
 RRQ infrastructure is strictly managed using **Declarative GitOps** driven by **Argo CD**.
 
-<style>
-  .diagram-container svg { min-width: 1000px !important; }
-</style>
-<div class="diagram-container" style="overflow: auto; max-height: 80vh;">
-
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 30, "rankSpacing": 40}}}%%
+%%{init: {"flowchart": {"useMaxWidth": true, "nodeSpacing": 60, "rankSpacing": 80, "curve": "basis"}}}%%
 graph TD
-  subgraph "Git Repository (rrq-gitops)"
-    rootApp["bootstrap/root-app.yaml<br/>(Root Application)"]
-    apps["apps/<br/>(4 child Application manifests)"]
+  subgraph GitRepo ["Git Repository (rrq-gitops)"]
+    rootApp["bootstrap/root-app.yaml<br/>(Root ApplicationSet)"]
+    apps["apps/<br/>(5 child Application manifests)"]
     overlays["overlays/prod/<br/>(Kustomize overlays)"]
 
-    rootApp -->|"points to"| apps
-    apps -->|"each Application points to"| overlays
+    rootApp -->|"Generates"| apps
+    apps -->|"Each Application points to"| overlays
   end
 
-  subgraph "Target Kubernetes Cluster"
+  subgraph K8sCluster ["Target Kubernetes Cluster"]
     argocd["Argo CD Controller"]
     waves["Sync Wave Engine<br/>(Strict ordering -2 → 0 → 1 → 2)"]
     cluster[("Live Cluster State")]
@@ -36,8 +31,10 @@ graph TD
   end
 ```
 
-</div>
+---
+
 ### Core Operating Principles
+
 1. **Pull-Based Synchronization**: Argo CD runs inside the cluster, polling Git for desired state changes. No CI runner or developer holds static cluster admin credentials.
 2. **Kustomize Overlays**: Infrastructure bases (`base/`) are customized for `dev` and `prod` using Kustomize overlays (`overlays/`).
 3. **Automated Self-Healing**: Live cluster resources that drift from Git are automatically overwritten to match the declared Git state.
@@ -116,28 +113,29 @@ All operators are installed as Helm charts in `base/platform/operators/kustomiza
 Infrastructure sizing is mathematically driven by the Go **Capacity Planning Engine** (`tools/capacity-engine/`):
 
 ### A. Queueing Theory & Little's Law Formulation
-* **M/M/c & Kingman Approximations**: Sizing incorporates arrival variance ($C_a^2 = 1.05$) and database service time variance ($C_s^2 = 1.42$).
-* **PostgreSQL Connection Limits**: Sized for $239\text{ max\_connections}$ ceiling per database instance, apportioned fairly across replicas to prevent starvation.
-* **Worker Concurrency**: Little's Law thread scaling bounded by `worker_floor` and `worker_ceil`.
+
+- **M/M/c & Kingman Approximations**: Sizing incorporates arrival variance ($C_a^2 = 1.05$) and database service time variance ($C_s^2 = 1.42$).
+- **PostgreSQL Connection Limits**: Sized for $239\text{ max\_connections}$ ceiling per database instance, apportioned fairly across replicas to prevent starvation.
+- **Worker Concurrency**: Little's Law thread scaling bounded by `worker_floor` and `worker_ceil`.
 
 ### B. Calibrated Kafka Topic Partitions
+
 Partition allocation strictly follows:
 $$\text{Partitions} = \max\left(\left\lceil \frac{\lambda_{\text{topic\_peak}}}{\text{PartitionConsumeRPS}} \right\rceil, \text{MaxReplicas}\right)$$
 
-| Topic | Peak Ingress Rate ($\lambda$) | Consumer Services | Autoscaling Floor | Allocated Partitions |
-| :--- | :---: | :---: | :---: | :---: |
-| **`jobs`** | $3,000\text{ RPS}$ | `ledger-worker`, `fraud-worker` | $6\text{ pods}$ | **`10`** |
-| **`notify`** | $3,000\text{ RPS}$ | `webhook-worker` | $5\text{ pods}$ | **`20`** |
-| **`xshard.shard-a`** | $1,500\text{ RPS}$ | `ledger-worker` | $6\text{ pods}$ | **`15`** |
-| **`xshard.shard-b`** | $1,500\text{ RPS}$ | `ledger-worker` | $6\text{ pods}$ | **`15`** |
+| Topic                | Peak Ingress Rate ($\lambda$) |        Consumer Services        | Autoscaling Floor | Allocated Partitions |
+| :------------------- | :---------------------------: | :-----------------------------: | :---------------: | :------------------: |
+| **`jobs`**           |      $3,000\text{ RPS}$       | `ledger-worker`, `fraud-worker` |  $6\text{ pods}$  |       **`10`**       |
+| **`notify`**         |      $3,000\text{ RPS}$       |        `webhook-worker`         |  $5\text{ pods}$  |       **`20`**       |
+| **`xshard.shard-a`** |      $1,500\text{ RPS}$       |         `ledger-worker`         |  $6\text{ pods}$  |       **`15`**       |
+| **`xshard.shard-b`** |      $1,500\text{ RPS}$       |         `ledger-worker`         |  $6\text{ pods}$  |       **`15`**       |
 
 ---
 
 ## 7. Measured Performance Benchmarks
 
-* **Peak Throughput**: $3,000\text{ RPS}$ burst sustained with $0$ data loss.
-* **Outbox Drain Velocity**: $\approx 1,000\text{ events/sec}$ continuous Kafka publishing.
-* **Nominal Ingress Latency**: $38.7\text{ ms}$ (P50) / $45.0\text{ ms}$ (P95).
-* **Circuit Breaker Shedding**: Fast rejection ($< 0.01\text{ ms}$) under over-saturation, auto-recovering within $10\text{s}$.
-* **DLQ Batch Recovery**: $100\%$ message replay success rate across all dead-lettered transactions.
-
+- **Peak Throughput**: $3,000\text{ RPS}$ burst sustained with $0$ data loss.
+- **Outbox Drain Velocity**: $\approx 1,000\text{ events/sec}$ continuous Kafka publishing.
+- **Nominal Ingress Latency**: $38.7\text{ ms}$ (P50) / $45.0\text{ ms}$ (P95).
+- **Circuit Breaker Shedding**: Fast rejection ($< 0.01\text{ ms}$) under over-saturation, auto-recovering within $10\text{s}$.
+- **DLQ Batch Recovery**: $100\%$ message replay success rate across all dead-lettered transactions.

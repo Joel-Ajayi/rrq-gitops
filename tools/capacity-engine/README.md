@@ -16,12 +16,12 @@ slo-input.yaml
 └─────────┘     └─────────┘     └──────────┘     └────────────────┘
 ```
 
-| Phase         | Source File                        | Description                                                                                                                |
-| ------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Supply**    | `supply.go`                        | Computes infrastructure ceilings from physical inputs (Postgres max connections, Kafka partition budget, Redis maxmemory). |
-| **Demand**    | `demand.go`                        | Derives per-service parameters from SLO targets via the models below.                                                      |
-| **Fit-Check** | `fitcheck.go`                      | Validates total demand ≤ supply. Emits `FAIL` (blocks deployment) or `WARN` (advisory).                                    |
-| **Render**    | `render.go`, `render_manifests.go` | Renders per-service + platform ConfigMaps into `base/workloads/config/`, writes `capacity-output.yaml`, and patches Kubernetes manifests.                                                            |
+| Phase         | Source File                        | Description                                                                                                                               |
+| ------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Supply**    | `supply.go`                        | Computes infrastructure ceilings from physical inputs (Postgres max connections, Kafka partition budget, Redis maxmemory).                |
+| **Demand**    | `demand.go`                        | Derives per-service parameters from SLO targets via the models below.                                                                     |
+| **Fit-Check** | `fitcheck.go`                      | Validates total demand ≤ supply. Emits `FAIL` (blocks deployment) or `WARN` (advisory).                                                   |
+| **Render**    | `render.go`, `render_manifests.go` | Renders per-service + platform ConfigMaps into `base/workloads/config/`, writes `capacity-output.yaml`, and patches Kubernetes manifests. |
 
 All formulas live in `models.go`. `demand.go` is pure orchestration — no formulas.
 
@@ -201,25 +201,25 @@ worst case = 2 × (base + max) = ¾ × budget ≤ budget ✓
 
 ```
 partitions = max( ceil( λ_topic_peak / per_partition_consume ), max_replicas )
+
+- `λ_topic_peak`: Isolated peak message rate for the specific topic (`jobs`, `notify`, `xshard.*`).
+- `max_replicas`: Enforces consumer pod scaling concurrency as a hard floor so scaled pods are never partition-starved.
+-
 ```
 
-* `λ_topic_peak`: Isolated peak message rate for the specific topic (`jobs`, `notify`, `xshard.*`).
-* `max_replicas`: Enforces consumer pod scaling concurrency as a hard floor so scaled pods are never partition-starved.
-* Automatically patched into `base/platform/datastores/kafka/topics.yaml`.
-
-#### Cluster Capacity & File Descriptors
-
-```
-cluster_cap = min( brokers × per_broker_cap, 200,000 )        (Confluent 2023)
-segments    = ceil( retention_seconds / segment_seconds )
-fd_estimate = per_broker_cap × (segments + 1) × 2             (Jun Rao 2015)
+cluster_cap = min( brokers × per_broker_cap, 200,000 ) (Confluent 2023)
+segments = ceil( retention_seconds / segment_seconds )
+fd_estimate = per_broker_cap × (segments + 1) × 2 (Jun Rao 2015)
 latency_advisory: cluster_cap ≤ 100 × brokers × replication_factor
+
 ```
 
 #### Storage Growth
 
 ```
+
 storage_GB/day = Σ(producer λ_peak) × 1KB × 86400 × replication_factor / 2³⁰
+
 ```
 
 ---
@@ -227,10 +227,12 @@ storage_GB/day = Σ(producer λ_peak) × 1KB × 86400 × replication_factor / 2�
 ### 8. Redis — Max Memory & Keyspace
 
 ```
+
 maxmem = RAM_per_node × (1 − fork_headroom) / fragmentation
 
 keyspace (velocity windows) = Σ( merchants × window_buckets × per_key_bytes )
 fit-check: keyspace ≤ nodes × maxmem
+
 ```
 
 ---
@@ -240,13 +242,17 @@ fit-check: keyspace ≤ nodes × maxmem
 #### Per-Merchant Bulkhead (multi-tenant isolation)
 
 ```
-per_merchant = max( 1, ceil( fast_lane_workers × 0.10 ) )   # 10% pool per merchant
+
+per_merchant = max( 1, ceil( fast_lane_workers × 0.10 ) ) # 10% pool per merchant
+
 ```
 
 #### Breaker Eviction TTL
 
 ```
+
 eviction_ttl = max( 5 min, 10 × max( delivery_backoff_base, dlq_base_delay ) )
+
 ```
 
 ---
@@ -254,10 +260,12 @@ eviction_ttl = max( 5 min, 10 × max( delivery_backoff_base, dlq_base_delay ) )
 ### 10. Relay (Outbox) Derivation
 
 ```
-fetch_batch   = min( max_fetch_batch, floor( SLO_latency_ms × 0.4 / avg_ms ) )   # 40% SLO reserved for DB
-replicas      = ceil( total_peak / producer_throughput )
+
+fetch_batch = min( max_fetch_batch, floor( SLO_latency_ms × 0.4 / avg_ms ) ) # 40% SLO reserved for DB
+replicas = ceil( total_peak / producer_throughput )
 batch_timeout = fetch_batch × ceil( avg_ms )
 pool_interval = max( 1, ceil( 1000 × fetch_batch / (total_peak / replicas) ) − 1 )
+
 ```
 
 ---
@@ -265,10 +273,12 @@ pool_interval = max( 1, ceil( 1000 × fetch_batch / (total_peak / replicas) ) �
 ### 11. Resource Sizing — CPU & Memory
 
 ```
+
 cpu_mcores = ceil( (λ_nominal / min_replicas) / rps_per_core × 1000 )
 
 mem_mib = (pool × 50KB) + (http × 50KB) + 64MiB baseline + kafka_reader_buffer
-relay   = base + staging_KB/1024 + max(1, fetch_batch × max_payload_KB/1024)
+relay = base + staging_KB/1024 + max(1, fetch_batch × max_payload_KB/1024)
+
 ```
 
 _Memory constants (`models.go` → `constants.go`): 50 KB per PG conn (pgx), 50 KB per TLS conn (net/http Transport), 64 MiB Go runtime baseline._
@@ -280,9 +290,11 @@ _Memory constants (`models.go` → `constants.go`): 50 KB per PG conn (pgx), 50 
 #### Connection Demand & HPA Cap
 
 ```
+
 connection_demand = pool_size × replicas
-gap               = usable_conns − Σ(j≠i)(pool_j × replicas_j)
-hpa_cap           = max( floor( gap / pool_i ), min_replicas )
+gap = usable_conns − Σ(j≠i)(pool_j × replicas_j)
+hpa_cap = max( floor( gap / pool_i ), min_replicas )
+
 ```
 
 Peak demand > max_conns ⇒ **FAIL**; peak > optimal_active ⇒ **WARN**; minimum-scale demand > max_conns ⇒ **FATAL**. Each service's HPA max is clamped to its fair share of the gap.
@@ -290,8 +302,10 @@ Peak demand > max_conns ⇒ **FAIL**; peak > optimal_active ⇒ **WARN**; minimu
 #### Kafka Spread
 
 ```
+
 spread = (total_partitions × replication_factor) / brokers
-```
+
+````
 
 `spread > per_broker_cap` or `parts > 200,000` ⇒ **FAIL**; `segment_seconds > retention` breaks deletion policy ⇒ **FAIL**.
 
@@ -318,9 +332,10 @@ make capacity
 # Or directly:
 cd tools/capacity-engine
 go run . -input slo-input.yaml -output capacity-output.yaml -render ../..
-```
+````
 
 Flags:
+
 - `-input` — SLO input YAML (default `slo-input.yaml`)
 - `-output` — capacity report YAML (default `capacity-output.yaml`)
 - `-render` — rrq-gitops repo root; manifests are patched relative to it (default `.`)

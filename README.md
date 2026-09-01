@@ -61,20 +61,14 @@ rrq-gitops/
 
 ---
 
-## Key Infrastructure & Performance Benchmarks
+## Key Infrastructure & Performance
 
-All microservices, databases, and message brokers are sized via the **Queueing Theory Capacity Engine** (`tools/capacity-engine/`) and verified with empirical k6 load benchmarks:
+All microservices, databases, and message brokers are auto-sized via the **Queueing Theory Capacity Engine** (`tools/capacity-engine/`) and verified with empirical k6 load benchmarks.
 
-| Sizing Dimension / Benchmark | Engine Formulation & Constraint | Measured Live Performance |
-| :--- | :--- | :--- |
-| **Peak Ingress Capacity** | Kingman $G/G/1$ Heavy Traffic Approximation | **$3,000\text{ RPS}$ sustained burst** |
-| **Transactional Outbox Drain** | AIMD Adaptive Window Buffer | **$\approx 1,000\text{ events/sec}$** with $< 8\%$ Kafka buffer fill |
-| **PostgreSQL Connection Pool** | Fair-share allocation ($\le 239\text{ max\_conns}$) | **$5\text{ RW conns / pod}$** with zero DB pool exhaustion |
-| **Kafka `jobs` Topic** | $3,000\text{ RPS peak} / 300\text{ RPS/part}$ | **$10\text{ partitions}$** (Consumer floor: 6 pods) |
-| **Kafka `notify` Topic** | $3,000\text{ RPS peak} / 150\text{ RPS/part}$ | **$20\text{ partitions}$** (Consumer floor: 5 pods) |
-| **Kafka `xshard.*` Topics** | $1,500\text{ RPS peak} / 100\text{ RPS/part}$ | **$15\text{ partitions}$** (Consumer floor: 6 pods) |
-| **Circuit Breaker Shedding** | Fast-fail protection on DB queue saturation | **$< 0.01\text{ ms}$ response** returning `HTTP 503` |
-| **Global DLQ Recovery** | Bounded batch replay via `/v1/admin/dlq/replay` | **$100\%$ recovery** ($43/43$ messages reprocessed) |
+🚀 **Proven Scale:** Sustains **3,000+ RPS** bursts with outbox streaming at **~1,000 events/sec**, while maintaining strict connection pooling limits and zero-drop DLQ recovery. (See our [Capacity Engine](./tools/capacity-engine/README.md) and [Load Testing](./tools/load-tests/README.md) guides for full mathematical models and test results).
+
+![Tier 1: Business Transactions & Volume Dashboard](./docs/assets/tier1-business-dashboard.png)
+_Figure 1: Tier 1 Business Transactions Dashboard (`/executive`) — live GTV, transfer throughput, and settlement rates._
 
 ---
 
@@ -155,7 +149,7 @@ Local Envoy Gateway maps NodePorts to host ports `8080` (HTTP) and `8443` (HTTPS
 | `make seal ENV=<dev\|local\|prod>`      | Encrypt plaintext secrets into SealedSecrets                                          |
 | `make render ENV=<dev\|local\|prod>`    | Dry-run: print fully-rendered Kustomize manifests                                     |
 | `make capacity`                         | Regenerate GitOps manifests from capacity models                                      |
-| `make bench SCENARIO=<name>`            | Run a k6 load test scenario (`smoke`, `full_workload`, `stress`, `spike`)            |
+| `make bench SCENARIO=<name>`            | Run a k6 load test scenario (`smoke`, `full_workload`, `stress`, `spike`)             |
 
 ---
 
