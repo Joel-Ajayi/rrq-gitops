@@ -214,7 +214,7 @@ services:
       max_payload_kb: 64 # Capacity Team - max payload limit (64KB = 65536 bytes)
       buffer_sample_interval_ms: 100 # Capacity Team - AIMD buffer sample frequency
       buffer_max_throttle_level: 3 # Tier 4 | Panel: Transactional Outbox: Lag & Buffer Fill | Metric: kafka_producer_buffer_fill_ratio
-      buffer_max_poll_interval_ms: 48 # SHOULD BE DERIVED: Redundant with relayDerived math
+      buffer_max_poll_interval_ms: 1000 # Operator constraint - absolute maximum poll interval under AIMD throttling (enforced by relayDerived)
       aimd_throttle_frac: 0.8 # Tier 4 | Panel: Transactional Outbox: Lag & Buffer Fill | Metric: kafka_producer_buffer_fill_ratio
       aimd_pause_frac: 1.0 # Tier 4 | Panel: Transactional Outbox: Lag & Buffer Fill | Metric: kafka_producer_buffer_fill_ratio
       aimd_resume_frac: 0.5 # Tier 4 | Panel: Transactional Outbox: Lag & Buffer Fill | Metric: kafka_producer_buffer_fill_ratio

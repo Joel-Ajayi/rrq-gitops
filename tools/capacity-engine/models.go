@@ -276,7 +276,7 @@ func breakerEvictionTTL(deliveryBackoffBaseMS, dlqBaseDelayMS int) int {
 // [DERIVED] batch_timeout = fetch_batch × ceil(avgMS)
 // [DERIVED] pool_interval = max(1, ceil(1000 × fetch_batch / totalPeak) − 1)
 // [DERIVED] relay_replicas = ceil(totalPeak / (producer_tput × drain_window_s))
-func relayDerived(totalPeak, avgMS, producerThroughput, sloLatencyMS float64, maxFetchBatch int) (fetchBatch, poolInterval, batchTimeout, replicas int) {
+func relayDerived(totalPeak, avgMS, producerThroughput, sloLatencyMS float64, maxFetchBatch, bufferMaxPollIntervalMS int) (fetchBatch, poolInterval, batchTimeout, replicas int) {
 	// Reserve only 40% of SLO for DB fetch to leave room for Kafka produce/network.
 	budgetDriven := int(math.Floor((sloLatencyMS * 0.4) / math.Max(avgMS, 1)))
 	fetchBatch = budgetDriven
@@ -294,7 +294,11 @@ func relayDerived(totalPeak, avgMS, producerThroughput, sloLatencyMS float64, ma
 	batchTimeout = fetchBatch * int(math.Ceil(avgMS))
 	// Pool interval bounded by cluster peak rate, with a 1000ms minimum floor for idle DB stability.
 	podSharePeak := math.Max(totalPeak/float64(replicas), 1)
-	poolInterval = max(1000, int(math.Ceil(1000*float64(fetchBatch)/podSharePeak))-1)
+	poolInterval = max(500, int(math.Ceil(1000*float64(fetchBatch)/podSharePeak))-1)
+	// Cap at buffer_max_poll_interval_ms to enforce AIMD backoff ceiling from capacity engine.
+	if bufferMaxPollIntervalMS > 0 && poolInterval > bufferMaxPollIntervalMS {
+		poolInterval = bufferMaxPollIntervalMS
+	}
 	return
 }
 

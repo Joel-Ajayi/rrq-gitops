@@ -218,9 +218,13 @@ func deriveOne(svc Service, inp *SLOInput) Derived {
 
 	// models.go: Relay Derived Values
 	if svc.Role == "producer" {
+		bufferMaxPollIntervalMS := 0
+		if svc.Relay != nil {
+			bufferMaxPollIntervalMS = svc.Relay.BufferMaxPollIntervalMS
+		}
 		d.RelayFetchBatch, d.RelayPoolIntervalMS, d.RelayBatchTimeoutMS, d.RelayReplicas =
 			relayDerived(totalPeak, avgMS, svc.ProducerThroughputRPS, float64(svc.SLO.LatencyMS),
-				inp.Defaults.RelayMaxFetchBatch)
+				inp.Defaults.RelayMaxFetchBatch, bufferMaxPollIntervalMS)
 	}
 
 	// models.go: Per-Pod Per-Shard RW & RO Caps

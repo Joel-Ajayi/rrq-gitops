@@ -194,7 +194,7 @@ services:
         http_per_host_cap: 0
         relay_replicas: 1
         relay_fetch_batch: 200
-        relay_pool_interval_ms: 1000
+        relay_pool_interval_ms: 500
         relay_batch_timeout_ms: 800
         session_ms: 12336
         heartbeat_ms: 4112
